@@ -12,6 +12,9 @@ export function normalizeRole(role) {
 }
 
 export function canAccess(user, permission) {
+  if (Array.isArray(user?.permissions)) {
+    return user.permissions.includes('*') || user.permissions.includes(permission);
+  }
   const permissions = ROLE_ACCESS[normalizeRole(user?.level)] || [];
   return permissions.includes('*') || permissions.includes(permission);
 }

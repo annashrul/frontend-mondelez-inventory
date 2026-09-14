@@ -7,11 +7,11 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import api from '@/services/api';
+import api, { getList } from '@/services/api';
 
 export default function CetakBarcode() {
   const [racks, setRacks] = useState([]); const [selected, setSelected] = useState([]); const [search, setSearch] = useState('');
-  useEffect(() => { api.get('/rak').then(setRacks).catch(() => toast.error('Gagal memuat daftar rak')); }, []);
+  useEffect(() => { api.get('/rak', { params: { limit: 100 } }).then((res) => setRacks(getList(res))).catch(() => toast.error('Gagal memuat daftar rak')); }, []);
   const filtered = racks.filter((rack) => `${rack.kode} ${rack.nama} ${rack.lokasi}`.toLowerCase().includes(search.toLowerCase()));
   const toggle = (rack) => setSelected((current) => current.some((item) => item.id === rack.id) ? current.filter((item) => item.id !== rack.id) : [...current, rack]);
   const print = () => { window.print(); };

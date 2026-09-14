@@ -5,19 +5,26 @@ import { ArrowDownCircle, ArrowUpCircle, Filter } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
-import api from '@/services/api';
+import Pagination from '@/components/Pagination';
+import api, { emptyPagination, getList, getPagination } from '@/services/api';
 
 export default function KartuStok() {
   const [data, setData] = useState([]);
   const [search, setSearch] = useState('');
   const [filterTipe, setFilterTipe] = useState('Semua');
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(10);
+  const [pagination, setPagination] = useState(emptyPagination);
 
   useEffect(() => {
-    api.get('/kartu-stok').then(setData).catch(console.error);
-  }, []);
+    api.get('/kartu-stok', { params: { page, limit } }).then((res) => {
+      setData(getList(res));
+      setPagination(getPagination(res));
+    }).catch(console.error);
+  }, [page, limit]);
 
   const filtered = data.filter((d) => {
-    const matchSearch = d.barang.toLowerCase().includes(search.toLowerCase()) || d.no_ref.toLowerCase().includes(search.toLowerCase());
+    const matchSearch = d.barang_detail?.nama.toLowerCase().includes(search.toLowerCase()) || d.no_ref.toLowerCase().includes(search.toLowerCase());
     const matchTipe = filterTipe === 'Semua' || d.tipe === filterTipe;
     return matchSearch && matchTipe;
   });
@@ -65,7 +72,7 @@ export default function KartuStok() {
                   </Badge>
                 </TableCell>
                 <TableCell className="font-mono text-xs text-muted-foreground">{row.no_ref}</TableCell>
-                <TableCell className="font-medium">{row.barang}</TableCell>
+                <TableCell className="font-medium">{row.barang_detail?.nama || '-'}</TableCell>
                 <TableCell className="text-right text-green-600 font-medium">{row.tipe === 'Masuk' ? row.qty : '-'}</TableCell>
                 <TableCell className="text-right text-red-500 font-medium">{row.tipe === 'Keluar' ? row.qty : '-'}</TableCell>
                 <TableCell className="text-right font-semibold">{row.saldo}</TableCell>
@@ -74,6 +81,9 @@ export default function KartuStok() {
             ))}
           </TableBody>
         </Table>
+      </div>
+      <div className="mt-4">
+        <Pagination pagination={pagination} onPageChange={setPage} onLimitChange={(value) => { setLimit(value); setPage(1); }} />
       </div>
     </div>
   );

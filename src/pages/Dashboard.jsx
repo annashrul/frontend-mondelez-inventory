@@ -114,10 +114,10 @@ export default function Dashboard() {
                 <div key={item.id} className="py-3 flex items-center justify-between first:pt-0 last:pb-0">
                   <div>
                     <p className="text-sm font-medium">{item.nama}</p>
-                    <p className="text-xs text-muted-foreground">Min: {item.stok_min} {item.satuan}</p>
+                    <p className="text-xs text-muted-foreground">Min: {item.stok_min} {item.satuan_detail?.nama}</p>
                   </div>
                   <Badge variant="destructive">
-                    Sisa: {item.stok} {item.satuan}
+                    Sisa: {item.stok} {item.satuan_detail?.nama}
                   </Badge>
                 </div>
               ))}

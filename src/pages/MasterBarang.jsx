@@ -1,24 +1,32 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import TableSkeleton from '@/components/TableSkeleton';
 import PageHeader from '@/components/PageHeader';
 import DataTable from '@/components/DataTable';
-import Modal from '@/components/Modal';
+import Modal, { ModalFooter } from '@/components/Modal';
 import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Combobox } from '@/components/ui/combobox';
-import api from '@/services/api';
+import { AsyncCombobox } from '@/components/ui/async-combobox';
+import api, { emptyPagination, getList, getPagination } from '@/services/api';
 
 const columns = [
-  { key: 'image_url', label: 'Gambar', render: (val, row) => val ? <img src={val} alt={row.nama} className="size-12 rounded-lg border object-cover" /> : <span className="text-xs text-muted-foreground">Belum ada</span> },
+  {
+    key: 'image_url',
+    label: 'Gambar',
+    render: (val, row) => (
+      <div className="grid size-12 shrink-0 place-items-center overflow-hidden rounded-lg border bg-muted text-center text-[10px] leading-tight text-muted-foreground">
+        {val ? <img src={val} alt={row.nama} className="size-full object-cover" /> : 'Belum ada'}
+      </div>
+    ),
+  },
   { key: 'kode', label: 'Kode' },
   { key: 'barcode', label: 'Barcode' },
   { key: 'nama', label: 'Nama Barang' },
-  { key: 'kelompok', label: 'Kelompok' },
-  { key: 'satuan', label: 'Satuan' },
-  { key: 'rak', label: 'Rak' },
+  { key: 'kelompok_detail', label: 'Kelompok', render: (value) => value?.nama || '-' },
+  { key: 'satuan_detail', label: 'Satuan', render: (value) => value?.nama || '-' },
+  { key: 'rak_detail', label: 'Rak', render: (value) => value?.nama || '-' },
   {
     key: 'stok', label: 'Stok',
     render: (val, row) => (
@@ -32,7 +40,7 @@ const columns = [
   { key: 'has_embedding', label: 'AI', render: (val, row) => <Badge variant={val ? 'success' : 'outline'} title={row.embedding_model || ''}>{val ? 'Siap dicari' : 'Belum ada'}</Badge> },
 ];
 
-const emptyForm = { kode: '', barcode: '', nama: '', kelompok: '', satuan: '', rak: '', stok: 0, stok_min: 0, harga: 0 };
+const emptyForm = { kode: '', barcode: '', nama: '', kelompok_id: '', satuan_id: '', rak_id: '', stok: 0, stok_min: 0, harga: 0 };
 
 function FormField({ field, label, type = 'text', value, onChange }) {
   return (
@@ -51,9 +59,6 @@ function FormField({ field, label, type = 'text', value, onChange }) {
 
 export default function MasterBarang() {
   const [data, setData] = useState([]);
-  const [kelompokOptions, setKelompokOptions] = useState([]);
-  const [satuanOptions, setSatuanOptions] = useState([]);
-  const [rakOptions, setRakOptions] = useState([]);
   const [search, setSearch] = useState('');
   const [modalOpen, setModalOpen] = useState(false);
   const [form, setForm] = useState(emptyForm);
@@ -62,20 +67,16 @@ export default function MasterBarang() {
   const [imageFile, setImageFile] = useState(null);
   const [preview, setPreview] = useState('');
   const [saving, setSaving] = useState(false);
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(10);
+  const [pagination, setPagination] = useState(emptyPagination);
 
   const fetchData = async () => {
     setLoading(true);
     try {
-      const [resBarang, resKelompok, resSatuan, resRak] = await Promise.all([
-        api.get('/barang'),
-        api.get('/kelompok-barang'),
-        api.get('/satuan'),
-        api.get('/rak')
-      ]);
-      setData(resBarang);
-      setKelompokOptions(resKelompok.map((k) => ({ value: k.nama, label: k.nama })));
-      setSatuanOptions(resSatuan.map((s) => ({ value: s.nama, label: s.nama })));
-      setRakOptions(resRak.map((r) => ({ value: r.nama, label: `${r.nama} — ${r.lokasi}` })));
+      const resBarang = await api.get('/barang', { params: { search, page, limit } });
+      setData(getList(resBarang));
+      setPagination(getPagination(resBarang));
     } catch (err) {
       toast.error(err.message || 'Gagal mengambil data master');
     }
@@ -84,13 +85,7 @@ export default function MasterBarang() {
 
   useEffect(() => {
     fetchData();
-  }, []);
-
-  const filtered = data.filter((d) =>
-    d.nama.toLowerCase().includes(search.toLowerCase()) ||
-    d.kode.toLowerCase().includes(search.toLowerCase()) ||
-    d.barcode?.toLowerCase().includes(search.toLowerCase())
-  );
+  }, [search, page, limit]);
 
   const resetImage = () => { if (preview?.startsWith('blob:')) URL.revokeObjectURL(preview); setImageFile(null); setPreview(''); };
   const openAdd = () => { resetImage(); setForm(emptyForm); setEditId(null); setModalOpen(true); };
@@ -108,14 +103,12 @@ export default function MasterBarang() {
   };
 
   const handleDelete = async (row) => {
-    if (confirm(`Hapus barang "${row.nama}"?`)) {
-      try {
-        await api.delete(`/barang/${row.id}`);
-        setData(data.filter((d) => d.id !== row.id));
-        toast.success('Barang berhasil dihapus');
-      } catch (e) {
-        toast.error(e.message || 'Gagal menghapus barang');
-      }
+    try {
+      await api.delete(`/barang/${row.id}`);
+      setData(data.filter((d) => d.id !== row.id));
+      toast.success('Barang berhasil dihapus');
+    } catch (e) {
+      toast.error(e.message || 'Gagal menghapus barang');
     }
   };
 
@@ -148,6 +141,18 @@ export default function MasterBarang() {
   };
 
   const updateField = (field, value) => setForm((current) => ({ ...current, [field]: value }));
+  const loadKelompok = useCallback(async (query) => {
+    const rows = await api.get('/kelompok-barang', { params: { search: query, limit: 100 } });
+    return getList(rows).map((item) => ({ value: String(item.id), label: `${item.kode} — ${item.nama}` }));
+  }, []);
+  const loadSatuan = useCallback(async (query) => {
+    const rows = await api.get('/satuan', { params: { search: query, limit: 100 } });
+    return getList(rows).map((item) => ({ value: String(item.id), label: `${item.kode} — ${item.nama}` }));
+  }, []);
+  const loadRak = useCallback(async (query) => {
+    const rows = await api.get('/rak', { params: { search: query, limit: 100 } });
+    return getList(rows).map((item) => ({ value: String(item.id), label: `${item.kode} — ${item.nama} · ${item.lokasi_detail?.nama}` }));
+  }, []);
 
   return (
     <div>
@@ -157,24 +162,25 @@ export default function MasterBarang() {
         onAdd={openAdd}
         addLabel="Tambah Barang"
         searchValue={search}
-        onSearchChange={setSearch}
+        onSearchChange={(value) => { setSearch(value); setPage(1); }}
       />
       {loading ? (
         <TableSkeleton />
       ) : (
-        <DataTable columns={columns} data={filtered} onEdit={openEdit} onDelete={handleDelete} />
+        <DataTable columns={columns} data={data} onEdit={openEdit} onDelete={handleDelete} pagination={pagination} onPageChange={setPage} onLimitChange={(value) => { setLimit(value); setPage(1); }} actionColumnFixed="right" />
       )}
-      <Modal isOpen={modalOpen} onClose={closeModal} title={editId ? 'Edit Barang' : 'Tambah Barang'} size="lg">
-        <form onSubmit={handleSave} className="grid grid-cols-2 gap-4">
+      <Modal isOpen={modalOpen} onClose={closeModal} title={editId ? 'Edit Barang' : 'Tambah Barang'} size="xl">
+        <form id="barang-form" onSubmit={handleSave} className="grid gap-4 sm:grid-cols-2">
           <FormField field="kode" label="Kode Barang" value={form.kode} onChange={updateField} />
           <FormField field="barcode" label="Barcode" value={form.barcode} onChange={updateField} />
           <FormField field="nama" label="Nama Barang" value={form.nama} onChange={updateField} />
           <div className="space-y-1.5">
             <Label>Kelompok Barang</Label>
-            <Combobox
-              options={kelompokOptions}
-              value={form.kelompok}
-              onValueChange={(val) => setForm({ ...form, kelompok: val })}
+            <AsyncCombobox
+              value={String(form.kelompok_id || '')}
+              selectedOption={form.kelompok_id ? { value: String(form.kelompok_id), label: form.kelompok_detail?.nama } : null}
+              onValueChange={(val) => updateField('kelompok_id', Number(val))}
+              loadOptions={loadKelompok}
               placeholder="Pilih kelompok..."
               searchPlaceholder="Cari kelompok..."
               emptyText="Kelompok tidak ditemukan."
@@ -182,10 +188,11 @@ export default function MasterBarang() {
           </div>
           <div className="space-y-1.5">
             <Label>Satuan</Label>
-            <Combobox
-              options={satuanOptions}
-              value={form.satuan}
-              onValueChange={(val) => setForm({ ...form, satuan: val })}
+            <AsyncCombobox
+              value={String(form.satuan_id || '')}
+              selectedOption={form.satuan_id ? { value: String(form.satuan_id), label: form.satuan_detail?.nama } : null}
+              onValueChange={(val) => updateField('satuan_id', Number(val))}
+              loadOptions={loadSatuan}
               placeholder="Pilih satuan..."
               searchPlaceholder="Cari satuan..."
               emptyText="Satuan tidak ditemukan."
@@ -193,10 +200,11 @@ export default function MasterBarang() {
           </div>
           <div className="space-y-1.5">
             <Label>Rak</Label>
-            <Combobox
-              options={rakOptions}
-              value={form.rak}
-              onValueChange={(val) => setForm({ ...form, rak: val })}
+            <AsyncCombobox
+              value={String(form.rak_id || '')}
+              selectedOption={form.rak_id ? { value: String(form.rak_id), label: form.rak_detail?.nama } : null}
+              onValueChange={(val) => updateField('rak_id', Number(val))}
+              loadOptions={loadRak}
               placeholder="Pilih rak..."
               searchPlaceholder="Cari rak..."
               emptyText="Rak tidak ditemukan."
@@ -205,7 +213,7 @@ export default function MasterBarang() {
           <FormField field="stok" label="Stok" type="number" value={form.stok} onChange={updateField} />
           <FormField field="stok_min" label="Stok Minimum" type="number" value={form.stok_min} onChange={updateField} />
           <FormField field="harga" label="Harga" type="number" value={form.harga} onChange={updateField} />
-          <div className="col-span-2 space-y-2">
+          <div className="sm:col-span-2 space-y-2">
             <Label htmlFor="image">Gambar Barang</Label>
             <div className="flex items-center gap-4 rounded-xl border p-3">
               {preview ? <img src={preview} alt="Preview barang" className="size-24 rounded-lg border object-cover" /> : <div className="grid size-24 place-items-center rounded-lg bg-muted text-center text-xs text-muted-foreground">Belum ada gambar</div>}
@@ -217,11 +225,11 @@ export default function MasterBarang() {
               </div>
             </div>
           </div>
-          <div className="col-span-2 flex justify-end gap-2 pt-2">
-            <Button type="button" variant="outline" onClick={closeModal} disabled={saving}>Batal</Button>
-            <Button type="submit" disabled={saving}>{saving ? 'Memproses gambar...' : 'Simpan'}</Button>
-          </div>
         </form>
+        <ModalFooter className="-mx-5 -mb-5 mt-6 sm:-mx-6 sm:-mb-6">
+          <Button type="button" variant="outline" onClick={closeModal} disabled={saving}>Batal</Button>
+          <Button type="submit" form="barang-form" disabled={saving}>{saving ? 'Memproses gambar...' : 'Simpan'}</Button>
+        </ModalFooter>
       </Modal>
     </div>
   );

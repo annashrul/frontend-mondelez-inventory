@@ -9,7 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import api from '@/services/api';
+import api, { emptyPagination, getList, getPagination } from '@/services/api';
 
 const columns = [
   { key: 'kode', label: 'Kode' },
@@ -29,35 +29,31 @@ export default function MasterLokasi() {
   const [editId, setEditId] = useState(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(10);
+  const [pagination, setPagination] = useState(emptyPagination);
 
   const fetchData = async () => {
     setLoading(true);
     try {
-      const res = await api.get('/lokasi');
-      setData(res);
+      const res = await api.get('/lokasi', { params: { search, page, limit } });
+      setData(getList(res));
+      setPagination(getPagination(res));
     } catch (error) { toast.error(error.message || 'Gagal mengambil data lokasi'); }
     setLoading(false);
   };
 
-  useEffect(() => { fetchData(); }, []);
-
-  const filtered = data.filter((d) =>
-    d.nama.toLowerCase().includes(search.toLowerCase()) ||
-    d.kode.toLowerCase().includes(search.toLowerCase()) ||
-    d.alamat?.toLowerCase().includes(search.toLowerCase())
-  );
+  useEffect(() => { fetchData(); }, [search, page, limit]);
 
   const openAdd = () => { setForm(emptyForm); setEditId(null); setModalOpen(true); };
   const openEdit = (row) => { setForm(row); setEditId(row.id); setModalOpen(true); };
 
   const handleDelete = async (row) => {
-    if (confirm(`Hapus lokasi "${row.nama}"?`)) {
-      try {
-        await api.delete('/lokasi/' + row.id);
-        setData((current) => current.filter((d) => d.id !== row.id));
-        toast.success('Lokasi berhasil dihapus');
-      } catch (error) { toast.error(error.message || 'Gagal menghapus lokasi'); }
-    }
+    try {
+      await api.delete('/lokasi/' + row.id);
+      setData((current) => current.filter((d) => d.id !== row.id));
+      toast.success('Lokasi berhasil dihapus');
+    } catch (error) { toast.error(error.message || 'Gagal menghapus lokasi'); }
   };
 
   const handleSave = async (e) => {
@@ -81,9 +77,9 @@ export default function MasterLokasi() {
 
   return (
     <div>
-      <PageHeader title="Master Lokasi" subtitle="Kelola data lokasi penyimpanan" onAdd={openAdd} addLabel="Tambah Lokasi" searchValue={search} onSearchChange={setSearch} />
+      <PageHeader title="Master Lokasi" subtitle="Kelola data lokasi penyimpanan" onAdd={openAdd} addLabel="Tambah Lokasi" searchValue={search} onSearchChange={(value) => { setSearch(value); setPage(1); }} />
       {loading ? <TableSkeleton /> : (
-      <DataTable columns={columns} data={filtered} onEdit={openEdit} onDelete={handleDelete} />
+      <DataTable columns={columns} data={data} onEdit={openEdit} onDelete={handleDelete} pagination={pagination} onPageChange={setPage} onLimitChange={(value) => { setLimit(value); setPage(1); }} />
       )}
       <Modal isOpen={modalOpen} onClose={() => setModalOpen(false)} title={editId ? 'Edit Lokasi' : 'Tambah Lokasi'}>
         <form onSubmit={handleSave} className="space-y-4">

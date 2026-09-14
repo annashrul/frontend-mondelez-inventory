@@ -6,7 +6,7 @@ import { toast } from 'sonner';
 import dayjs from 'dayjs';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import api from '@/services/api';
+import api, { emptyPagination, getList, getPagination } from '@/services/api';
 
 const columns = [
   { key: 'tanggal', label: 'Tanggal', render: (v) => dayjs(v).format('DD/MM/YYYY') },
@@ -14,17 +14,23 @@ const columns = [
   { key: 'waktu_mulai', label: 'Waktu Mulai', render: (v) => dayjs(v).format('HH:mm') },
   { key: 'waktu_selesai', label: 'Waktu Selesai', render: (v) => v ? dayjs(v).format('HH:mm') : '-' },
   { key: 'status', label: 'Status', render: (v) => <Badge variant={v === 'Selesai' ? 'success' : 'warning'}>{v}</Badge> },
-  { key: 'user', label: 'User' },
+  { key: 'user_detail', label: 'User', render: (value) => value?.nama || '-' },
 ];
 
 export default function Closing() {
   const [data, setData] = useState([]);
   const [search, setSearch] = useState('');
   const [modalOpen, setModalOpen] = useState(false);
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(10);
+  const [pagination, setPagination] = useState(emptyPagination);
 
   useEffect(() => {
-    api.get('/shift').then(setData).catch(() => toast.error('Gagal load data'));
-  }, []);
+    api.get('/shift', { params: { page, limit } }).then((res) => {
+      setData(getList(res));
+      setPagination(getPagination(res));
+    }).catch(() => toast.error('Gagal load data'));
+  }, [page, limit]);
 
   const filtered = data.filter((d) => d.shift.toLowerCase().includes(search.toLowerCase()) || d.status.toLowerCase().includes(search.toLowerCase()));
 
@@ -52,7 +58,7 @@ export default function Closing() {
         <Button onClick={() => setModalOpen(true)}>Closing Shift Saat Ini</Button>
       </div>
 
-      <DataTable columns={columns} data={filtered} />
+      <DataTable columns={columns} data={filtered} pagination={pagination} onPageChange={setPage} onLimitChange={(value) => { setLimit(value); setPage(1); }} />
 
       <Modal isOpen={modalOpen} onClose={() => setModalOpen(false)} title="Konfirmasi Closing Shift">
         <div className="space-y-4">

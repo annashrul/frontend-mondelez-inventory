@@ -9,7 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import api from '@/services/api';
+import api, { emptyPagination, getList, getPagination } from '@/services/api';
 
 const columns = [
   { key: 'kode', label: 'Kode' },
@@ -28,12 +28,16 @@ export default function KelompokBarang() {
   const [editId, setEditId] = useState(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(10);
+  const [pagination, setPagination] = useState(emptyPagination);
 
   const fetchData = async () => {
     setLoading(true);
     try {
-      const res = await api.get('/kelompok-barang');
-      setData(res);
+      const res = await api.get('/kelompok-barang', { params: { search, page, limit } });
+      setData(getList(res));
+      setPagination(getPagination(res));
     } catch (error) {
       toast.error(error.message || 'Gagal mengambil data');
     }
@@ -42,21 +46,18 @@ export default function KelompokBarang() {
 
   useEffect(() => {
     fetchData();
-  }, []);
+  }, [search, page, limit]);
 
-  const filtered = data.filter((d) => `${d.kode} ${d.nama} ${d.deskripsi || ''}`.toLowerCase().includes(search.toLowerCase()));
   const openAdd = () => { setForm(emptyForm); setEditId(null); setModalOpen(true); };
   const openEdit = (row) => { setForm(row); setEditId(row.id); setModalOpen(true); };
 
   const handleDelete = async (row) => {
-    if (confirm(`Hapus kelompok "${row.nama}"?`)) {
-      try {
-        await api.delete(`/kelompok-barang/${row.id}`);
-        setData((current) => current.filter((d) => d.id !== row.id));
-        toast.success('Kelompok berhasil dihapus');
-      } catch (error) {
-        toast.error(error.message || 'Gagal menghapus kelompok');
-      }
+    try {
+      await api.delete(`/kelompok-barang/${row.id}`);
+      setData((current) => current.filter((d) => d.id !== row.id));
+      toast.success('Kelompok berhasil dihapus');
+    } catch (error) {
+      toast.error(error.message || 'Gagal menghapus kelompok');
     }
   };
 
@@ -81,9 +82,9 @@ export default function KelompokBarang() {
 
   return (
     <div>
-      <PageHeader title="Kelompok Barang" subtitle="Kelola kategori/kelompok barang" onAdd={openAdd} addLabel="Tambah Kelompok" searchValue={search} onSearchChange={setSearch} />
+      <PageHeader title="Kelompok Barang" subtitle="Kelola kategori/kelompok barang" onAdd={openAdd} addLabel="Tambah Kelompok" searchValue={search} onSearchChange={(value) => { setSearch(value); setPage(1); }} />
       {loading ? ( <TableSkeleton /> ) : (
-      <DataTable columns={columns} data={filtered} onEdit={openEdit} onDelete={handleDelete} />
+      <DataTable columns={columns} data={data} onEdit={openEdit} onDelete={handleDelete} pagination={pagination} onPageChange={setPage} onLimitChange={(value) => { setLimit(value); setPage(1); }} />
       )}
       <Modal isOpen={modalOpen} onClose={() => setModalOpen(false)} title={editId ? 'Edit Kelompok' : 'Tambah Kelompok'}>
         <form onSubmit={handleSave} className="space-y-4">

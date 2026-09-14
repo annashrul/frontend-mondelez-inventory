@@ -12,40 +12,46 @@ import { Button } from '@/components/ui/button';
 import { DatePicker } from '@/components/ui/date-picker';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { AsyncCombobox } from '@/components/ui/async-combobox';
-import api from '@/services/api';
+import api, { emptyPagination, getList, getPagination } from '@/services/api';
 
 const columns = [
   { key: 'tanggal', label: 'Tanggal', render: (v) => dayjs(v).format('DD/MM/YYYY') },
   { key: 'no_ref', label: 'No. Referensi' },
-  { key: 'barang', label: 'Barang' },
+  { key: 'barang_detail', label: 'Barang', render: (value) => value?.nama || '-' },
  { key: 'tipe', label: 'Tipe', render: (v) => (
     <Badge variant={v === 'Tambah' ? 'success' : 'destructive'}>{v === 'Tambah' ? '+ Tambah' : '- Kurang'}</Badge>
   )},
   { key: 'qty', label: 'Qty' },
   { key: 'alasan', label: 'Alasan' },
-  { key: 'user', label: 'User' },
+  { key: 'user_detail', label: 'User', render: (value) => value?.nama || '-' },
 ];
 
-const emptyForm = { tanggal: dayjs().format('YYYY-MM-DD'), barang: '', tipe: 'Tambah', qty: 0, alasan: '' };
+const emptyForm = { tanggal: dayjs().format('YYYY-MM-DD'), barang_id: '', tipe: 'Tambah', qty: 0, alasan: '' };
 
 export default function AdjustmentStok() {
   const [data, setData] = useState([]);
   const [search, setSearch] = useState('');
   const [modalOpen, setModalOpen] = useState(false);
   const [form, setForm] = useState(emptyForm);
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(10);
+  const [pagination, setPagination] = useState(emptyPagination);
 
   useEffect(() => {
-    api.get('/adjustment').then(setData).catch(() => toast.error('Gagal'));
-  }, []);
+    api.get('/adjustment', { params: { page, limit } }).then((res) => {
+      setData(getList(res));
+      setPagination(getPagination(res));
+    }).catch(() => toast.error('Gagal'));
+  }, [page, limit]);
 
-  const filtered = data.filter((d) => d.barang.toLowerCase().includes(search.toLowerCase()) || d.no_ref.toLowerCase().includes(search.toLowerCase()));
+  const filtered = data.filter((d) => d.barang_detail?.nama.toLowerCase().includes(search.toLowerCase()) || d.no_ref.toLowerCase().includes(search.toLowerCase()));
 
   const loadBarangOptions = async (query) => {
     try {
       const barang = await api.get('/barang', { params: { search: query } });
-      return barang.map((item) => ({
-        value: item.nama,
-        label: `${item.kode} - ${item.nama} (Stok: ${item.stok} ${item.satuan})`,
+      return getList(barang).map((item) => ({
+        value: String(item.id),
+        label: `${item.kode} - ${item.nama} (Stok: ${item.stok} ${item.satuan_detail?.nama})`,
       }));
     } catch {
       toast.error('Gagal memuat daftar barang');
@@ -56,7 +62,7 @@ export default function AdjustmentStok() {
   const openAdd = () => { setForm(emptyForm); setModalOpen(true); };
   const handleSave = async (e) => {
     e.preventDefault();
-    const newAdj = { ...form, no_ref: `ADJ-${String(data.length + 1).padStart(3, '0')}`, user: 'Admin' };
+    const newAdj = { ...form, no_ref: `ADJ-${String(data.length + 1).padStart(3, '0')}` };
     try {
       const res = await api.post('/adjustment', newAdj);
       setData([res, ...data]);
@@ -68,21 +74,21 @@ export default function AdjustmentStok() {
   return (
     <div>
       <PageHeader title="Adjustment Stok" subtitle="Kelola penyesuaian stok barang" onAdd={openAdd} addLabel="Buat Adjustment" searchValue={search} onSearchChange={setSearch} />
-      <DataTable columns={columns} data={filtered} />
+      <DataTable columns={columns} data={filtered} pagination={pagination} onPageChange={setPage} onLimitChange={(value) => { setLimit(value); setPage(1); }} />
       <Modal isOpen={modalOpen} onClose={() => setModalOpen(false)} title="Buat Adjustment Stok">
         <form onSubmit={handleSave} className="space-y-4">
           <div className="space-y-1.5"><Label>Tanggal</Label><DatePicker value={form.tanggal} onChange={(v) => setForm({ ...form, tanggal: v })} /></div>
           <div className="space-y-1.5">
             <Label>Barang</Label>
             <AsyncCombobox
-              value={form.barang}
-              onValueChange={(value) => setForm({ ...form, barang: value })}
+              value={String(form.barang_id || '')}
+              onValueChange={(value) => setForm({ ...form, barang_id: Number(value) })}
               loadOptions={loadBarangOptions}
               placeholder="Pilih barang..."
               searchPlaceholder="Cari kode atau nama barang..."
               emptyText="Barang tidak ditemukan."
             />
-            <input type="hidden" value={form.barang} required />
+            <input type="hidden" value={form.barang_id} required />
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1.5">

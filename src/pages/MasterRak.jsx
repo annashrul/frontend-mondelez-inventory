@@ -8,13 +8,13 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Combobox } from '@/components/ui/combobox';
-import api from '@/services/api';
+import api, { emptyPagination, getList, getPagination } from '@/services/api';
 
 const columns = [
   { key: 'kode', label: 'Kode Rak' },
   { key: 'qr_code', label: 'Isi QR', render: (v) => <code className="text-xs">{v}</code> },
   { key: 'nama', label: 'Nama Rak' },
-  { key: 'lokasi', label: 'Lokasi' },
+  { key: 'lokasi_detail', label: 'Lokasi', render: (value) => value?.nama || '-' },
   { key: 'kapasitas', label: 'Kapasitas' },
   { key: 'terisi', label: 'Terisi', render: (v, row) => {
     const pct = row.kapasitas > 0 ? Math.min(100, Math.round((v / row.kapasitas) * 100)) : 0;
@@ -30,7 +30,7 @@ const columns = [
   }},
 ];
 
-const emptyForm = { kode: '', qr_code: '', nama: '', lokasi: '', kapasitas: 0 };
+const emptyForm = { kode: '', qr_code: '', nama: '', lokasi_id: '', kapasitas: 0 };
 
 export default function MasterRak() {
   const [data, setData] = useState([]);
@@ -41,33 +41,34 @@ export default function MasterRak() {
   const [editId, setEditId] = useState(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(10);
+  const [pagination, setPagination] = useState(emptyPagination);
 
   const fetchData = async () => {
     setLoading(true);
     try {
       const [resRak, resLokasi] = await Promise.all([
-        api.get('/rak'),
-        api.get('/lokasi')
+        api.get('/rak', { params: { search, page, limit } }),
+        api.get('/lokasi', { params: { limit: 100 } })
       ]);
-      setData(resRak);
-      setLokasiOptions(resLokasi.map((l) => ({ value: l.nama, label: l.nama })));
+      setData(getList(resRak));
+      setPagination(getPagination(resRak));
+      setLokasiOptions(getList(resLokasi).map((l) => ({ value: String(l.id), label: l.nama })));
     } catch (error) { toast.error(error.message || 'Gagal mengambil data rak'); }
     setLoading(false);
   };
 
-  useEffect(() => { fetchData(); }, []);
+  useEffect(() => { fetchData(); }, [search, page, limit]);
 
-  const filtered = data.filter((d) => `${d.kode} ${d.qr_code} ${d.nama} ${d.lokasi || ''}`.toLowerCase().includes(search.toLowerCase()));
   const openAdd = () => { setForm(emptyForm); setEditId(null); setModalOpen(true); };
   const openEdit = (row) => { setForm(row); setEditId(row.id); setModalOpen(true); };
   const handleDelete = async (row) => {
-    if (confirm(`Hapus rak "${row.nama}"?`)) {
-      try {
-        await api.delete('/rak/' + row.id);
-        setData((current) => current.filter((d) => d.id !== row.id));
-        toast.success('Rak berhasil dihapus');
-      } catch (error) { toast.error(error.message || 'Gagal menghapus rak'); }
-    }
+    try {
+      await api.delete('/rak/' + row.id);
+      setData((current) => current.filter((d) => d.id !== row.id));
+      toast.success('Rak berhasil dihapus');
+    } catch (error) { toast.error(error.message || 'Gagal menghapus rak'); }
   };
 
   const handleSave = async (e) => {
@@ -91,9 +92,9 @@ export default function MasterRak() {
 
   return (
     <div>
-      <PageHeader title="Master Rak Barang" subtitle="Kelola lokasi rak penyimpanan" onAdd={openAdd} addLabel="Tambah Rak" searchValue={search} onSearchChange={setSearch} />
+      <PageHeader title="Master Rak Barang" subtitle="Kelola lokasi rak penyimpanan" onAdd={openAdd} addLabel="Tambah Rak" searchValue={search} onSearchChange={(value) => { setSearch(value); setPage(1); }} />
       {loading ? <TableSkeleton /> : (
-      <DataTable columns={columns} data={filtered} onEdit={openEdit} onDelete={handleDelete} />
+      <DataTable columns={columns} data={data} onEdit={openEdit} onDelete={handleDelete} pagination={pagination} onPageChange={setPage} onLimitChange={(value) => { setLimit(value); setPage(1); }} />
       )}
       <Modal isOpen={modalOpen} onClose={() => setModalOpen(false)} title={editId ? 'Edit Rak' : 'Tambah Rak'}>
         <form onSubmit={handleSave} className="space-y-4">
@@ -104,8 +105,8 @@ export default function MasterRak() {
             <Label>Lokasi</Label>
             <Combobox
               options={lokasiOptions}
-              value={form.lokasi}
-              onValueChange={(val) => setForm((current) => ({ ...current, lokasi: val }))}
+              value={String(form.lokasi_id || '')}
+              onValueChange={(val) => setForm((current) => ({ ...current, lokasi_id: Number(val) }))}
               placeholder="Pilih lokasi..."
               searchPlaceholder="Cari lokasi..."
               emptyText="Lokasi tidak ditemukan."

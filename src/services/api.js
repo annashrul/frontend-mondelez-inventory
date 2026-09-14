@@ -17,6 +17,16 @@ api.interceptors.request.use(
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
+    const user = localStorage.getItem('user');
+    if (user) {
+      try {
+        const parsed = JSON.parse(user);
+        if (parsed?.id) config.headers['X-User-Id'] = String(parsed.id);
+        if (parsed?.nama || parsed?.username) config.headers['X-User-Name'] = parsed.nama || parsed.username;
+      } catch {
+        localStorage.removeItem('user');
+      }
+    }
     return config;
   },
   (error) => Promise.reject(error)
@@ -33,5 +43,22 @@ api.interceptors.response.use(
     return Promise.reject(new Error(message));
   }
 );
+
+export const emptyPagination = {
+  page: 1,
+  limit: 10,
+  total: 0,
+  total_pages: 1,
+  has_next: false,
+  has_prev: false,
+};
+
+export function getList(response) {
+  return Array.isArray(response) ? response : response?.data || [];
+}
+
+export function getPagination(response) {
+  return response?.pagination || emptyPagination;
+}
 
 export default api;

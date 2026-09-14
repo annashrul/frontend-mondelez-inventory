@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
-import api from '@/services/api';
+import api, { emptyPagination, getList, getPagination } from '@/services/api';
 
 const columns = [
   { key: 'kode', label: 'Kode' },
@@ -26,32 +26,33 @@ export default function MasterSatuan() {
   const [editId, setEditId] = useState(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(10);
+  const [pagination, setPagination] = useState(emptyPagination);
 
   const fetchData = async () => {
     setLoading(true);
     try {
-      const res = await api.get('/satuan');
-      setData(res);
+      const res = await api.get('/satuan', { params: { search, page, limit } });
+      setData(getList(res));
+      setPagination(getPagination(res));
     } catch (error) {
       toast.error(error.message || 'Gagal mengambil data');
     }
     setLoading(false);
   };
 
-  useEffect(() => { fetchData(); }, []);
+  useEffect(() => { fetchData(); }, [search, page, limit]);
 
-  const filtered = data.filter((d) => `${d.kode} ${d.nama} ${d.deskripsi || ''}`.toLowerCase().includes(search.toLowerCase()));
   const openAdd = () => { setForm(emptyForm); setEditId(null); setModalOpen(true); };
   const openEdit = (row) => { setForm(row); setEditId(row.id); setModalOpen(true); };
 
   const handleDelete = async (row) => {
-    if (confirm(`Hapus satuan "${row.nama}"?`)) {
-      try {
-        await api.delete('/satuan/' + row.id);
-        setData((current) => current.filter((d) => d.id !== row.id));
-        toast.success('Satuan berhasil dihapus');
-      } catch (error) { toast.error(error.message || 'Gagal menghapus satuan'); }
-    }
+    try {
+      await api.delete('/satuan/' + row.id);
+      setData((current) => current.filter((d) => d.id !== row.id));
+      toast.success('Satuan berhasil dihapus');
+    } catch (error) { toast.error(error.message || 'Gagal menghapus satuan'); }
   };
 
   const handleSave = async (e) => {
@@ -75,9 +76,9 @@ export default function MasterSatuan() {
 
   return (
     <div>
-      <PageHeader title="Master Satuan Barang" subtitle="Kelola satuan/unit barang" onAdd={openAdd} addLabel="Tambah Satuan" searchValue={search} onSearchChange={setSearch} />
+      <PageHeader title="Master Satuan Barang" subtitle="Kelola satuan/unit barang" onAdd={openAdd} addLabel="Tambah Satuan" searchValue={search} onSearchChange={(value) => { setSearch(value); setPage(1); }} />
       {loading ? ( <TableSkeleton /> ) : (
-      <DataTable columns={columns} data={filtered} onEdit={openEdit} onDelete={handleDelete} />
+      <DataTable columns={columns} data={data} onEdit={openEdit} onDelete={handleDelete} pagination={pagination} onPageChange={setPage} onLimitChange={(value) => { setLimit(value); setPage(1); }} />
       )}
       <Modal isOpen={modalOpen} onClose={() => setModalOpen(false)} title={editId ? 'Edit Satuan' : 'Tambah Satuan'}>
         <form onSubmit={handleSave} className="space-y-4">
