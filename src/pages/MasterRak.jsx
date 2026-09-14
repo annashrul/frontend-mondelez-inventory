@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import TableSkeleton from '@/components/TableSkeleton';
 import PageHeader from '@/components/PageHeader';
 import DataTable from '@/components/DataTable';
 import Modal from '@/components/Modal';
@@ -7,29 +8,16 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Combobox } from '@/components/ui/combobox';
-
-const lokasiOptions = [
-  { value: 'Gudang Utama - Lantai 1', label: 'Gudang Utama - Lantai 1' },
-  { value: 'Gudang Utama - Lantai 2', label: 'Gudang Utama - Lantai 2' },
-  { value: 'Gudang Sekunder', label: 'Gudang Sekunder' },
-  { value: 'Ruang Arsip', label: 'Ruang Arsip' },
-];
-
-const dummyData = [
-  { id: 1, kode: 'RAK-A01', nama: 'Rak A-01', lokasi: 'Gudang Utama - Lantai 1', kapasitas: 100, terisi: 65 },
-  { id: 2, kode: 'RAK-A02', nama: 'Rak A-02', lokasi: 'Gudang Utama - Lantai 1', kapasitas: 100, terisi: 80 },
-  { id: 3, kode: 'RAK-B01', nama: 'Rak B-01', lokasi: 'Gudang Utama - Lantai 2', kapasitas: 150, terisi: 45 },
-  { id: 4, kode: 'RAK-B02', nama: 'Rak B-02', lokasi: 'Gudang Utama - Lantai 2', kapasitas: 150, terisi: 120 },
-  { id: 5, kode: 'RAK-C01', nama: 'Rak C-01', lokasi: 'Gudang Sekunder', kapasitas: 80, terisi: 30 },
-];
+import api from '@/services/api';
 
 const columns = [
   { key: 'kode', label: 'Kode Rak' },
+  { key: 'qr_code', label: 'Isi QR', render: (v) => <code className="text-xs">{v}</code> },
   { key: 'nama', label: 'Nama Rak' },
   { key: 'lokasi', label: 'Lokasi' },
   { key: 'kapasitas', label: 'Kapasitas' },
   { key: 'terisi', label: 'Terisi', render: (v, row) => {
-    const pct = Math.round((v / row.kapasitas) * 100);
+    const pct = row.kapasitas > 0 ? Math.min(100, Math.round((v / row.kapasitas) * 100)) : 0;
     const color = pct > 80 ? 'bg-destructive' : pct > 50 ? 'bg-amber-500' : 'bg-green-500';
     return (
       <div className="flex items-center gap-2">
@@ -42,49 +30,91 @@ const columns = [
   }},
 ];
 
-const emptyForm = { kode: '', nama: '', lokasi: '', kapasitas: 0 };
+const emptyForm = { kode: '', qr_code: '', nama: '', lokasi: '', kapasitas: 0 };
 
 export default function MasterRak() {
-  const [data, setData] = useState(dummyData);
+  const [data, setData] = useState([]);
+  const [lokasiOptions, setLokasiOptions] = useState([]);
   const [search, setSearch] = useState('');
   const [modalOpen, setModalOpen] = useState(false);
   const [form, setForm] = useState(emptyForm);
   const [editId, setEditId] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
 
-  const filtered = data.filter((d) => d.nama.toLowerCase().includes(search.toLowerCase()) || d.kode.toLowerCase().includes(search.toLowerCase()));
+  const fetchData = async () => {
+    setLoading(true);
+    try {
+      const [resRak, resLokasi] = await Promise.all([
+        api.get('/rak'),
+        api.get('/lokasi')
+      ]);
+      setData(resRak);
+      setLokasiOptions(resLokasi.map((l) => ({ value: l.nama, label: l.nama })));
+    } catch (error) { toast.error(error.message || 'Gagal mengambil data rak'); }
+    setLoading(false);
+  };
+
+  useEffect(() => { fetchData(); }, []);
+
+  const filtered = data.filter((d) => `${d.kode} ${d.qr_code} ${d.nama} ${d.lokasi || ''}`.toLowerCase().includes(search.toLowerCase()));
   const openAdd = () => { setForm(emptyForm); setEditId(null); setModalOpen(true); };
   const openEdit = (row) => { setForm(row); setEditId(row.id); setModalOpen(true); };
-  const handleDelete = (row) => { if (confirm(`Hapus rak "${row.nama}"?`)) { setData(data.filter((d) => d.id !== row.id)); toast.success('Rak berhasil dihapus'); } };
-  const handleSave = (e) => {
+  const handleDelete = async (row) => {
+    if (confirm(`Hapus rak "${row.nama}"?`)) {
+      try {
+        await api.delete('/rak/' + row.id);
+        setData((current) => current.filter((d) => d.id !== row.id));
+        toast.success('Rak berhasil dihapus');
+      } catch (error) { toast.error(error.message || 'Gagal menghapus rak'); }
+    }
+  };
+
+  const handleSave = async (e) => {
     e.preventDefault();
-    if (editId) { setData(data.map((d) => (d.id === editId ? { ...form, id: editId } : d))); toast.success('Rak berhasil diupdate'); }
-    else { setData([...data, { ...form, id: Date.now(), terisi: 0 }]); toast.success('Rak berhasil ditambah'); }
-    setModalOpen(false);
+    if (saving) return;
+    setSaving(true);
+    try {
+      if (editId) {
+        const res = await api.put('/rak/' + editId, form);
+        setData((current) => current.map((d) => (d.id === editId ? res : d)));
+        toast.success('Rak berhasil diupdate');
+      } else {
+        const res = await api.post('/rak', { ...form, qr_code: form.qr_code || `RAK:${form.kode}` });
+        setData((current) => [...current, res]);
+        toast.success('Rak berhasil ditambah');
+      }
+      setModalOpen(false);
+    } catch (error) { toast.error(error.message || 'Gagal menyimpan rak'); }
+    finally { setSaving(false); }
   };
 
   return (
     <div>
       <PageHeader title="Master Rak Barang" subtitle="Kelola lokasi rak penyimpanan" onAdd={openAdd} addLabel="Tambah Rak" searchValue={search} onSearchChange={setSearch} />
+      {loading ? <TableSkeleton /> : (
       <DataTable columns={columns} data={filtered} onEdit={openEdit} onDelete={handleDelete} />
+      )}
       <Modal isOpen={modalOpen} onClose={() => setModalOpen(false)} title={editId ? 'Edit Rak' : 'Tambah Rak'}>
         <form onSubmit={handleSave} className="space-y-4">
-          <div className="space-y-1.5"><Label>Kode Rak</Label><Input value={form.kode} onChange={(e) => setForm({ ...form, kode: e.target.value })} required /></div>
-          <div className="space-y-1.5"><Label>Nama Rak</Label><Input value={form.nama} onChange={(e) => setForm({ ...form, nama: e.target.value })} required /></div>
+          <div className="space-y-1.5"><Label htmlFor="rak-kode">Kode Rak</Label><Input id="rak-kode" value={form.kode} onChange={(e) => { const kode = e.target.value.toUpperCase(); setForm((current) => ({ ...current, kode, qr_code: editId ? current.qr_code : `RAK:${kode}` })); }} required disabled={saving} /></div>
+          <div className="space-y-1.5"><Label htmlFor="rak-qr">Nilai QR Unik</Label><Input id="rak-qr" value={form.qr_code} onChange={(e) => setForm((current) => ({ ...current, qr_code: e.target.value }))} placeholder="RAK:RAK-A01" required disabled={saving} /><p className="text-xs text-muted-foreground">Satu rak wajib memiliki satu nilai QR unik.</p></div>
+          <div className="space-y-1.5"><Label htmlFor="rak-nama">Nama Rak</Label><Input id="rak-nama" value={form.nama} onChange={(e) => setForm((current) => ({ ...current, nama: e.target.value }))} required disabled={saving} /></div>
           <div className="space-y-1.5">
             <Label>Lokasi</Label>
             <Combobox
               options={lokasiOptions}
               value={form.lokasi}
-              onValueChange={(val) => setForm({ ...form, lokasi: val })}
+              onValueChange={(val) => setForm((current) => ({ ...current, lokasi: val }))}
               placeholder="Pilih lokasi..."
               searchPlaceholder="Cari lokasi..."
               emptyText="Lokasi tidak ditemukan."
             />
           </div>
-          <div className="space-y-1.5"><Label>Kapasitas</Label><Input type="number" value={form.kapasitas} onChange={(e) => setForm({ ...form, kapasitas: Number(e.target.value) })} required /></div>
+          <div className="space-y-1.5"><Label htmlFor="rak-kapasitas">Kapasitas</Label><Input id="rak-kapasitas" type="number" min="0" value={form.kapasitas} onChange={(e) => setForm((current) => ({ ...current, kapasitas: Number(e.target.value) }))} required disabled={saving} /></div>
           <div className="flex justify-end gap-2 pt-2">
-            <Button type="button" variant="outline" onClick={() => setModalOpen(false)}>Batal</Button>
-            <Button type="submit">Simpan</Button>
+            <Button type="button" variant="outline" onClick={() => setModalOpen(false)} disabled={saving}>Batal</Button>
+            <Button type="submit" disabled={saving}>{saving ? 'Menyimpan...' : 'Simpan'}</Button>
           </div>
         </form>
       </Modal>

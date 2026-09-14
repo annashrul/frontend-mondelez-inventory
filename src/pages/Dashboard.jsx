@@ -1,33 +1,50 @@
-import {
-  Package, ShoppingCart, AlertTriangle, TrendingUp,
-  ArrowUpRight, ArrowDownRight, Clock,
-} from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Package, ShoppingCart, AlertTriangle, TrendingUp, ArrowUpRight, ArrowDownRight, Clock } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-
-const stats = [
-  { label: 'Total Barang', value: '1,248', change: '+12%', up: true, icon: Package, color: 'text-blue-600 bg-blue-100' },
-  { label: 'Transaksi Hari Ini', value: '64', change: '+8%', up: true, icon: ShoppingCart, color: 'text-green-600 bg-green-100' },
-  { label: 'Stok Menipis', value: '23', change: '+3', up: false, icon: AlertTriangle, color: 'text-amber-600 bg-amber-100' },
-  { label: 'Nilai Inventory', value: 'Rp 2.4M', change: '+5%', up: true, icon: TrendingUp, color: 'text-purple-600 bg-purple-100' },
-];
-
-const recentActivities = [
-  { id: 1, action: 'Pengambilan Barang', item: 'Kertas A4 70gsm', user: 'Budi', time: '5 menit lalu', qty: -50 },
-  { id: 2, action: 'Barang Masuk', item: 'Tinta Printer HP', user: 'Admin', time: '15 menit lalu', qty: 100 },
-  { id: 3, action: 'Adjustment Stok', item: 'Amplop Coklat F4', user: 'Sari', time: '1 jam lalu', qty: -5 },
-  { id: 4, action: 'Barang Masuk', item: 'Stapler Kenko', user: 'Admin', time: '2 jam lalu', qty: 24 },
-  { id: 5, action: 'Pengambilan Barang', item: 'Pulpen Pilot G-2', user: 'Andi', time: '3 jam lalu', qty: -12 },
-];
-
-const lowStockItems = [
-  { id: 1, name: 'Kertas A4 70gsm', stock: 5, min: 50, unit: 'rim' },
-  { id: 2, name: 'Tinta Printer Canon', stock: 2, min: 10, unit: 'pcs' },
-  { id: 3, name: 'Map Ordner', stock: 8, min: 25, unit: 'pcs' },
-  { id: 4, name: 'Isolasi Bening', stock: 3, min: 20, unit: 'roll' },
-];
+import api from '@/services/api';
+import { Skeleton } from '@/components/ui/skeleton';
 
 export default function Dashboard() {
+  const [stats, setStats] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const res = await api.get('/dashboard/stats');
+        setStats(res);
+      } catch (e) {
+        console.error('Gagal load stats');
+      }
+      setLoading(false);
+    };
+    fetchStats();
+  }, []);
+
+  if (loading) return (
+    <div className="space-y-6">
+      <div>
+        <Skeleton className="h-8 w-40 mb-2" />
+        <Skeleton className="h-4 w-64" />
+      </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {[1,2,3,4].map(i => <Skeleton key={i} className="h-32 w-full" />)}
+      </div>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <Skeleton className="h-[400px] w-full" />
+        <Skeleton className="h-[400px] w-full" />
+      </div>
+    </div>
+  );
+
+  const statCards = [
+    { label: 'Total Barang', value: stats?.totalBarang, change: '+12%', up: true, icon: Package, color: 'text-blue-600 bg-blue-100' },
+    { label: 'Transaksi Hari Ini', value: stats?.totalTransaksi, change: '+8%', up: true, icon: ShoppingCart, color: 'text-green-600 bg-green-100' },
+    { label: 'Stok Menipis', value: stats?.stokMenipis, change: '+3%', up: false, icon: AlertTriangle, color: 'text-amber-600 bg-amber-100' },
+    { label: 'Nilai Inventory', value: `Rp ${(stats?.nilaiInventory || 0).toLocaleString('id-ID')}`, change: '+5%', up: true, icon: TrendingUp, color: 'text-purple-600 bg-purple-100' },
+  ];
+
   return (
     <div className="space-y-6">
       <div>
@@ -36,7 +53,7 @@ export default function Dashboard() {
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {stats.map((stat, i) => {
+        {statCards.map((stat, i) => {
           const Icon = stat.icon;
           const [textColor, bgColor] = stat.color.split(' ');
           return (
@@ -69,14 +86,14 @@ export default function Dashboard() {
           </CardHeader>
           <CardContent className="pt-0">
             <div className="divide-y">
-              {recentActivities.map((act) => (
+              {stats?.aktivitasTerbaru?.map((act) => (
                 <div key={act.id} className="py-3 flex items-center justify-between first:pt-0 last:pb-0">
                   <div>
-                    <p className="text-sm font-medium">{act.item}</p>
-                    <p className="text-xs text-muted-foreground">{act.action} oleh {act.user} • {act.time}</p>
+                    <p className="text-sm font-medium">{act.barang}</p>
+                    <p className="text-xs text-muted-foreground">{act.keterangan} oleh {act.user} • {act.tanggal.split('T')[0]}</p>
                   </div>
-                  <span className={`text-sm font-semibold ${act.qty > 0 ? 'text-green-600' : 'text-red-500'}`}>
-                    {act.qty > 0 ? '+' : ''}{act.qty}
+                  <span className={`text-sm font-semibold ${act.tipe === 'Masuk' ? 'text-green-600' : 'text-red-500'}`}>
+                    {act.tipe === 'Masuk' ? '+' : '-'}{act.qty}
                   </span>
                 </div>
               ))}
@@ -93,14 +110,14 @@ export default function Dashboard() {
           </CardHeader>
           <CardContent className="pt-0">
             <div className="divide-y">
-              {lowStockItems.map((item) => (
+              {stats?.lowStockItems?.map((item) => (
                 <div key={item.id} className="py-3 flex items-center justify-between first:pt-0 last:pb-0">
                   <div>
-                    <p className="text-sm font-medium">{item.name}</p>
-                    <p className="text-xs text-muted-foreground">Min: {item.min} {item.unit}</p>
+                    <p className="text-sm font-medium">{item.nama}</p>
+                    <p className="text-xs text-muted-foreground">Min: {item.stok_min} {item.satuan}</p>
                   </div>
                   <Badge variant="destructive">
-                    Sisa: {item.stock} {item.unit}
+                    Sisa: {item.stok} {item.satuan}
                   </Badge>
                 </div>
               ))}

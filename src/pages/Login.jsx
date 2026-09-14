@@ -90,7 +90,7 @@ export default function Login() {
                 {loading ? 'Memproses...' : 'Login'}
               </Button>
               <p className="text-center text-xs text-muted-foreground">
-                Demo: username <strong>admin</strong> / password <strong>admin</strong>
+                Demo: <strong>admin/admin</strong>, <strong>budi/budi</strong>, atau <strong>owner/owner</strong>
               </p>
             </form>
           </CardContent>

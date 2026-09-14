@@ -2,11 +2,11 @@ import * as React from "react"
 import { cn } from "@/lib/utils"
 
 function Card({ className, ...props }) {
-  return <div data-slot="card" className={cn("bg-card text-card-foreground flex flex-col gap-6 rounded-xl border py-6 shadow-sm", className)} {...props} />
+  return <div data-slot="card" className={cn("bg-card text-card-foreground flex flex-col gap-5 rounded-2xl border py-5 shadow-sm sm:gap-6 sm:rounded-xl sm:py-6", className)} {...props} />
 }
 
 function CardHeader({ className, ...props }) {
-  return <div data-slot="card-header" className={cn("flex flex-col gap-1.5 px-6", className)} {...props} />
+  return <div data-slot="card-header" className={cn("flex flex-col gap-1.5 px-4 sm:px-6", className)} {...props} />
 }
 
 function CardTitle({ className, ...props }) {
@@ -18,7 +18,7 @@ function CardDescription({ className, ...props }) {
 }
 
 function CardContent({ className, ...props }) {
-  return <div data-slot="card-content" className={cn("px-6", className)} {...props} />
+  return <div data-slot="card-content" className={cn("px-4 sm:px-6", className)} {...props} />
 }
 
 function CardFooter({ className, ...props }) {

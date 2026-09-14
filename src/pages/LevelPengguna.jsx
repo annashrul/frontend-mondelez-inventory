@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import PageHeader from '@/components/PageHeader';
 import DataTable from '@/components/DataTable';
 import Modal from '@/components/Modal';
@@ -8,13 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
-
-const dummyData = [
-  { id: 1, kode: 'LVL-001', nama: 'Admin', deskripsi: 'Akses penuh ke semua fitur', hak_akses: 'Semua Menu', jumlah_user: 1 },
-  { id: 2, kode: 'LVL-002', nama: 'Operator', deskripsi: 'Akses operasional harian', hak_akses: 'Transaksi, Master Barang', jumlah_user: 2 },
-  { id: 3, kode: 'LVL-003', nama: 'Viewer', deskripsi: 'Hanya bisa melihat data', hak_akses: 'Lihat Data', jumlah_user: 1 },
-  { id: 4, kode: 'LVL-004', nama: 'Supervisor', deskripsi: 'Supervisi dan approval', hak_akses: 'Approval, Report', jumlah_user: 0 },
-];
+import api from '@/services/api';
 
 const columns = [
   { key: 'kode', label: 'Kode' },
@@ -27,21 +21,42 @@ const columns = [
 const emptyForm = { kode: '', nama: '', deskripsi: '', hak_akses: '' };
 
 export default function LevelPengguna() {
-  const [data, setData] = useState(dummyData);
+  const [data, setData] = useState([]);
   const [search, setSearch] = useState('');
   const [modalOpen, setModalOpen] = useState(false);
   const [form, setForm] = useState(emptyForm);
   const [editId, setEditId] = useState(null);
 
+  useEffect(() => {
+    api.get('/level-pengguna').then(setData).catch(()=>toast.error('Gagal'));
+  }, []);
+
   const filtered = data.filter((d) => d.nama.toLowerCase().includes(search.toLowerCase()));
   const openAdd = () => { setForm(emptyForm); setEditId(null); setModalOpen(true); };
   const openEdit = (row) => { setForm(row); setEditId(row.id); setModalOpen(true); };
-  const handleDelete = (row) => { if (confirm(`Hapus level "${row.nama}"?`)) { setData(data.filter((d) => d.id !== row.id)); toast.success('Level berhasil dihapus'); } };
-  const handleSave = (e) => {
+  const handleDelete = async (row) => {
+    if (confirm(`Hapus level "${row.nama}"?`)) {
+      try {
+        await api.delete(`/level-pengguna/${row.id}`);
+        setData(data.filter((d) => d.id !== row.id));
+        toast.success('Level berhasil dihapus');
+      } catch (e) { toast.error('Gagal menhapus'); }
+    }
+  };
+  const handleSave = async (e) => {
     e.preventDefault();
-    if (editId) { setData(data.map((d) => (d.id === editId ? { ...form, id: editId } : d))); toast.success('Level berhasil diupdate'); }
-    else { setData([...data, { ...form, id: Date.now(), jumlah_user: 0 }]); toast.success('Level berhasil ditambah'); }
-    setModalOpen(false);
+    try {
+      if (editId) {
+        const res = await api.put(`/level-pengguna/${editId}`, form);
+        setData(data.map((d) => (d.id === editId ? res : d)));
+        toast.success('Level berhasil diupdate');
+      } else {
+        const res = await api.post('/level-pengguna', { ...form, jumlah_user: 0 });
+        setData([...data, res]);
+        toast.success('Level berhasil ditambah');
+      }
+      setModalOpen(false);
+    } catch (e) { toast.error('Gagal menyimpan'); }
   };
 
   return (

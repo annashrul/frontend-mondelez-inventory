@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import PageHeader from '@/components/PageHeader';
 import DataTable from '@/components/DataTable';
 import Modal from '@/components/Modal';
@@ -9,19 +9,16 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
+import { DatePicker } from '@/components/ui/date-picker';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-
-const dummyData = [
-  { id: 1, tanggal: '2026-09-10', no_ref: 'ADJ-001', barang: 'Kertas A4 70gsm', tipe: 'Tambah', qty: 10, alasan: 'Koreksi stok fisik', user: 'Admin' },
-  { id: 2, tanggal: '2026-09-09', no_ref: 'ADJ-002', barang: 'Pulpen Pilot G-2', tipe: 'Kurang', qty: 5, alasan: 'Barang rusak', user: 'Budi' },
-  { id: 3, tanggal: '2026-09-08', no_ref: 'ADJ-003', barang: 'Map Ordner', tipe: 'Tambah', qty: 20, alasan: 'Stok opname', user: 'Admin' },
-];
+import { AsyncCombobox } from '@/components/ui/async-combobox';
+import api from '@/services/api';
 
 const columns = [
   { key: 'tanggal', label: 'Tanggal', render: (v) => dayjs(v).format('DD/MM/YYYY') },
   { key: 'no_ref', label: 'No. Referensi' },
   { key: 'barang', label: 'Barang' },
-  { key: 'tipe', label: 'Tipe', render: (v) => (
+ { key: 'tipe', label: 'Tipe', render: (v) => (
     <Badge variant={v === 'Tambah' ? 'success' : 'destructive'}>{v === 'Tambah' ? '+ Tambah' : '- Kurang'}</Badge>
   )},
   { key: 'qty', label: 'Qty' },
@@ -32,19 +29,40 @@ const columns = [
 const emptyForm = { tanggal: dayjs().format('YYYY-MM-DD'), barang: '', tipe: 'Tambah', qty: 0, alasan: '' };
 
 export default function AdjustmentStok() {
-  const [data, setData] = useState(dummyData);
+  const [data, setData] = useState([]);
   const [search, setSearch] = useState('');
   const [modalOpen, setModalOpen] = useState(false);
   const [form, setForm] = useState(emptyForm);
 
+  useEffect(() => {
+    api.get('/adjustment').then(setData).catch(() => toast.error('Gagal'));
+  }, []);
+
   const filtered = data.filter((d) => d.barang.toLowerCase().includes(search.toLowerCase()) || d.no_ref.toLowerCase().includes(search.toLowerCase()));
+
+  const loadBarangOptions = async (query) => {
+    try {
+      const barang = await api.get('/barang', { params: { search: query } });
+      return barang.map((item) => ({
+        value: item.nama,
+        label: `${item.kode} - ${item.nama} (Stok: ${item.stok} ${item.satuan})`,
+      }));
+    } catch {
+      toast.error('Gagal memuat daftar barang');
+      return [];
+    }
+  };
+
   const openAdd = () => { setForm(emptyForm); setModalOpen(true); };
-  const handleSave = (e) => {
+  const handleSave = async (e) => {
     e.preventDefault();
-    const newAdj = { ...form, id: Date.now(), no_ref: `ADJ-${String(data.length + 1).padStart(3, '0')}`, user: 'Admin' };
-    setData([newAdj, ...data]);
-    toast.success('Adjustment berhasil disimpan');
-    setModalOpen(false);
+    const newAdj = { ...form, no_ref: `ADJ-${String(data.length + 1).padStart(3, '0')}`, user: 'Admin' };
+    try {
+      const res = await api.post('/adjustment', newAdj);
+      setData([res, ...data]);
+      toast.success('Adjustment berhasil disimpan');
+      setModalOpen(false);
+    } catch { toast.error('Gagal menyimpan'); }
   };
 
   return (
@@ -53,8 +71,19 @@ export default function AdjustmentStok() {
       <DataTable columns={columns} data={filtered} />
       <Modal isOpen={modalOpen} onClose={() => setModalOpen(false)} title="Buat Adjustment Stok">
         <form onSubmit={handleSave} className="space-y-4">
-          <div className="space-y-1.5"><Label>Tanggal</Label><Input type="date" value={form.tanggal} onChange={(e) => setForm({ ...form, tanggal: e.target.value })} required /></div>
-          <div className="space-y-1.5"><Label>Barang</Label><Input value={form.barang} onChange={(e) => setForm({ ...form, barang: e.target.value })} placeholder="Cari/pilih barang" required /></div>
+          <div className="space-y-1.5"><Label>Tanggal</Label><DatePicker value={form.tanggal} onChange={(v) => setForm({ ...form, tanggal: v })} /></div>
+          <div className="space-y-1.5">
+            <Label>Barang</Label>
+            <AsyncCombobox
+              value={form.barang}
+              onValueChange={(value) => setForm({ ...form, barang: value })}
+              loadOptions={loadBarangOptions}
+              placeholder="Pilih barang..."
+              searchPlaceholder="Cari kode atau nama barang..."
+              emptyText="Barang tidak ditemukan."
+            />
+            <input type="hidden" value={form.barang} required />
+          </div>
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1.5">
               <Label>Tipe</Label>

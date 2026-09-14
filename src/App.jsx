@@ -18,6 +18,7 @@ import CetakBarcode from './pages/CetakBarcode';
 import LogActivity from './pages/LogActivity';
 import Closing from './pages/Closing';
 import Pengaturan from './pages/Pengaturan';
+import { canAccess } from './lib/permissions';
 
 function ProtectedRoute({ children }) {
   const { user, loading } = useAuth();
@@ -30,6 +31,11 @@ function ProtectedRoute({ children }) {
     </div>
   );
   return user ? children : <Navigate to="/login" />;
+}
+
+function AuthorizedRoute({ permission, children }) {
+  const { user } = useAuth();
+  return canAccess(user, permission) ? children : <Navigate to="/" replace />;
 }
 
 function PublicRoute({ children }) {
@@ -46,20 +52,20 @@ export default function App() {
           <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
           <Route path="/" element={<ProtectedRoute><MainLayout /></ProtectedRoute>}>
             <Route index element={<Dashboard />} />
-            <Route path="master-barang" element={<MasterBarang />} />
-            <Route path="kelompok-barang" element={<KelompokBarang />} />
-            <Route path="master-rak" element={<MasterRak />} />
-            <Route path="master-lokasi" element={<MasterLokasi />} />
-            <Route path="master-satuan" element={<MasterSatuan />} />
-            <Route path="master-pengguna" element={<MasterPengguna />} />
-            <Route path="level-pengguna" element={<LevelPengguna />} />
-            <Route path="adjustment-stok" element={<AdjustmentStok />} />
-            <Route path="kartu-stok" element={<KartuStok />} />
-            <Route path="pengambilan-barang" element={<PengambilanBarang />} />
-            <Route path="cetak-barcode" element={<CetakBarcode />} />
-            <Route path="log-activity" element={<LogActivity />} />
-            <Route path="closing" element={<Closing />} />
-            <Route path="pengaturan" element={<Pengaturan />} />
+            <Route path="master-barang" element={<AuthorizedRoute permission="barang.read"><MasterBarang /></AuthorizedRoute>} />
+            <Route path="kelompok-barang" element={<AuthorizedRoute permission="barang.read"><KelompokBarang /></AuthorizedRoute>} />
+            <Route path="master-rak" element={<AuthorizedRoute permission="rak.read"><MasterRak /></AuthorizedRoute>} />
+            <Route path="master-lokasi" element={<AuthorizedRoute permission="rak.read"><MasterLokasi /></AuthorizedRoute>} />
+            <Route path="master-satuan" element={<AuthorizedRoute permission="barang.read"><MasterSatuan /></AuthorizedRoute>} />
+            <Route path="master-pengguna" element={<AuthorizedRoute permission="pengguna.read"><MasterPengguna /></AuthorizedRoute>} />
+            <Route path="level-pengguna" element={<AuthorizedRoute permission="level.read"><LevelPengguna /></AuthorizedRoute>} />
+            <Route path="adjustment-stok" element={<AuthorizedRoute permission="adjustment.read"><AdjustmentStok /></AuthorizedRoute>} />
+            <Route path="kartu-stok" element={<AuthorizedRoute permission="kartu.read"><KartuStok /></AuthorizedRoute>} />
+            <Route path="pengambilan-barang" element={<AuthorizedRoute permission="pengambilan.read"><PengambilanBarang /></AuthorizedRoute>} />
+            <Route path="cetak-barcode" element={<AuthorizedRoute permission="barcode.read"><CetakBarcode /></AuthorizedRoute>} />
+            <Route path="log-activity" element={<AuthorizedRoute permission="log.read"><LogActivity /></AuthorizedRoute>} />
+            <Route path="closing" element={<AuthorizedRoute permission="closing.read"><Closing /></AuthorizedRoute>} />
+            <Route path="pengaturan" element={<AuthorizedRoute permission="pengaturan.read"><Pengaturan /></AuthorizedRoute>} />
           </Route>
         </Routes>
       </BrowserRouter>

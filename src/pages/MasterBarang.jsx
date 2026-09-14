@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import TableSkeleton from '@/components/TableSkeleton';
 import PageHeader from '@/components/PageHeader';
 import DataTable from '@/components/DataTable';
 import Modal from '@/components/Modal';
@@ -8,45 +9,12 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Combobox } from '@/components/ui/combobox';
-
-const dummyData = [
-  { id: 1, kode: 'BRG-001', nama: 'Kertas A4 70gsm', kelompok: 'Alat Tulis Kantor', satuan: 'Rim', rak: 'Rak A-01', stok: 150, stok_min: 50, harga: 45000 },
-  { id: 2, kode: 'BRG-002', nama: 'Pulpen Pilot G-2', kelompok: 'Alat Tulis Kantor', satuan: 'Pcs', rak: 'Rak A-02', stok: 200, stok_min: 30, harga: 15000 },
-  { id: 3, kode: 'BRG-003', nama: 'Tinta Printer HP', kelompok: 'IT Supply', satuan: 'Pcs', rak: 'Rak B-01', stok: 8, stok_min: 10, harga: 250000 },
-  { id: 4, kode: 'BRG-004', nama: 'Map Ordner', kelompok: 'Alat Tulis Kantor', satuan: 'Pcs', rak: 'Rak A-03', stok: 45, stok_min: 25, harga: 35000 },
-  { id: 5, kode: 'BRG-005', nama: 'Amplop Coklat F4', kelompok: 'Alat Tulis Kantor', satuan: 'Box', rak: 'Rak A-04', stok: 12, stok_min: 20, harga: 55000 },
-];
-
-const kelompokOptions = [
-  { value: 'Alat Tulis Kantor', label: 'Alat Tulis Kantor' },
-  { value: 'IT Supply', label: 'IT Supply' },
-  { value: 'Kebersihan', label: 'Kebersihan' },
-  { value: 'Elektrikal', label: 'Elektrikal' },
-];
-
-const satuanOptions = [
-  { value: 'Pcs', label: 'Pcs' },
-  { value: 'Box', label: 'Box' },
-  { value: 'Rim', label: 'Rim' },
-  { value: 'Roll', label: 'Roll' },
-  { value: 'Lusin', label: 'Lusin' },
-  { value: 'Pack', label: 'Pack' },
-  { value: 'Kg', label: 'Kg' },
-  { value: 'Liter', label: 'Liter' },
-];
-
-const rakOptions = [
-  { value: 'Rak A-01', label: 'Rak A-01 — Gudang Utama Lt.1' },
-  { value: 'Rak A-02', label: 'Rak A-02 — Gudang Utama Lt.1' },
-  { value: 'Rak A-03', label: 'Rak A-03 — Gudang Utama Lt.1' },
-  { value: 'Rak A-04', label: 'Rak A-04 — Gudang Utama Lt.1' },
-  { value: 'Rak B-01', label: 'Rak B-01 — Gudang Utama Lt.2' },
-  { value: 'Rak B-02', label: 'Rak B-02 — Gudang Utama Lt.2' },
-  { value: 'Rak C-01', label: 'Rak C-01 — Gudang Sekunder' },
-];
+import api from '@/services/api';
 
 const columns = [
+  { key: 'image_url', label: 'Gambar', render: (val, row) => val ? <img src={val} alt={row.nama} className="size-12 rounded-lg border object-cover" /> : <span className="text-xs text-muted-foreground">Belum ada</span> },
   { key: 'kode', label: 'Kode' },
+  { key: 'barcode', label: 'Barcode' },
   { key: 'nama', label: 'Nama Barang' },
   { key: 'kelompok', label: 'Kelompok' },
   { key: 'satuan', label: 'Satuan' },
@@ -61,53 +29,125 @@ const columns = [
     key: 'harga', label: 'Harga',
     render: (val) => `Rp ${val?.toLocaleString('id-ID')}`,
   },
+  { key: 'has_embedding', label: 'AI', render: (val, row) => <Badge variant={val ? 'success' : 'outline'} title={row.embedding_model || ''}>{val ? 'Siap dicari' : 'Belum ada'}</Badge> },
 ];
 
-const emptyForm = { kode: '', nama: '', kelompok: '', satuan: '', rak: '', stok: 0, stok_min: 0, harga: 0 };
-export default function MasterBarang() {
-  const [data, setData] = useState(dummyData);
-  const [search, setSearch] = useState('');
-  const [modalOpen, setModalOpen] = useState(false);
-  const [form, setForm] = useState(emptyForm);
-  const [editId, setEditId] = useState(null);
+const emptyForm = { kode: '', barcode: '', nama: '', kelompok: '', satuan: '', rak: '', stok: 0, stok_min: 0, harga: 0 };
 
-  const filtered = data.filter((d) =>
-    d.nama.toLowerCase().includes(search.toLowerCase()) ||
-    d.kode.toLowerCase().includes(search.toLowerCase())
-  );
-
-  const openAdd = () => { setForm(emptyForm); setEditId(null); setModalOpen(true); };
-  const openEdit = (row) => { setForm(row); setEditId(row.id); setModalOpen(true); };
-  const handleDelete = (row) => {
-    if (confirm(`Hapus barang "${row.nama}"?`)) {
-      setData(data.filter((d) => d.id !== row.id));
-      toast.success('Barang berhasil dihapus');
-    }
-  };
-  const handleSave = (e) => {
-    e.preventDefault();
-    if (editId) {
-      setData(data.map((d) => (d.id === editId ? { ...form, id: editId } : d)));
-      toast.success('Barang berhasil diupdate');
-    } else {
-      setData([...data, { ...form, id: Date.now() }]);
-      toast.success('Barang berhasil ditambah');
-    }
-    setModalOpen(false);
-  };
-
-  const F = ({ field, label, type = 'text' }) => (
+function FormField({ field, label, type = 'text', value, onChange }) {
+  return (
     <div className="space-y-1.5">
       <Label htmlFor={field}>{label}</Label>
       <Input
         id={field}
         type={type}
-        value={form[field]}
-        onChange={(e) => setForm({ ...form, [field]: type === 'number' ? Number(e.target.value) : e.target.value })}
+        value={value}
+        onChange={(event) => onChange(field, type === 'number' ? Number(event.target.value) : event.target.value)}
         required
       />
     </div>
   );
+}
+
+export default function MasterBarang() {
+  const [data, setData] = useState([]);
+  const [kelompokOptions, setKelompokOptions] = useState([]);
+  const [satuanOptions, setSatuanOptions] = useState([]);
+  const [rakOptions, setRakOptions] = useState([]);
+  const [search, setSearch] = useState('');
+  const [modalOpen, setModalOpen] = useState(false);
+  const [form, setForm] = useState(emptyForm);
+  const [editId, setEditId] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [imageFile, setImageFile] = useState(null);
+  const [preview, setPreview] = useState('');
+  const [saving, setSaving] = useState(false);
+
+  const fetchData = async () => {
+    setLoading(true);
+    try {
+      const [resBarang, resKelompok, resSatuan, resRak] = await Promise.all([
+        api.get('/barang'),
+        api.get('/kelompok-barang'),
+        api.get('/satuan'),
+        api.get('/rak')
+      ]);
+      setData(resBarang);
+      setKelompokOptions(resKelompok.map((k) => ({ value: k.nama, label: k.nama })));
+      setSatuanOptions(resSatuan.map((s) => ({ value: s.nama, label: s.nama })));
+      setRakOptions(resRak.map((r) => ({ value: r.nama, label: `${r.nama} — ${r.lokasi}` })));
+    } catch (err) {
+      toast.error(err.message || 'Gagal mengambil data master');
+    }
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+  const filtered = data.filter((d) =>
+    d.nama.toLowerCase().includes(search.toLowerCase()) ||
+    d.kode.toLowerCase().includes(search.toLowerCase()) ||
+    d.barcode?.toLowerCase().includes(search.toLowerCase())
+  );
+
+  const resetImage = () => { if (preview?.startsWith('blob:')) URL.revokeObjectURL(preview); setImageFile(null); setPreview(''); };
+  const openAdd = () => { resetImage(); setForm(emptyForm); setEditId(null); setModalOpen(true); };
+  const openEdit = (row) => { resetImage(); setForm(row); setPreview(row.image_url || ''); setEditId(row.id); setModalOpen(true); };
+  const closeModal = () => { resetImage(); setModalOpen(false); };
+
+  const handleImage = (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) return toast.error('Gunakan gambar JPEG, PNG, atau WebP');
+    if (file.size > 5 * 1024 * 1024) return toast.error('Ukuran gambar maksimal 5 MB');
+    if (preview?.startsWith('blob:')) URL.revokeObjectURL(preview);
+    setImageFile(file);
+    setPreview(URL.createObjectURL(file));
+  };
+
+  const handleDelete = async (row) => {
+    if (confirm(`Hapus barang "${row.nama}"?`)) {
+      try {
+        await api.delete(`/barang/${row.id}`);
+        setData(data.filter((d) => d.id !== row.id));
+        toast.success('Barang berhasil dihapus');
+      } catch (e) {
+        toast.error(e.message || 'Gagal menghapus barang');
+      }
+    }
+  };
+
+  const handleSave = async (e) => {
+    e.preventDefault();
+    setSaving(true);
+    try {
+      const payload = imageFile ? new FormData() : form;
+      if (imageFile) {
+        Object.entries(form).forEach(([key, value]) => {
+          if (!['image_path', 'image_url', 'embedding_model', 'has_embedding', 'created_at', 'updated_at', 'id'].includes(key)) payload.append(key, value ?? '');
+        });
+        payload.append('image', imageFile);
+      }
+      if (editId) {
+        const res = await api.put(`/barang/${editId}`, payload);
+        setData(data.map((d) => (d.id === editId ? res : d)));
+        toast.success('Barang berhasil diupdate');
+      } else {
+        const res = await api.post('/barang', payload);
+        setData([...data, res]);
+        toast.success('Barang berhasil ditambah');
+      }
+      closeModal();
+    } catch (e) {
+      toast.error(e.message || 'Gagal menyimpan barang');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const updateField = (field, value) => setForm((current) => ({ ...current, [field]: value }));
 
   return (
     <div>
@@ -119,11 +159,16 @@ export default function MasterBarang() {
         searchValue={search}
         onSearchChange={setSearch}
       />
-      <DataTable columns={columns} data={filtered} onEdit={openEdit} onDelete={handleDelete} />
-      <Modal isOpen={modalOpen} onClose={() => setModalOpen(false)} title={editId ? 'Edit Barang' : 'Tambah Barang'} size="lg">
+      {loading ? (
+        <TableSkeleton />
+      ) : (
+        <DataTable columns={columns} data={filtered} onEdit={openEdit} onDelete={handleDelete} />
+      )}
+      <Modal isOpen={modalOpen} onClose={closeModal} title={editId ? 'Edit Barang' : 'Tambah Barang'} size="lg">
         <form onSubmit={handleSave} className="grid grid-cols-2 gap-4">
-          <F field="kode" label="Kode Barang" />
-          <F field="nama" label="Nama Barang" />
+          <FormField field="kode" label="Kode Barang" value={form.kode} onChange={updateField} />
+          <FormField field="barcode" label="Barcode" value={form.barcode} onChange={updateField} />
+          <FormField field="nama" label="Nama Barang" value={form.nama} onChange={updateField} />
           <div className="space-y-1.5">
             <Label>Kelompok Barang</Label>
             <Combobox
@@ -157,12 +202,24 @@ export default function MasterBarang() {
               emptyText="Rak tidak ditemukan."
             />
           </div>
-          <F field="stok" label="Stok" type="number" />
-          <F field="stok_min" label="Stok Minimum" type="number" />
-          <F field="harga" label="Harga" type="number" />
+          <FormField field="stok" label="Stok" type="number" value={form.stok} onChange={updateField} />
+          <FormField field="stok_min" label="Stok Minimum" type="number" value={form.stok_min} onChange={updateField} />
+          <FormField field="harga" label="Harga" type="number" value={form.harga} onChange={updateField} />
+          <div className="col-span-2 space-y-2">
+            <Label htmlFor="image">Gambar Barang</Label>
+            <div className="flex items-center gap-4 rounded-xl border p-3">
+              {preview ? <img src={preview} alt="Preview barang" className="size-24 rounded-lg border object-cover" /> : <div className="grid size-24 place-items-center rounded-lg bg-muted text-center text-xs text-muted-foreground">Belum ada gambar</div>}
+              <div className="min-w-0 flex-1 space-y-2">
+                <Input id="image" type="file" accept="image/jpeg,image/png,image/webp" onChange={handleImage} disabled={saving} />
+                <p className="text-xs text-muted-foreground">JPEG, PNG, atau WebP; maksimal 5 MB. Gambar baru otomatis diproses menjadi embedding AI.</p>
+                {form.has_embedding && !imageFile && <Badge variant="success">Embedding tersedia · {form.embedding_model}</Badge>}
+                {imageFile && <Badge variant="info">Embedding dibuat saat disimpan</Badge>}
+              </div>
+            </div>
+          </div>
           <div className="col-span-2 flex justify-end gap-2 pt-2">
-            <Button type="button" variant="outline" onClick={() => setModalOpen(false)}>Batal</Button>
-            <Button type="submit">Simpan</Button>
+            <Button type="button" variant="outline" onClick={closeModal} disabled={saving}>Batal</Button>
+            <Button type="submit" disabled={saving}>{saving ? 'Memproses gambar...' : 'Simpan'}</Button>
           </div>
         </form>
       </Modal>

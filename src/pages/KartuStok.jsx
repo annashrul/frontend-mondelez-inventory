@@ -1,25 +1,22 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import PageHeader from '@/components/PageHeader';
 import dayjs from 'dayjs';
 import { ArrowDownCircle, ArrowUpCircle, Filter } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
-
-const dummyData = [
-  { id: 1, tanggal: '2026-09-10 08:30', tipe: 'Masuk', no_ref: 'IN-001', barang: 'Kertas A4 70gsm', qty: 100, saldo: 250, keterangan: 'Pembelian', user: 'Admin' },
-  { id: 2, tanggal: '2026-09-10 10:15', tipe: 'Keluar', no_ref: 'OUT-001', barang: 'Kertas A4 70gsm', qty: 50, saldo: 200, keterangan: 'Pengambilan Dept. HRD', user: 'Budi' },
-  { id: 3, tanggal: '2026-09-09 14:00', tipe: 'Masuk', no_ref: 'IN-002', barang: 'Pulpen Pilot G-2', qty: 48, saldo: 248, keterangan: 'Pembelian', user: 'Admin' },
-  { id: 4, tanggal: '2026-09-09 16:30', tipe: 'Keluar', no_ref: 'OUT-002', barang: 'Pulpen Pilot G-2', qty: 12, saldo: 236, keterangan: 'Pengambilan Dept. Finance', user: 'Sari' },
-  { id: 5, tanggal: '2026-09-08 09:00', tipe: 'Masuk', no_ref: 'ADJ-003', barang: 'Map Ordner', qty: 20, saldo: 65, keterangan: 'Adjustment stok', user: 'Admin' },
-  { id: 6, tanggal: '2026-09-08 11:20', tipe: 'Keluar', no_ref: 'OUT-003', barang: 'Map Ordner', qty: 10, saldo: 55, keterangan: 'Pengambilan Dept. GA', user: 'Budi' },
-];
+import api from '@/services/api';
 
 export default function KartuStok() {
+  const [data, setData] = useState([]);
   const [search, setSearch] = useState('');
   const [filterTipe, setFilterTipe] = useState('Semua');
 
-  const filtered = dummyData.filter((d) => {
+  useEffect(() => {
+    api.get('/kartu-stok').then(setData).catch(console.error);
+  }, []);
+
+  const filtered = data.filter((d) => {
     const matchSearch = d.barang.toLowerCase().includes(search.toLowerCase()) || d.no_ref.toLowerCase().includes(search.toLowerCase());
     const matchTipe = filterTipe === 'Semua' || d.tipe === filterTipe;
     return matchSearch && matchTipe;

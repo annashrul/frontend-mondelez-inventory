@@ -7,31 +7,32 @@ import {
 import { useAuth } from '@/context/AuthContext';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
+import { canAccess } from '@/lib/permissions';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 const menuItems = [
-  { path: '/', label: 'Dashboard', icon: LayoutDashboard },
+  { path: '/', label: 'Dashboard', icon: LayoutDashboard, permission: 'dashboard' },
   { type: 'divider', label: 'Master Data' },
-  { path: '/master-barang', label: 'Master Barang', icon: Package },
-  { path: '/kelompok-barang', label: 'Kelompok Barang', icon: FolderTree },
-  { path: '/master-rak', label: 'Master Rak', icon: Archive },
-  { path: '/master-lokasi', label: 'Master Lokasi', icon: MapPin },
-  { path: '/master-satuan', label: 'Master Satuan', icon: Ruler },
+  { path: '/master-barang', label: 'Master Barang', icon: Package, permission: 'barang.read' },
+  { path: '/kelompok-barang', label: 'Kelompok Barang', icon: FolderTree, permission: 'barang.read' },
+  { path: '/master-rak', label: 'Master Rak', icon: Archive, permission: 'rak.read' },
+  { path: '/master-lokasi', label: 'Master Lokasi', icon: MapPin, permission: 'rak.read' },
+  { path: '/master-satuan', label: 'Master Satuan', icon: Ruler, permission: 'barang.read' },
   { type: 'divider', label: 'Pengguna' },
-  { path: '/master-pengguna', label: 'Master Pengguna', icon: Users },
-  { path: '/level-pengguna', label: 'Level Pengguna', icon: ShieldCheck },
+  { path: '/master-pengguna', label: 'Master Pengguna', icon: Users, permission: 'pengguna.read' },
+  { path: '/level-pengguna', label: 'Level Pengguna', icon: ShieldCheck, permission: 'level.read' },
   { type: 'divider', label: 'Transaksi' },
-  { path: '/adjustment-stok', label: 'Adjustment Stok', icon: ClipboardList },
-  { path: '/kartu-stok', label: 'Kartu Stok', icon: CreditCard },
-  { path: '/pengambilan-barang', label: 'Pengambilan Barang', icon: ShoppingCart },
+  { path: '/adjustment-stok', label: 'Adjustment Stok', icon: ClipboardList, permission: 'adjustment.read' },
+  { path: '/kartu-stok', label: 'Kartu Stok', icon: CreditCard, permission: 'kartu.read' },
+  { path: '/pengambilan-barang', label: 'Pengambilan Barang', icon: ShoppingCart, permission: 'pengambilan.read' },
   { type: 'divider', label: 'Lainnya' },
-  { path: '/cetak-barcode', label: 'Cetak Barcode/QR', icon: QrCode },
-  { path: '/log-activity', label: 'Log Activity', icon: Activity },
-  { path: '/closing', label: 'Closing Shift', icon: Lock },
-  { path: '/pengaturan', label: 'Pengaturan', icon: Settings },
+  { path: '/cetak-barcode', label: 'Cetak Barcode/QR', icon: QrCode, permission: 'barcode.read' },
+  { path: '/log-activity', label: 'Log Activity', icon: Activity, permission: 'log.read' },
+  { path: '/closing', label: 'Closing Shift', icon: Lock, permission: 'closing.read' },
+  { path: '/pengaturan', label: 'Pengaturan', icon: Settings, permission: 'pengaturan.read' },
 ];
 
 export default function Sidebar({ collapsed, setCollapsed }) {
@@ -71,7 +72,7 @@ export default function Sidebar({ collapsed, setCollapsed }) {
   return (
     <TooltipProvider>
       <aside className={cn(
-        'fixed left-0 top-0 h-screen bg-card border-r transition-all duration-300 z-50 flex flex-col shadow-sm',
+        'fixed left-0 top-0 hidden h-screen bg-card border-r transition-all duration-300 z-50 lg:flex flex-col shadow-sm',
         collapsed ? 'w-[68px]' : 'w-64'
       )}>
         <div className="flex items-center justify-between px-4 h-14 border-b shrink-0">
@@ -88,7 +89,13 @@ export default function Sidebar({ collapsed, setCollapsed }) {
         </div>
         <ScrollArea className="flex-1">
           <nav className="py-2 px-2">
-            {menuItems.map((item, index) => {
+            {menuItems.filter((item, index, all) => {
+              if (item.type !== 'divider') return canAccess(user, item.permission);
+              const section = all.slice(index + 1);
+              const nextDivider = section.findIndex((next) => next.type === 'divider');
+              const sectionItems = nextDivider === -1 ? section : section.slice(0, nextDivider);
+              return sectionItems.some((next) => canAccess(user, next.permission));
+            }).map((item, index) => {
               if (item.type === 'divider') {
                 return !collapsed ? (
                   <div key={index} className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mt-4 mb-1 px-3">

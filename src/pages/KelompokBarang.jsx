@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import TableSkeleton from '@/components/TableSkeleton';
 import PageHeader from '@/components/PageHeader';
 import DataTable from '@/components/DataTable';
 import Modal from '@/components/Modal';
@@ -8,13 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-
-const dummyData = [
-  { id: 1, kode: 'KLP-001', nama: 'Alat Tulis Kantor', deskripsi: 'Perlengkapan tulis menulis', jumlah_barang: 45 },
-  { id: 2, kode: 'KLP-002', nama: 'IT Supply', deskripsi: 'Perlengkapan IT', jumlah_barang: 18 },
-  { id: 3, kode: 'KLP-003', nama: 'Kebersihan', deskripsi: 'Alat dan bahan kebersihan', jumlah_barang: 22 },
-  { id: 4, kode: 'KLP-004', nama: 'Elektrikal', deskripsi: 'Peralatan listrik', jumlah_barang: 15 },
-];
+import api from '@/services/api';
 
 const columns = [
   { key: 'kode', label: 'Kode' },
@@ -26,45 +21,78 @@ const columns = [
 const emptyForm = { kode: '', nama: '', deskripsi: '' };
 
 export default function KelompokBarang() {
-  const [data, setData] = useState(dummyData);
+  const [data, setData] = useState([]);
   const [search, setSearch] = useState('');
   const [modalOpen, setModalOpen] = useState(false);
   const [form, setForm] = useState(emptyForm);
   const [editId, setEditId] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
 
-  const filtered = data.filter((d) => d.nama.toLowerCase().includes(search.toLowerCase()));
+  const fetchData = async () => {
+    setLoading(true);
+    try {
+      const res = await api.get('/kelompok-barang');
+      setData(res);
+    } catch (error) {
+      toast.error(error.message || 'Gagal mengambil data');
+    }
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+  const filtered = data.filter((d) => `${d.kode} ${d.nama} ${d.deskripsi || ''}`.toLowerCase().includes(search.toLowerCase()));
   const openAdd = () => { setForm(emptyForm); setEditId(null); setModalOpen(true); };
   const openEdit = (row) => { setForm(row); setEditId(row.id); setModalOpen(true); };
-  const handleDelete = (row) => {
+
+  const handleDelete = async (row) => {
     if (confirm(`Hapus kelompok "${row.nama}"?`)) {
-      setData(data.filter((d) => d.id !== row.id));
-      toast.success('Kelompok berhasil dihapus');
+      try {
+        await api.delete(`/kelompok-barang/${row.id}`);
+        setData((current) => current.filter((d) => d.id !== row.id));
+        toast.success('Kelompok berhasil dihapus');
+      } catch (error) {
+        toast.error(error.message || 'Gagal menghapus kelompok');
+      }
     }
   };
-  const handleSave = (e) => {
+
+  const handleSave = async (e) => {
     e.preventDefault();
-    if (editId) {
-      setData(data.map((d) => (d.id === editId ? { ...form, id: editId } : d)));
-      toast.success('Kelompok berhasil diupdate');
-    } else {
-      setData([...data, { ...form, id: Date.now(), jumlah_barang: 0 }]);
-      toast.success('Kelompok berhasil ditambah');
-    }
-    setModalOpen(false);
+    if (saving) return;
+    setSaving(true);
+    try {
+      if (editId) {
+        const res = await api.put(`/kelompok-barang/${editId}`, form);
+        setData((current) => current.map((d) => (d.id === editId ? res : d)));
+        toast.success('Kelompok berhasil diupdate');
+      } else {
+        const res = await api.post('/kelompok-barang', form);
+        setData((current) => [...current, res]);
+        toast.success('Kelompok berhasil ditambah');
+      }
+      setModalOpen(false);
+    } catch (error) { toast.error(error.message || 'Gagal menyimpan kelompok'); }
+    finally { setSaving(false); }
   };
 
   return (
     <div>
       <PageHeader title="Kelompok Barang" subtitle="Kelola kategori/kelompok barang" onAdd={openAdd} addLabel="Tambah Kelompok" searchValue={search} onSearchChange={setSearch} />
+      {loading ? ( <TableSkeleton /> ) : (
       <DataTable columns={columns} data={filtered} onEdit={openEdit} onDelete={handleDelete} />
+      )}
       <Modal isOpen={modalOpen} onClose={() => setModalOpen(false)} title={editId ? 'Edit Kelompok' : 'Tambah Kelompok'}>
         <form onSubmit={handleSave} className="space-y-4">
-          <div className="space-y-1.5"><Label>Kode</Label><Input value={form.kode} onChange={(e) => setForm({ ...form, kode: e.target.value })} required /></div>
-          <div className="space-y-1.5"><Label>Nama Kelompok</Label><Input value={form.nama} onChange={(e) => setForm({ ...form, nama: e.target.value })} required /></div>
-          <div className="space-y-1.5"><Label>Deskripsi</Label><Textarea value={form.deskripsi} onChange={(e) => setForm({ ...form, deskripsi: e.target.value })} /></div>
+          <div className="space-y-1.5"><Label htmlFor="kelompok-kode">Kode</Label><Input id="kelompok-kode" value={form.kode} onChange={(e) => setForm((current) => ({ ...current, kode: e.target.value }))} required disabled={saving} /></div>
+          <div className="space-y-1.5"><Label htmlFor="kelompok-nama">Nama Kelompok</Label><Input id="kelompok-nama" value={form.nama} onChange={(e) => setForm((current) => ({ ...current, nama: e.target.value }))} required disabled={saving} /></div>
+          <div className="space-y-1.5"><Label htmlFor="kelompok-deskripsi">Deskripsi</Label><Textarea id="kelompok-deskripsi" value={form.deskripsi || ''} onChange={(e) => setForm((current) => ({ ...current, deskripsi: e.target.value }))} disabled={saving} /></div>
           <div className="flex justify-end gap-2 pt-2">
-            <Button type="button" variant="outline" onClick={() => setModalOpen(false)}>Batal</Button>
-            <Button type="submit">Simpan</Button>
+            <Button type="button" variant="outline" onClick={() => setModalOpen(false)} disabled={saving}>Batal</Button>
+            <Button type="submit" disabled={saving}>{saving ? 'Menyimpan...' : 'Simpan'}</Button>
           </div>
         </form>
       </Modal>

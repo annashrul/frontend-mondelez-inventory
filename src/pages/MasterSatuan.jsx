@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import TableSkeleton from '@/components/TableSkeleton';
 import PageHeader from '@/components/PageHeader';
 import DataTable from '@/components/DataTable';
 import Modal from '@/components/Modal';
@@ -7,17 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
-
-const dummyData = [
-  { id: 1, kode: 'STN-001', nama: 'Pcs', deskripsi: 'Satuan per buah/piece' },
-  { id: 2, kode: 'STN-002', nama: 'Box', deskripsi: 'Satuan per kotak' },
-  { id: 3, kode: 'STN-003', nama: 'Rim', deskripsi: 'Satuan rim (500 lembar)' },
-  { id: 4, kode: 'STN-004', nama: 'Roll', deskripsi: 'Satuan per gulungan' },
-  { id: 5, kode: 'STN-005', nama: 'Lusin', deskripsi: 'Satuan per 12 buah' },
-  { id: 6, kode: 'STN-006', nama: 'Pack', deskripsi: 'Satuan per pak' },
-  { id: 7, kode: 'STN-007', nama: 'Kg', deskripsi: 'Satuan per kilogram' },
-  { id: 8, kode: 'STN-008', nama: 'Liter', deskripsi: 'Satuan per liter' },
-];
+import api from '@/services/api';
 
 const columns = [
   { key: 'kode', label: 'Kode' },
@@ -28,35 +19,74 @@ const columns = [
 const emptyForm = { kode: '', nama: '', deskripsi: '' };
 
 export default function MasterSatuan() {
-  const [data, setData] = useState(dummyData);
+  const [data, setData] = useState([]);
   const [search, setSearch] = useState('');
   const [modalOpen, setModalOpen] = useState(false);
   const [form, setForm] = useState(emptyForm);
   const [editId, setEditId] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
 
-  const filtered = data.filter((d) => d.nama.toLowerCase().includes(search.toLowerCase()));
+  const fetchData = async () => {
+    setLoading(true);
+    try {
+      const res = await api.get('/satuan');
+      setData(res);
+    } catch (error) {
+      toast.error(error.message || 'Gagal mengambil data');
+    }
+    setLoading(false);
+  };
+
+  useEffect(() => { fetchData(); }, []);
+
+  const filtered = data.filter((d) => `${d.kode} ${d.nama} ${d.deskripsi || ''}`.toLowerCase().includes(search.toLowerCase()));
   const openAdd = () => { setForm(emptyForm); setEditId(null); setModalOpen(true); };
   const openEdit = (row) => { setForm(row); setEditId(row.id); setModalOpen(true); };
-  const handleDelete = (row) => { if (confirm(`Hapus satuan "${row.nama}"?`)) { setData(data.filter((d) => d.id !== row.id)); toast.success('Satuan berhasil dihapus'); } };
-  const handleSave = (e) => {
+
+  const handleDelete = async (row) => {
+    if (confirm(`Hapus satuan "${row.nama}"?`)) {
+      try {
+        await api.delete('/satuan/' + row.id);
+        setData((current) => current.filter((d) => d.id !== row.id));
+        toast.success('Satuan berhasil dihapus');
+      } catch (error) { toast.error(error.message || 'Gagal menghapus satuan'); }
+    }
+  };
+
+  const handleSave = async (e) => {
     e.preventDefault();
-    if (editId) { setData(data.map((d) => (d.id === editId ? { ...form, id: editId } : d))); toast.success('Satuan berhasil diupdate'); }
-    else { setData([...data, { ...form, id: Date.now() }]); toast.success('Satuan berhasil ditambah'); }
-    setModalOpen(false);
+    if (saving) return;
+    setSaving(true);
+    try {
+      if (editId) {
+        const res = await api.put('/satuan/' + editId, form);
+        setData((current) => current.map((d) => (d.id === editId ? res : d)));
+        toast.success('Satuan berhasil diupdate');
+      } else {
+        const res = await api.post('/satuan', form);
+        setData((current) => [...current, res]);
+        toast.success('Satuan berhasil ditambah');
+      }
+      setModalOpen(false);
+    } catch (error) { toast.error(error.message || 'Gagal menyimpan satuan'); }
+    finally { setSaving(false); }
   };
 
   return (
     <div>
       <PageHeader title="Master Satuan Barang" subtitle="Kelola satuan/unit barang" onAdd={openAdd} addLabel="Tambah Satuan" searchValue={search} onSearchChange={setSearch} />
+      {loading ? ( <TableSkeleton /> ) : (
       <DataTable columns={columns} data={filtered} onEdit={openEdit} onDelete={handleDelete} />
+      )}
       <Modal isOpen={modalOpen} onClose={() => setModalOpen(false)} title={editId ? 'Edit Satuan' : 'Tambah Satuan'}>
         <form onSubmit={handleSave} className="space-y-4">
-          <div className="space-y-1.5"><Label>Kode</Label><Input value={form.kode} onChange={(e) => setForm({ ...form, kode: e.target.value })} required /></div>
-          <div className="space-y-1.5"><Label>Nama Satuan</Label><Input value={form.nama} onChange={(e) => setForm({ ...form, nama: e.target.value })} required /></div>
-          <div className="space-y-1.5"><Label>Deskripsi</Label><Textarea value={form.deskripsi} onChange={(e) => setForm({ ...form, deskripsi: e.target.value })} /></div>
+          <div className="space-y-1.5"><Label htmlFor="satuan-kode">Kode</Label><Input id="satuan-kode" value={form.kode} onChange={(e) => setForm((current) => ({ ...current, kode: e.target.value }))} required disabled={saving} /></div>
+          <div className="space-y-1.5"><Label htmlFor="satuan-nama">Nama Satuan</Label><Input id="satuan-nama" value={form.nama} onChange={(e) => setForm((current) => ({ ...current, nama: e.target.value }))} required disabled={saving} /></div>
+          <div className="space-y-1.5"><Label htmlFor="satuan-deskripsi">Deskripsi</Label><Textarea id="satuan-deskripsi" value={form.deskripsi || ''} onChange={(e) => setForm((current) => ({ ...current, deskripsi: e.target.value }))} disabled={saving} /></div>
           <div className="flex justify-end gap-2 pt-2">
-            <Button type="button" variant="outline" onClick={() => setModalOpen(false)}>Batal</Button>
-            <Button type="submit">Simpan</Button>
+            <Button type="button" variant="outline" onClick={() => setModalOpen(false)} disabled={saving}>Batal</Button>
+            <Button type="submit" disabled={saving}>{saving ? 'Menyimpan...' : 'Simpan'}</Button>
           </div>
         </form>
       </Modal>

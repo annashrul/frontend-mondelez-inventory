@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import TableSkeleton from '@/components/TableSkeleton';
 import PageHeader from '@/components/PageHeader';
 import DataTable from '@/components/DataTable';
 import Modal from '@/components/Modal';
@@ -8,13 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-
-const dummyData = [
-  { id: 1, kode: 'LOK-001', nama: 'Gudang Utama - Lantai 1', alamat: 'Gedung A, Lantai 1', deskripsi: 'Gudang utama penyimpanan barang lantai dasar', jumlah_rak: 4 },
-  { id: 2, kode: 'LOK-002', nama: 'Gudang Utama - Lantai 2', alamat: 'Gedung A, Lantai 2', deskripsi: 'Gudang utama penyimpanan barang lantai atas', jumlah_rak: 2 },
-  { id: 3, kode: 'LOK-003', nama: 'Gudang Sekunder', alamat: 'Gedung B', deskripsi: 'Gudang tambahan untuk overflow barang', jumlah_rak: 1 },
-  { id: 4, kode: 'LOK-004', nama: 'Ruang Arsip', alamat: 'Gedung A, Lantai 3', deskripsi: 'Ruang penyimpanan dokumen dan arsip', jumlah_rak: 0 },
-];
+import api from '@/services/api';
 
 const columns = [
   { key: 'kode', label: 'Kode' },
@@ -27,50 +22,78 @@ const columns = [
 const emptyForm = { kode: '', nama: '', alamat: '', deskripsi: '' };
 
 export default function MasterLokasi() {
-  const [data, setData] = useState(dummyData);
+  const [data, setData] = useState([]);
   const [search, setSearch] = useState('');
   const [modalOpen, setModalOpen] = useState(false);
   const [form, setForm] = useState(emptyForm);
   const [editId, setEditId] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+
+  const fetchData = async () => {
+    setLoading(true);
+    try {
+      const res = await api.get('/lokasi');
+      setData(res);
+    } catch (error) { toast.error(error.message || 'Gagal mengambil data lokasi'); }
+    setLoading(false);
+  };
+
+  useEffect(() => { fetchData(); }, []);
 
   const filtered = data.filter((d) =>
     d.nama.toLowerCase().includes(search.toLowerCase()) ||
-    d.kode.toLowerCase().includes(search.toLowerCase())
+    d.kode.toLowerCase().includes(search.toLowerCase()) ||
+    d.alamat?.toLowerCase().includes(search.toLowerCase())
   );
 
   const openAdd = () => { setForm(emptyForm); setEditId(null); setModalOpen(true); };
   const openEdit = (row) => { setForm(row); setEditId(row.id); setModalOpen(true); };
-  const handleDelete = (row) => {
+
+  const handleDelete = async (row) => {
     if (confirm(`Hapus lokasi "${row.nama}"?`)) {
-      setData(data.filter((d) => d.id !== row.id));
-      toast.success('Lokasi berhasil dihapus');
+      try {
+        await api.delete('/lokasi/' + row.id);
+        setData((current) => current.filter((d) => d.id !== row.id));
+        toast.success('Lokasi berhasil dihapus');
+      } catch (error) { toast.error(error.message || 'Gagal menghapus lokasi'); }
     }
   };
-  const handleSave = (e) => {
+
+  const handleSave = async (e) => {
     e.preventDefault();
-    if (editId) {
-      setData(data.map((d) => (d.id === editId ? { ...form, id: editId } : d)));
-      toast.success('Lokasi berhasil diupdate');
-    } else {
-      setData([...data, { ...form, id: Date.now(), jumlah_rak: 0 }]);
-      toast.success('Lokasi berhasil ditambah');
-    }
-    setModalOpen(false);
+    if (saving) return;
+    setSaving(true);
+    try {
+      if (editId) {
+        const res = await api.put('/lokasi/' + editId, form);
+        setData((current) => current.map((d) => (d.id === editId ? res : d)));
+        toast.success('Lokasi berhasil diupdate');
+      } else {
+        const res = await api.post('/lokasi', form);
+        setData((current) => [...current, res]);
+        toast.success('Lokasi berhasil ditambah');
+      }
+      setModalOpen(false);
+    } catch (error) { toast.error(error.message || 'Gagal menyimpan lokasi'); }
+    finally { setSaving(false); }
   };
 
   return (
     <div>
       <PageHeader title="Master Lokasi" subtitle="Kelola data lokasi penyimpanan" onAdd={openAdd} addLabel="Tambah Lokasi" searchValue={search} onSearchChange={setSearch} />
+      {loading ? <TableSkeleton /> : (
       <DataTable columns={columns} data={filtered} onEdit={openEdit} onDelete={handleDelete} />
+      )}
       <Modal isOpen={modalOpen} onClose={() => setModalOpen(false)} title={editId ? 'Edit Lokasi' : 'Tambah Lokasi'}>
         <form onSubmit={handleSave} className="space-y-4">
-          <div className="space-y-1.5"><Label>Kode</Label><Input value={form.kode} onChange={(e) => setForm({ ...form, kode: e.target.value })} required /></div>
-          <div className="space-y-1.5"><Label>Nama Lokasi</Label><Input value={form.nama} onChange={(e) => setForm({ ...form, nama: e.target.value })} required /></div>
-          <div className="space-y-1.5"><Label>Alamat / Posisi</Label><Input value={form.alamat} onChange={(e) => setForm({ ...form, alamat: e.target.value })} /></div>
-          <div className="space-y-1.5"><Label>Deskripsi</Label><Textarea value={form.deskripsi} onChange={(e) => setForm({ ...form, deskripsi: e.target.value })} /></div>
+          <div className="space-y-1.5"><Label htmlFor="lokasi-kode">Kode</Label><Input id="lokasi-kode" value={form.kode} onChange={(e) => setForm((current) => ({ ...current, kode: e.target.value }))} required disabled={saving} /></div>
+          <div className="space-y-1.5"><Label htmlFor="lokasi-nama">Nama Lokasi</Label><Input id="lokasi-nama" value={form.nama} onChange={(e) => setForm((current) => ({ ...current, nama: e.target.value }))} required disabled={saving} /></div>
+          <div className="space-y-1.5"><Label htmlFor="lokasi-alamat">Alamat / Posisi</Label><Input id="lokasi-alamat" value={form.alamat || ''} onChange={(e) => setForm((current) => ({ ...current, alamat: e.target.value }))} disabled={saving} /></div>
+          <div className="space-y-1.5"><Label htmlFor="lokasi-deskripsi">Deskripsi</Label><Textarea id="lokasi-deskripsi" value={form.deskripsi || ''} onChange={(e) => setForm((current) => ({ ...current, deskripsi: e.target.value }))} disabled={saving} /></div>
           <div className="flex justify-end gap-2 pt-2">
-            <Button type="button" variant="outline" onClick={() => setModalOpen(false)}>Batal</Button>
-            <Button type="submit">Simpan</Button>
+            <Button type="button" variant="outline" onClick={() => setModalOpen(false)} disabled={saving}>Batal</Button>
+            <Button type="submit" disabled={saving}>{saving ? 'Menyimpan...' : 'Simpan'}</Button>
           </div>
         </form>
       </Modal>
