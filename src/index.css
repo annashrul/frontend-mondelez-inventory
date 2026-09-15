@@ -114,8 +114,15 @@
   .no-print {
     display: none !important;
   }
-  aside, header { display: none !important; }
-  main { margin: 0 !important; padding: 0 !important; }
+  aside,
+  header,
+  nav {
+    display: none !important;
+  }
+  main {
+    margin: 0 !important;
+    padding: 0 !important;
+  }
 }
 
 @keyframes shimmer {

@@ -6,6 +6,7 @@ import Pagination from '@/components/Pagination';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import api, { emptyPagination, getList, getPagination } from '@/services/api';
+import useDebounce from '@/hooks/useDebounce';
 
 function actionMeta(action = '') {
   const value = action.toLowerCase();
@@ -21,12 +22,28 @@ function actionMeta(action = '') {
 
 function formatTime(value) {
   const date = dayjs(value);
-  return date.isValid() ? date.format('DD MMM YYYY, HH:mm:ss') : '-';
+  return date.isValid() ? date.format('HH:mm:ss') : '-';
+}
+
+function formatDateKey(value) {
+  const date = dayjs(value);
+  return date.isValid() ? date.format('YYYY-MM-DD') : 'unknown';
+}
+
+function formatDayDivider(value) {
+  if (value === 'unknown') return 'Tanggal tidak diketahui';
+  const date = dayjs(value);
+  const today = dayjs().format('YYYY-MM-DD');
+  const yesterday = dayjs().subtract(1, 'day').format('YYYY-MM-DD');
+  if (value === today) return 'Hari ini';
+  if (value === yesterday) return 'Kemarin';
+  return date.isValid() ? date.format('DD MMM YYYY') : 'Tanggal tidak diketahui';
 }
 
 export default function LogActivity() {
   const [logs, setLogs] = useState([]);
   const [search, setSearch] = useState('');
+  const debouncedSearch = useDebounce(search);
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
   const [pagination, setPagination] = useState(emptyPagination);
@@ -35,7 +52,7 @@ export default function LogActivity() {
   useEffect(() => {
     let active = true;
     setLoading(true);
-    api.get('/log-activity', { params: { search, page, limit } })
+    api.get('/log-activity', { params: { search: debouncedSearch, page, limit } })
       .then((res) => {
         if (!active) return;
         setLogs(getList(res));
@@ -48,13 +65,27 @@ export default function LogActivity() {
         if (active) setLoading(false);
       });
     return () => { active = false; };
-  }, [search, page, limit]);
+  }, [debouncedSearch, page, limit]);
 
   const summary = useMemo(() => {
     const failed = logs.filter((log) => log.aksi?.toLowerCase().includes('gagal')).length;
     const destructive = logs.filter((log) => log.aksi?.toLowerCase().includes('hapus')).length;
     const modules = new Set(logs.map((log) => log.modul).filter(Boolean)).size;
     return { failed, destructive, modules };
+  }, [logs]);
+
+  const groupedLogs = useMemo(() => {
+    const groups = [];
+    logs.forEach((log) => {
+      const key = formatDateKey(log.waktu);
+      let group = groups.find((item) => item.key === key);
+      if (!group) {
+        group = { key, label: formatDayDivider(key), items: [] };
+        groups.push(group);
+      }
+      group.items.push(log);
+    });
+    return groups;
   }, [logs]);
 
   return (
@@ -126,39 +157,54 @@ export default function LogActivity() {
             </div>
           </div>
         ) : (
-          <div className="divide-y">
-            {logs.map((log) => {
-              const meta = actionMeta(log.aksi);
-              const Icon = meta.icon;
-              return (
-                <article key={log.id} className="grid gap-3 px-4 py-4 transition-colors hover:bg-muted/25 sm:grid-cols-[auto_minmax(0,1fr)_auto] sm:items-start">
-                  <span className={`grid size-10 place-items-center rounded-lg ring-1 ${meta.className}`}>
-                    <Icon className="size-5" />
+          <div className="space-y-1 p-3">
+            {groupedLogs.map((group) => (
+              <section key={group.key} className="space-y-2">
+                <div className="flex items-center gap-3 px-1 py-2">
+                  <span className="h-px flex-1 bg-border" />
+                  <span className="rounded-full border bg-muted/60 px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                    {group.label}
                   </span>
-                  <div className="min-w-0 space-y-2">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <Badge variant={meta.variant}>{log.aksi || '-'}</Badge>
-                      <Badge variant="outline">{log.modul || '-'}</Badge>
-                    </div>
-                    <p className="text-sm font-medium leading-6">{log.detail || '-'}</p>
-                    <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
-                      <span className="inline-flex items-center gap-1.5">
-                        <UserRound className="size-3.5" />
-                        {log.user_detail?.nama || log.user_detail?.username || 'System'}
-                      </span>
-                      <span className="inline-flex items-center gap-1.5">
-                        <CheckCircle2 className="size-3.5" />
-                        IP {log.ip || '-'}
-                      </span>
-                    </div>
+                  <span className="h-px flex-1 bg-border" />
+                </div>
+                <div className="overflow-hidden rounded-lg border bg-background">
+                  <div className="divide-y">
+                    {group.items.map((log) => {
+                      const meta = actionMeta(log.aksi);
+                      const Icon = meta.icon;
+                      return (
+                        <article key={log.id} className="grid gap-3 px-4 py-4 transition-colors hover:bg-muted/25 sm:grid-cols-[auto_minmax(0,1fr)_auto] sm:items-start">
+                          <span className={`grid size-10 place-items-center rounded-lg ring-1 ${meta.className}`}>
+                            <Icon className="size-5" />
+                          </span>
+                          <div className="min-w-0 space-y-2">
+                            <div className="flex flex-wrap items-center gap-2">
+                              <Badge variant={meta.variant}>{log.aksi || '-'}</Badge>
+                              <Badge variant="outline">{log.modul || '-'}</Badge>
+                            </div>
+                            <p className="text-sm font-medium leading-6">{log.detail || '-'}</p>
+                            <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
+                              <span className="inline-flex items-center gap-1.5">
+                                <UserRound className="size-3.5" />
+                                {log.user_detail?.nama || log.user_detail?.username || 'System'}
+                              </span>
+                              <span className="inline-flex items-center gap-1.5">
+                                <CheckCircle2 className="size-3.5" />
+                                IP {log.ip || '-'}
+                              </span>
+                            </div>
+                          </div>
+                          <div className="inline-flex items-center gap-1.5 whitespace-nowrap text-xs text-muted-foreground sm:justify-end">
+                            <Clock3 className="size-3.5" />
+                            {formatTime(log.waktu)}
+                          </div>
+                        </article>
+                      );
+                    })}
                   </div>
-                  <div className="inline-flex items-center gap-1.5 whitespace-nowrap text-xs text-muted-foreground sm:justify-end">
-                    <Clock3 className="size-3.5" />
-                    {formatTime(log.waktu)}
-                  </div>
-                </article>
-              );
-            })}
+                </div>
+              </section>
+            ))}
           </div>
         )}
       </div>

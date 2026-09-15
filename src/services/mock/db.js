@@ -74,6 +74,11 @@ export const db = {
     { id: 5, waktu: '2026-09-10T11:30:00Z', user_id: 2, aksi: 'Tambah', modul: 'Pengambilan', detail: 'Pengambilan AMB-001', ip: '192.168.1.102' },
     { id: 6, waktu: '2026-09-10T10:00:00Z', user_id: 1, aksi: 'Closing', modul: 'Closing', detail: 'Closing shift pagi', ip: '192.168.1.100' },
   ],
+  notification_settings: {
+    pengambilan_barang: { level_ids: [1], user_ids: [] },
+  },
+  notifications: [],
+  notification_recipients: [],
   shift: [
     { id: 1, shift: 'Pagi', tanggal: '2026-09-10', waktu_closing: '14:00', user_id: 1, total_transaksi: 32, status: 'Selesai' },
     { id: 2, shift: 'Siang', tanggal: '2026-09-09', waktu_closing: '22:00', user_id: 2, total_transaksi: 28, status: 'Selesai' },

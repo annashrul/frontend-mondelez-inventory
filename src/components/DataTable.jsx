@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Inbox } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Skeleton } from '@/components/ui/skeleton';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import DeleteConfirmDialog from '@/components/DeleteConfirmDialog';
 import Pagination from '@/components/Pagination';
@@ -16,7 +17,7 @@ function fixedColumnClass(fixed, header = false) {
   );
 }
 
-export default function DataTable({ columns, data, onEdit, onDelete, actions, pagination, onPageChange, onLimitChange, deleteLabel, actionColumnFixed }) {
+export default function DataTable({ columns, data, loading = false, onEdit, onDelete, actions, pagination, onPageChange, onLimitChange, pageLoadingDirection, limitLoading, deleteLabel, actionColumnFixed }) {
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [deleting, setDeleting] = useState(false);
   const rowOffset = pagination ? ((pagination.page || 1) - 1) * (pagination.limit || 10) : 0;
@@ -38,6 +39,9 @@ export default function DataTable({ columns, data, onEdit, onDelete, actions, pa
       {onDelete && <Button variant="outline" size="sm" className={mobile ? 'h-9 flex-1 text-destructive hover:text-destructive' : 'h-7 text-xs text-destructive hover:text-destructive'} onClick={() => setDeleteTarget(row)}>Hapus</Button>}
     </div>
   );
+  const hasActions = Boolean(onEdit || onDelete || actions);
+  const totalColumns = columns.length + 1 + (hasActions ? 1 : 0);
+  const skeletonRows = Math.min(Math.max(pagination?.limit || 5, 3), 8);
 
   return (
     <>
@@ -55,9 +59,30 @@ export default function DataTable({ columns, data, onEdit, onDelete, actions, pa
           </TableRow>
         </TableHeader>
         <TableBody>
-          {data.length === 0 ? (
+          {loading ? (
+            Array.from({ length: skeletonRows }).map((_, rowIndex) => (
+              <TableRow key={`skeleton-${rowIndex}`} className="hover:bg-transparent">
+                <TableCell className={fixedColumnClass('left')}>
+                  <Skeleton className="mx-auto h-4 w-5" />
+                </TableCell>
+                {columns.map((col, colIndex) => (
+                  <TableCell key={`${col.key}-${rowIndex}`} className={fixedColumnClass(col.fixed)}>
+                    <Skeleton className={cn('h-4', colIndex === 0 ? 'w-28' : colIndex % 3 === 0 ? 'w-40' : 'w-24')} />
+                  </TableCell>
+                ))}
+                {hasActions && (
+                  <TableCell className={cn('text-center', fixedColumnClass(actionColumnFixed))}>
+                    <div className="flex items-center justify-center gap-2">
+                      <Skeleton className="h-7 w-14" />
+                      <Skeleton className="h-7 w-16" />
+                    </div>
+                  </TableCell>
+                )}
+              </TableRow>
+            ))
+          ) : data.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={columns.length + 2} className="h-32 text-center">
+              <TableCell colSpan={totalColumns} className="h-32 text-center">
                 <div className="flex flex-col items-center gap-2 text-muted-foreground">
                   <Inbox className="h-10 w-10" />
                   <p className="text-sm">Belum ada data</p>
@@ -85,11 +110,27 @@ export default function DataTable({ columns, data, onEdit, onDelete, actions, pa
       </Table>
     </div>
     <div className="space-y-3 md:hidden">
-      {data.length === 0 ? <div className="flex min-h-40 flex-col items-center justify-center gap-2 rounded-2xl border bg-card text-muted-foreground"><Inbox className="h-10 w-10" /><p className="text-sm">Belum ada data</p></div> : data.map((row, index) => <article key={row.id || index} className="rounded-2xl border bg-card p-4 shadow-sm"><div className="mb-3 flex items-center justify-between"><span className="rounded-full bg-primary/10 px-2.5 py-1 text-xs font-semibold text-primary">#{rowOffset + index + 1}</span></div><dl className="space-y-2.5">{columns.map((col, colIndex) => <div key={col.key} className={colIndex === 0 ? 'pb-1' : 'grid grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)] gap-3'}>{colIndex !== 0 && <dt className="text-xs text-muted-foreground">{col.label}</dt>}<dd className={colIndex === 0 ? 'text-base font-semibold' : 'min-w-0 text-right text-sm font-medium break-words'}>{col.render ? col.render(row[col.key], row) : row[col.key]}</dd></div>)}</dl>{renderActions(row, true)}</article>)}
+      {loading ? Array.from({ length: Math.min(skeletonRows, 5) }).map((_, index) => (
+        <article key={`mobile-skeleton-${index}`} className="rounded-2xl border bg-card p-4 shadow-sm">
+          <div className="mb-4 flex items-center justify-between">
+            <Skeleton className="h-6 w-12 rounded-full" />
+            {hasActions && <Skeleton className="h-8 w-24" />}
+          </div>
+          <div className="space-y-3">
+            <Skeleton className="h-5 w-2/3" />
+            {columns.slice(1, 5).map((col) => (
+              <div key={col.key} className="grid grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)] gap-3">
+                <Skeleton className="h-4 w-20" />
+                <Skeleton className="ml-auto h-4 w-28" />
+              </div>
+            ))}
+          </div>
+        </article>
+      )) : data.length === 0 ? <div className="flex min-h-40 flex-col items-center justify-center gap-2 rounded-2xl border bg-card text-muted-foreground"><Inbox className="h-10 w-10" /><p className="text-sm">Belum ada data</p></div> : data.map((row, index) => <article key={row.id || index} className="rounded-2xl border bg-card p-4 shadow-sm"><div className="mb-3 flex items-center justify-between"><span className="rounded-full bg-primary/10 px-2.5 py-1 text-xs font-semibold text-primary">#{rowOffset + index + 1}</span></div><dl className="space-y-2.5">{columns.map((col, colIndex) => <div key={col.key} className={colIndex === 0 ? 'pb-1' : 'grid grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)] gap-3'}>{colIndex !== 0 && <dt className="text-xs text-muted-foreground">{col.label}</dt>}<dd className={colIndex === 0 ? 'text-base font-semibold' : 'min-w-0 text-right text-sm font-medium break-words'}>{col.render ? col.render(row[col.key], row) : row[col.key]}</dd></div>)}</dl>{renderActions(row, true)}</article>)}
     </div>
     {pagination && (
       <div className="mt-4">
-        <Pagination pagination={pagination} onPageChange={onPageChange} onLimitChange={onLimitChange} />
+        <Pagination pagination={pagination} onPageChange={onPageChange} onLimitChange={onLimitChange} pageLoadingDirection={pageLoadingDirection} limitLoading={limitLoading} />
       </div>
     )}
     <DeleteConfirmDialog

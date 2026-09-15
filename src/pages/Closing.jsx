@@ -24,12 +24,14 @@ export default function Closing() {
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
   const [pagination, setPagination] = useState(emptyPagination);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    setLoading(true);
     api.get('/shift', { params: { page, limit } }).then((res) => {
       setData(getList(res));
       setPagination(getPagination(res));
-    }).catch(() => toast.error('Gagal load data'));
+    }).catch(() => toast.error('Gagal load data')).finally(() => setLoading(false));
   }, [page, limit]);
 
   const filtered = data.filter((d) => d.shift.toLowerCase().includes(search.toLowerCase()) || d.status.toLowerCase().includes(search.toLowerCase()));
@@ -58,7 +60,7 @@ export default function Closing() {
         <Button onClick={() => setModalOpen(true)}>Closing Shift Saat Ini</Button>
       </div>
 
-      <DataTable columns={columns} data={filtered} pagination={pagination} onPageChange={setPage} onLimitChange={(value) => { setLimit(value); setPage(1); }} />
+      <DataTable columns={columns} data={filtered} loading={loading} pagination={pagination} onPageChange={setPage} onLimitChange={(value) => { setLimit(value); setPage(1); }} />
 
       <Modal isOpen={modalOpen} onClose={() => setModalOpen(false)} title="Konfirmasi Closing Shift">
         <div className="space-y-4">

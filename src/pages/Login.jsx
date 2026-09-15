@@ -1,12 +1,13 @@
 import { useState } from 'react';
 import { useAuth } from '@/context/AuthContext';
-import { Boxes, Eye, EyeOff } from 'lucide-react';
+import { Eye, EyeOff } from 'lucide-react';
 import { toast } from 'sonner';
 import api from '@/services/api';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import logoUrl from '../../logo.webp';
 
 export default function Login() {
   const { login } = useAuth();
@@ -39,8 +40,8 @@ export default function Login() {
     <div className="min-h-screen bg-gradient-to-br from-neutral-950 via-neutral-900 to-neutral-950 flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-14 h-14 bg-primary rounded-xl mb-4 shadow-lg">
-            <Boxes className="w-7 h-7 text-primary-foreground" />
+          <div className="mb-4 inline-flex h-16 w-16 items-center justify-center overflow-hidden rounded-2xl bg-white shadow-lg ring-1 ring-white/20">
+            <img src={logoUrl} alt="Inventory System" className="h-12 w-12 object-contain" />
           </div>
           <h1 className="text-3xl font-bold text-white">Inventory System</h1>
           <p className="text-neutral-400 mt-2">Silakan login untuk melanjutkan</p>

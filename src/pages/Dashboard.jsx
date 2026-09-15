@@ -4,22 +4,28 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import api from '@/services/api';
 import { Skeleton } from '@/components/ui/skeleton';
+import { toast } from 'sonner';
 
 export default function Dashboard() {
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    let active = true;
     const fetchStats = async () => {
       try {
         const res = await api.get('/dashboard/stats');
-        setStats(res);
+        if (active) setStats(res);
       } catch (e) {
-        console.error('Gagal load stats');
+        if (active) toast.error(e.message || 'Gagal memuat dashboard');
+      } finally {
+        if (active) setLoading(false);
       }
-      setLoading(false);
     };
     fetchStats();
+    return () => {
+      active = false;
+    };
   }, []);
 
   if (loading) return (

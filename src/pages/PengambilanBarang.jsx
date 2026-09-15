@@ -9,9 +9,11 @@ import {
   PackageCheck,
   QrCode,
   RotateCcw,
+  Search,
   Upload,
 } from "lucide-react";
 import { toast } from "sonner";
+import { useSearchParams } from "react-router-dom";
 import PageHeader from "@/components/PageHeader";
 import DataTable from "@/components/DataTable";
 import QrScanner from "@/components/QrScanner";
@@ -22,8 +24,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/context/AuthContext";
 import { canAccess } from "@/lib/permissions";
+import useDebounce from "@/hooks/useDebounce";
 import api, { emptyPagination, getList, getPagination } from "@/services/api";
 
 const columns = [
@@ -56,51 +60,144 @@ const columns = [
 ];
 const emptyForm = { pemohon: "", qty: 1, keterangan: "" };
 const steps = [
-  "Foto Barang",
-  "Informasi Barang & Rak",
-  "Scan QR Rak",
+  "Pilih Alur",
+  "Pilih Barang",
+  "Detail Rak",
   "Data Pengambilan",
 ];
+const transactionDraftKey = "pengambilan-transaksi-draft";
+
+function readTransactionDraft() {
+  try {
+    const value = sessionStorage.getItem(transactionDraftKey);
+    return value ? JSON.parse(value) : null;
+  } catch {
+    return null;
+  }
+}
 
 export default function PengambilanBarang() {
   const { user } = useAuth();
+  const [searchParams, setSearchParams] = useSearchParams();
   const inputRef = useRef(null);
+  const draft = readTransactionDraft();
   const [data, setData] = useState([]);
   const [search, setSearch] = useState("");
-  const [image, setImage] = useState("");
-  const [results, setResults] = useState([]);
-  const [selected, setSelected] = useState(null);
-  const [qrCode, setQrCode] = useState("");
-  const [verifiedRack, setVerifiedRack] = useState(null);
-  const [form, setForm] = useState(emptyForm);
+  const debouncedSearch = useDebounce(search);
+  const [image, setImage] = useState(draft?.image || "");
+  const [results, setResults] = useState(draft?.results || []);
+  const [flow, setFlow] = useState(draft?.flow || "");
+  const [selected, setSelected] = useState(draft?.selected || null);
+  const [qrCode, setQrCode] = useState(draft?.qrCode || "");
+  const [verifiedRack, setVerifiedRack] = useState(draft?.verifiedRack || null);
+  const [form, setForm] = useState({ ...emptyForm, ...(draft?.form || {}) });
   const [loading, setLoading] = useState(false);
+  const [historyLoading, setHistoryLoading] = useState(true);
+  const [historyHasLoadedOnce, setHistoryHasLoadedOnce] = useState(false);
+  const [historyLoadingSource, setHistoryLoadingSource] = useState(null);
   const [scannerOpen, setScannerOpen] = useState(false);
-  const [cameraOpen, setCameraOpen] = useState(true);
-  const [step, setStep] = useState(1);
+  const [cameraOpen, setCameraOpen] = useState(false);
+  const [step, setStepState] = useState(() => {
+    const value = Number(searchParams.get("step"));
+    if (Number.isInteger(value) && value >= 1 && value <= steps.length) return value;
+    return Number.isInteger(draft?.step) && draft.step >= 1 && draft.step <= steps.length ? draft.step : 1;
+  });
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
   const [pagination, setPagination] = useState(emptyPagination);
+  const historyTableLoading = historyLoading && !historyHasLoadedOnce;
+  const historySearchLoading = historyHasLoadedOnce && (
+    search !== debouncedSearch ||
+    (historyLoading && historyLoadingSource?.type === "search")
+  );
+  const historyPageLoadingDirection = historyHasLoadedOnce && historyLoading && historyLoadingSource?.type === "page"
+    ? historyLoadingSource.direction
+    : null;
+  const historyLimitLoading = historyHasLoadedOnce && historyLoading && historyLoadingSource?.type === "limit";
+  const canCreate = canAccess(user, "pengambilan.create");
+  const [activeTab, setActiveTabState] = useState(() => {
+    const value = searchParams.get("tab");
+    if (!canCreate) return "riwayat";
+    return value === "riwayat" ? "riwayat" : "transaksi";
+  });
+  const setStep = (nextStep) => {
+    const value = Number(nextStep);
+    if (!Number.isInteger(value) || value < 1 || value > steps.length) return;
+    setStepState(value);
+    setSearchParams((current) => {
+      const next = new URLSearchParams(current);
+      next.set("step", String(value));
+      return next;
+    }, { replace: true });
+  };
+  const setActiveTab = (nextTab) => {
+    if (!canCreate && nextTab === "transaksi") return;
+    const value = nextTab === "transaksi" ? "transaksi" : "riwayat";
+    setActiveTabState(value);
+    setSearchParams((current) => {
+      const next = new URLSearchParams(current);
+      next.set("tab", value);
+      return next;
+    }, { replace: true });
+  };
+  useEffect(() => {
+    const hasDraft = flow || image || results.length > 0 || selected || qrCode || verifiedRack
+      || form.pemohon || form.keterangan || form.qty !== emptyForm.qty || step !== 1;
 
-  const loadHistory = () =>
+    if (!hasDraft) {
+      sessionStorage.removeItem(transactionDraftKey);
+      return;
+    }
+
+    sessionStorage.setItem(transactionDraftKey, JSON.stringify({
+      image,
+      results,
+      flow,
+      selected,
+      qrCode,
+      verifiedRack,
+      form,
+      step,
+    }));
+  }, [flow, form, image, qrCode, results, selected, step, verifiedRack]);
+
+  const loadHistory = () => {
+    setHistoryLoading(true);
+    setHistoryLoadingSource(null);
+    return (
     api
-      .get("/pengambilan", { params: { search, page, limit } })
+      .get("/pengambilan", { params: { search: debouncedSearch, page, limit } })
       .then((response) => {
         setData(getList(response));
         setPagination(getPagination(response));
+        setHistoryHasLoadedOnce(true);
       })
-      .catch(() => toast.error("Gagal memuat riwayat"));
+      .catch(() => toast.error("Gagal memuat riwayat"))
+      .finally(() => {
+        setHistoryLoading(false);
+        setHistoryLoadingSource(null);
+      })
+    );
+  };
   useEffect(() => {
     let active = true;
 
     async function fetchHistory() {
+      setHistoryLoading(true);
       try {
-        const history = await api.get("/pengambilan", { params: { search, page, limit } });
+        const history = await api.get("/pengambilan", { params: { search: debouncedSearch, page, limit } });
         if (active) {
           setData(getList(history));
           setPagination(getPagination(history));
+          setHistoryHasLoadedOnce(true);
         }
       } catch {
         if (active) toast.error("Gagal memuat riwayat");
+      } finally {
+        if (active) {
+          setHistoryLoading(false);
+          setHistoryLoadingSource(null);
+        }
       }
     }
 
@@ -108,20 +205,37 @@ export default function PengambilanBarang() {
     return () => {
       active = false;
     };
-  }, [search, page, limit]);
+  }, [debouncedSearch, page, limit]);
+  const handleHistorySearchChange = (value) => {
+    setHistoryLoadingSource({ type: "search" });
+    setSearch(value);
+    setPage(1);
+  };
+  const handleHistoryPageChange = (nextPage) => {
+    setHistoryLoadingSource({ type: "page", direction: nextPage > page ? "next" : "prev" });
+    setPage(nextPage);
+  };
+  const handleHistoryLimitChange = (value) => {
+    setHistoryLoadingSource({ type: "limit" });
+    setLimit(value);
+    setPage(1);
+  };
   const reset = () => {
+    sessionStorage.removeItem(transactionDraftKey);
     setImage("");
     setResults([]);
+    setFlow("");
     setSelected(null);
     setQrCode("");
     setVerifiedRack(null);
     setForm(emptyForm);
     setStep(1);
-    setCameraOpen(true);
+    setCameraOpen(false);
     if (inputRef.current) inputRef.current.value = "";
   };
   const searchImage = async (photo) => {
     setLoading(true);
+    setFlow("image");
     setResults([]);
     setSelected(null);
     setVerifiedRack(null);
@@ -135,6 +249,7 @@ export default function PengambilanBarang() {
       setSelected(matches[0] || null);
       if (!matches.length) toast.warning("Barang serupa tidak ditemukan");
       else {
+        setVerifiedRack(matches[0]?.rak_detail || null);
         setStep(2);
         toast.success(`Barang teridentifikasi: ${matches[0].nama}`);
       }
@@ -160,20 +275,21 @@ export default function PengambilanBarang() {
     reader.onload = () => processPhoto(String(reader.result));
     reader.readAsDataURL(file);
   };
-  const verifyRack = async (value = qrCode) => {
+  const scanRackItems = async (value = qrCode) => {
     const code = value.trim();
     if (!code) return toast.error("QR rak belum terbaca");
-    if (!selected?.id) return toast.error("Barang belum dipilih");
     setLoading(true);
+    setFlow("rack");
     try {
-      const response = await api.post("/rak/scan", {
+      const response = await api.post("/rak/items", {
         qr_code: code,
-        barang_id: selected.id,
       });
       setQrCode(code);
       setVerifiedRack(response.rak);
-      setStep(4);
-      toast.success(`QR benar: ${response.rak.nama}`);
+      setResults(response.barang || []);
+      setSelected(null);
+      setStep(2);
+      toast.success(`Rak ditemukan: ${response.rak.nama}`);
     } catch (error) {
       setQrCode(code);
       setVerifiedRack(null);
@@ -184,7 +300,7 @@ export default function PengambilanBarang() {
   };
   const handleQrScan = (value) => {
     setScannerOpen(false);
-    verifyRack(value);
+    scanRackItems(value);
   };
   const submit = async (event) => {
     event.preventDefault();
@@ -199,6 +315,7 @@ export default function PengambilanBarang() {
       toast.success(
         `${response.transaction.no_ref} tersimpan. Stok akhir: ${response.stok_akhir}`,
       );
+      sessionStorage.removeItem(transactionDraftKey);
       reset();
       loadHistory();
     } catch (error) {
@@ -208,14 +325,18 @@ export default function PengambilanBarang() {
     }
   };
   return (
-    <div className="mx-auto max-w-5xl space-y-6 pb-6 lg:space-y-8">
+    <div className="mx-auto space-y-6 pb-6 lg:space-y-8">
       <PageHeader
         title="Pengambilan Barang"
         subtitle="Scan barang dan rak untuk mencatat stok keluar"
-        searchValue={search}
-        onSearchChange={(value) => { setSearch(value); setPage(1); }}
       />
-      {canAccess(user, "pengambilan.create") && (
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <TabsList className="grid h-11 w-full max-w-md grid-cols-2 rounded-xl bg-muted/70 p-1">
+          <TabsTrigger value="transaksi" className="rounded-lg">Transaksi</TabsTrigger>
+          <TabsTrigger value="riwayat" className="rounded-lg">Riwayat</TabsTrigger>
+        </TabsList>
+        <TabsContent value="transaksi">
+          {canCreate && (
         <Card className="gap-0 overflow-hidden border-border/70 py-0 shadow-sm">
           <div className="border-b bg-muted/25 px-4 py-4 sm:px-6 sm:py-5">
             <div className="flex items-center justify-between gap-4">
@@ -250,15 +371,12 @@ export default function PengambilanBarang() {
                   {loading ? (
                     <LoaderCircle className="animate-spin" size={30} />
                   ) : (
-                    <Camera size={30} />
+                    <QrCode size={30} />
                   )}
                 </div>
-                <h3 className="mt-5 text-lg font-semibold tracking-tight">
-                  Foto satu barang
-                </h3>
+                <h3 className="mt-5 text-lg font-semibold tracking-tight">Mulai pengambilan</h3>
                 <p className="mx-auto mt-2 max-w-sm text-[13px] leading-5 text-muted-foreground">
-                  Posisikan barang di tengah frame dengan pencahayaan yang
-                  cukup.
+                  Pilih salah satu alur. Scan rak untuk melihat semua barang di rak, atau cari barang menggunakan gambar.
                 </p>
                 <input
                   ref={inputRef}
@@ -271,17 +389,36 @@ export default function PengambilanBarang() {
                   <Button
                     type="button"
                     className="h-12 rounded-xl text-sm"
-                    onClick={() => setCameraOpen(true)}
+                    onClick={() => {
+                      setFlow("rack");
+                      setScannerOpen(true);
+                    }}
                     disabled={loading}
                   >
-                    <Camera />
-                    Buka Kamera
+                    <QrCode />
+                    Scan Rak
                   </Button>
                   <Button
                     type="button"
                     className="h-12 rounded-xl text-sm"
                     variant="outline"
-                    onClick={() => inputRef.current?.click()}
+                    onClick={() => {
+                      setFlow("image");
+                      setCameraOpen(true);
+                    }}
+                    disabled={loading}
+                  >
+                    <Camera />
+                    Cari Barang by Gambar
+                  </Button>
+                  <Button
+                    type="button"
+                    className="h-12 rounded-xl text-sm"
+                    variant="ghost"
+                    onClick={() => {
+                      setFlow("image");
+                      inputRef.current?.click();
+                    }}
                     disabled={loading}
                   >
                     <Upload />
@@ -294,22 +431,31 @@ export default function PengambilanBarang() {
             {step === 2 && (
               <section>
                 <div className="flex items-center gap-3 border-b px-4 py-4 sm:px-6">
-                  <img
-                    src={image}
-                    alt="Barang yang dicari"
-                    className="size-16 rounded-2xl border object-cover"
-                  />
+                  {flow === "image" && image ? (
+                    <img
+                      src={image}
+                      alt="Barang yang dicari"
+                      className="size-16 rounded-2xl border object-cover"
+                    />
+                  ) : (
+                    <span className="grid size-16 shrink-0 place-items-center rounded-2xl border bg-primary/10 text-primary">
+                      <QrCode size={28} />
+                    </span>
+                  )}
                   <div className="min-w-0">
-                    <h3 className="text-sm font-semibold">
-                      Pilih barang yang sesuai
-                    </h3>
+                    <h3 className="text-sm font-semibold">{flow === "rack" ? "Pilih barang di rak ini" : "Pilih barang yang sesuai"}</h3>
                     <p className="mt-1 text-xs leading-5 text-muted-foreground">
-                      Ketuk salah satu hasil identifikasi.
+                      {flow === "rack" ? `${verifiedRack?.nama || "Rak"} berisi ${results.length} barang.` : "Ketuk salah satu hasil identifikasi."}
                     </p>
                   </div>
                 </div>
                 <div className="divide-y">
-                  {results.map((item) => (
+                  {results.map((item) => {
+                    const imageUrl = item.image_url || item.gambar?.[0];
+                    const confidence = Number(item.confidence);
+                    const hasConfidence = Number.isFinite(confidence);
+
+                    return (
                     <button
                       type="button"
                       key={item.id}
@@ -321,12 +467,16 @@ export default function PengambilanBarang() {
                       >
                         {selected?.id === item.id && <CheckCircle2 size={13} />}
                       </span>
-                      {item.gambar && item.gambar.length > 0 && (
+                      {imageUrl ? (
                         <img
-                          src={item.gambar[0]}
+                          src={imageUrl}
                           alt={item.nama}
-                          className="size-12 shrink-0 rounded-md object-cover border"
+                          className="size-12 shrink-0 rounded-md border object-cover"
                         />
+                      ) : (
+                        <span className="grid size-12 shrink-0 place-items-center rounded-md border bg-muted text-center text-[10px] leading-tight text-muted-foreground">
+                          Belum ada
+                        </span>
                       )}
                       <div className="min-w-0 flex-1">
                         <p className="truncate text-sm font-semibold">
@@ -337,14 +487,24 @@ export default function PengambilanBarang() {
                           {item.satuan_detail?.nama}
                         </p>
                       </div>
-                      <Badge
-                        variant={item.confidence >= 0.8 ? "success" : "warning"}
-                        className="shrink-0"
-                      >
-                        {Math.round(item.confidence * 100)}%
-                      </Badge>
+                      {hasConfidence ? (
+                        <Badge
+                          variant={confidence >= 0.8 ? "success" : "warning"}
+                          className="shrink-0"
+                        >
+                          {Math.round(confidence * 100)}%
+                        </Badge>
+                      ) : (
+                        <Badge
+                          variant={Number(item.stok) > 0 ? "secondary" : "destructive"}
+                          className="shrink-0"
+                        >
+                          Stok {item.stok}
+                        </Badge>
+                      )}
                     </button>
-                  ))}
+                    );
+                  })}
                 </div>
                 <div className="sticky bottom-0 flex gap-2 border-t bg-background/95 p-4 backdrop-blur sm:static sm:justify-between sm:px-6">
                   <Button
@@ -359,10 +519,13 @@ export default function PengambilanBarang() {
                   <Button
                     type="button"
                     className="h-12 flex-[2] rounded-xl sm:flex-none"
-                    onClick={() => setStep(3)}
+                    onClick={() => {
+                      if (flow === "image") setVerifiedRack(selected?.rak_detail || null);
+                      setStep(4);
+                    }}
                     disabled={!selected}
                   >
-                    Scan Rak
+                    Lanjutkan
                     <ChevronRight />
                   </Button>
                 </div>
@@ -431,7 +594,7 @@ export default function PengambilanBarang() {
                     type="button"
                     className="h-12 rounded-xl"
                     variant="outline"
-                    onClick={() => verifyRack()}
+                    onClick={() => scanRackItems()}
                     disabled={!qrCode.trim() || loading}
                   >
                     <QrCode />
@@ -541,7 +704,7 @@ export default function PengambilanBarang() {
                     size="icon"
                     className="size-12 rounded-xl"
                     variant="outline"
-                    onClick={() => setStep(3)}
+                    onClick={() => setStep(2)}
                     aria-label="Kembali"
                   >
                     <ChevronLeft />
@@ -569,8 +732,44 @@ export default function PengambilanBarang() {
             )}
           </CardContent>
         </Card>
-      )}
-      {cameraOpen && canAccess(user, "pengambilan.create") && (
+          )}
+        </TabsContent>
+        <TabsContent value="riwayat">
+          <Card className="gap-4 border-border/70 shadow-sm">
+            <CardHeader className="gap-4 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <CardTitle className="text-base tracking-tight">Riwayat Pengambilan</CardTitle>
+                <p className="text-xs text-muted-foreground">Transaksi stok keluar terbaru</p>
+              </div>
+              <div className="relative w-full sm:w-72">
+                <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  value={search}
+                  onChange={(event) => handleHistorySearchChange(event.target.value)}
+                  placeholder="Cari riwayat..."
+                  className="h-9 pl-9 pr-9"
+                />
+                {historySearchLoading && (
+                  <LoaderCircle className="absolute right-3 top-1/2 size-4 -translate-y-1/2 animate-spin text-muted-foreground" />
+                )}
+              </div>
+            </CardHeader>
+            <CardContent>
+              <DataTable
+                columns={columns}
+                data={data}
+                loading={historyTableLoading}
+                pagination={pagination}
+                onPageChange={handleHistoryPageChange}
+                onLimitChange={handleHistoryLimitChange}
+                pageLoadingDirection={historyPageLoadingDirection}
+                limitLoading={historyLimitLoading}
+              />
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
+      {cameraOpen && canCreate && activeTab === "transaksi" && (
         <ProductCamera
           open
           onClose={() => setCameraOpen(false)}
@@ -586,19 +785,6 @@ export default function PengambilanBarang() {
         onClose={() => setScannerOpen(false)}
         onScan={handleQrScan}
       />
-      <Card className="gap-4 border-border/70 shadow-sm">
-        <CardHeader>
-          <CardTitle className="text-base tracking-tight">
-            Riwayat Pengambilan
-          </CardTitle>
-          <p className="text-xs text-muted-foreground">
-            Transaksi stok keluar terbaru
-          </p>
-        </CardHeader>
-        <CardContent>
-          <DataTable columns={columns} data={data} pagination={pagination} onPageChange={setPage} onLimitChange={(value) => { setLimit(value); setPage(1); }} />
-        </CardContent>
-      </Card>
     </div>
   );
 }

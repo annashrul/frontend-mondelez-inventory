@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Save, Building2, Bell, Palette, Database, Shield } from 'lucide-react';
 import { toast } from 'sonner';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -9,6 +9,8 @@ import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
+import api, { getList } from '@/services/api';
+import { notificationService } from '@/services/notificationService';
 
 const tabs = [
   { id: 'umum', label: 'Umum', icon: Building2 },
@@ -44,6 +46,10 @@ function FormInput({ label, value, onChange, type = 'text', rows }) {
 }
 export default function Pengaturan() {
   const [activeTab, setActiveTab] = useState('umum');
+  const [levels, setLevels] = useState([]);
+  const [users, setUsers] = useState([]);
+  const [saving, setSaving] = useState(false);
+  const [notificationSetting, setNotificationSetting] = useState({ level_ids: [], user_ids: [] });
   const [s, setS] = useState({
     nama_perusahaan: 'PT. Company Indonesia',
     alamat: 'Jl. Sudirman No. 123, Jakarta',
@@ -60,7 +66,52 @@ export default function Pengaturan() {
     two_factor: false,
   });
   const u = (k, v) => setS({ ...s, [k]: v });
-  const handleSave = () => toast.success('Pengaturan berhasil disimpan');
+  const toggleArrayValue = (key, id, checked) => {
+    setNotificationSetting((current) => ({
+      ...current,
+      [key]: checked
+        ? [...new Set([...(current[key] || []), id])]
+        : (current[key] || []).filter((value) => Number(value) !== Number(id)),
+    }));
+  };
+
+  useEffect(() => {
+    let active = true;
+    Promise.all([
+      notificationService.getSettings(),
+      api.get('/level-pengguna', { params: { limit: 100 } }),
+      api.get('/pengguna', { params: { limit: 100 } }),
+    ])
+      .then(([setting, levelResponse, userResponse]) => {
+        if (!active) return;
+        setNotificationSetting({
+          level_ids: (setting.level_ids || []).map(Number),
+          user_ids: (setting.user_ids || []).map(Number),
+        });
+        setLevels(getList(levelResponse));
+        setUsers(getList(userResponse));
+      })
+      .catch(() => toast.error('Gagal memuat pengaturan notifikasi'));
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const handleSave = async () => {
+    if (activeTab !== 'notifikasi') {
+      toast.success('Pengaturan berhasil disimpan');
+      return;
+    }
+    setSaving(true);
+    try {
+      await notificationService.saveSettings(notificationSetting);
+      toast.success('Pengaturan notifikasi berhasil disimpan');
+    } catch (error) {
+      toast.error(error.message || 'Gagal menyimpan pengaturan notifikasi');
+    } finally {
+      setSaving(false);
+    }
+  };
 
   const renderTab = () => {
     switch (activeTab) {
@@ -79,6 +130,52 @@ export default function Pengaturan() {
             <ToggleRow label="Notifikasi Stok Minimum" desc="Alert saat stok mendekati batas minimum" on={s.notif_stok_min} onToggle={v => u('notif_stok_min', v)} />
             <ToggleRow label="Notifikasi Email" desc="Kirim notifikasi melalui email" on={s.notif_email} onToggle={v => u('notif_email', v)} />
             <ToggleRow label="Notifikasi Transaksi" desc="Alert untuk setiap transaksi baru" on={s.notif_transaksi} onToggle={v => u('notif_transaksi', v)} />
+            <div className="rounded-lg border bg-card">
+              <div className="border-b px-4 py-3">
+                <p className="text-sm font-medium">Penerima Notifikasi Pengambilan Barang</p>
+                <p className="mt-1 text-xs text-muted-foreground">Pilih level atau user yang akan menerima notifikasi realtime saat operator melakukan transaksi pengambilan.</p>
+              </div>
+              <div className="grid gap-4 p-4 lg:grid-cols-2">
+                <div>
+                  <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Berdasarkan Level</p>
+                  <div className="space-y-2">
+                    {levels.map((level) => (
+                      <label key={level.id} className="flex cursor-pointer items-center gap-3 rounded-lg border px-3 py-2 text-sm transition-colors hover:bg-muted/50">
+                        <input
+                          type="checkbox"
+                          className="size-4 accent-primary"
+                          checked={notificationSetting.level_ids.includes(Number(level.id))}
+                          onChange={(event) => toggleArrayValue('level_ids', Number(level.id), event.target.checked)}
+                        />
+                        <span className="min-w-0 flex-1">
+                          <span className="block font-medium">{level.nama}</span>
+                          <span className="block truncate text-xs text-muted-foreground">{level.deskripsi || level.kode}</span>
+                        </span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">User Tambahan</p>
+                  <div className="space-y-2">
+                    {users.map((item) => (
+                      <label key={item.id} className="flex cursor-pointer items-center gap-3 rounded-lg border px-3 py-2 text-sm transition-colors hover:bg-muted/50">
+                        <input
+                          type="checkbox"
+                          className="size-4 accent-primary"
+                          checked={notificationSetting.user_ids.includes(Number(item.id))}
+                          onChange={(event) => toggleArrayValue('user_ids', Number(item.id), event.target.checked)}
+                        />
+                        <span className="min-w-0 flex-1">
+                          <span className="block font-medium">{item.nama || item.username}</span>
+                          <span className="block truncate text-xs text-muted-foreground">{item.level_detail?.nama || '-'} - {item.status}</span>
+                        </span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         );
       case 'tampilan':
@@ -157,8 +254,8 @@ export default function Pengaturan() {
         <Card className="lg:col-span-3">
           <CardHeader className="flex flex-row items-center justify-between pb-6">
             <CardTitle>{tabs.find(t => t.id === activeTab)?.label}</CardTitle>
-            <Button onClick={handleSave} size="sm">
-              <Save size={16} className="mr-2" />Simpan
+            <Button onClick={handleSave} size="sm" disabled={saving}>
+              <Save size={16} className="mr-2" />{saving ? 'Menyimpan...' : 'Simpan'}
             </Button>
           </CardHeader>
           <CardContent>{renderTab()}</CardContent>

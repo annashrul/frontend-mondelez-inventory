@@ -34,6 +34,45 @@ const pushLog = ({ aksi, modul, detail }) => {
   });
 };
 
+const currentNotificationSetting = () => (
+  db.notification_settings?.pengambilan_barang || { level_ids: [1], user_ids: [] }
+);
+
+const notificationRecipients = () => {
+  const setting = currentNotificationSetting();
+  return db.pengguna
+    .filter((user) => user.status === 'Aktif')
+    .filter((user) => (setting.level_ids || []).map(Number).includes(Number(user.level_id)) || (setting.user_ids || []).map(Number).includes(Number(user.id)))
+    .map((user) => Number(user.id));
+};
+
+const pushPengambilanNotification = ({ transaction, barang, operator, stokAkhir }) => {
+  const recipients = notificationRecipients();
+  if (!recipients.length) return;
+  const notification = {
+    id: Date.now() + 3,
+    type: 'pengambilan_barang',
+    title: 'Pengambilan barang baru',
+    message: `${operator?.nama || operator?.username || 'Operator'} memproses ${barang.nama} sebanyak ${transaction.qty} untuk ${transaction.pemohon}`,
+    data: {
+      no_ref: transaction.no_ref,
+      transaction_id: transaction.id,
+      barang_id: barang.id,
+      barang_nama: barang.nama,
+      qty: transaction.qty,
+      pemohon: transaction.pemohon,
+      stok_akhir: stokAkhir,
+    },
+    created_by: operator?.id || null,
+    created_at: new Date().toISOString(),
+  };
+  db.notifications.unshift(notification);
+  recipients.forEach((userId) => db.notification_recipients.unshift({ notification_id: notification.id, user_id: userId, read_at: null }));
+  if (recipients.includes(Number(currentUser()?.id))) {
+    window.dispatchEvent(new CustomEvent('inventory-notification', { detail: notification }));
+  }
+};
+
 const paginate = (items, params = {}) => {
   const page = Math.max(1, Number.parseInt(params.page, 10) || 1);
   const requestedLimit = Number.parseInt(params.limit, 10) || 10;
@@ -57,6 +96,23 @@ const paginate = (items, params = {}) => {
 };
 
 const nextReference = () => `AMB-${new Date().toISOString().slice(0, 10).replaceAll('-', '')}-${String(db.pengambilan.length + 1).padStart(4, '0')}`;
+const nextAdjustmentReference = () => `ADJ-${new Date().toISOString().slice(0, 10).replaceAll('-', '')}-${String(db.adjustment.length + 1).padStart(4, '0')}`;
+const codePrefixes = {
+  barang: 'BRG',
+  'kelompok-barang': 'KLP',
+  satuan: 'STN',
+  lokasi: 'LOK',
+  rak: 'RAK',
+  'level-pengguna': 'LVL',
+};
+const nextAutoCode = (table, prefix) => {
+  const pattern = new RegExp(`^${prefix}-(\\d+)$`, 'i');
+  const max = (db[table] || []).reduce((highest, row) => {
+    const match = String(row.kode || '').match(pattern);
+    return match ? Math.max(highest, Number(match[1]) || 0) : highest;
+  }, 0);
+  return `${prefix}-${String(max + 1).padStart(3, '0')}`;
+};
 const hydrateBarang = (item) => ({
   ...item,
   kelompok_detail: db.kelompok_barang.find((row) => row.id === Number(item.kelompok_id)) || null,
@@ -76,6 +132,10 @@ const viewItem = (table, item) => table === 'barang' ? hydrateBarang(item) : tab
 const setupCrud = (endpoint, table) => {
   const path = new RegExp(`^/${endpoint}(?:/([0-9]+))?$`);
   const softDeleteTables = ['barang', 'kelompok_barang', 'satuan', 'lokasi', 'rak'];
+
+  mock.onGet(`/${endpoint}/kode-otomatis`).reply(() => {
+    return [200, { kode: nextAutoCode(table, codePrefixes[endpoint] || endpoint.toUpperCase()) }];
+  });
 
   mock.onGet(path).reply((config) => {
     const match = config.url.match(path);
@@ -101,6 +161,14 @@ const setupCrud = (endpoint, table) => {
       );
       return [200, paginate(results, config.params)];
     }
+    if (table === 'kartu_stok') {
+      const tipe = ['Masuk', 'Keluar'].includes(config.params?.tipe) ? config.params.tipe : '';
+      const hydrated = rows.map((item) => viewItem(table, item));
+      const results = hydrated
+        .filter((item) => !tipe || item.tipe === tipe)
+        .filter((item) => !search || `${item.no_ref || ''} ${item.keterangan || ''} ${item.barang_detail?.nama || ''} ${item.barang_detail?.kode || ''}`.toLowerCase().includes(search));
+      return [200, paginate(results, config.params)];
+    }
     if (search && table === 'log_activity') {
       const results = rows.filter((item) =>
         `${item.aksi || ''} ${item.modul || ''} ${item.detail || ''}`.toLowerCase().includes(search)
@@ -115,6 +183,45 @@ const setupCrud = (endpoint, table) => {
 
   mock.onPost(new RegExp(`^/${endpoint}$`)).reply((config) => {
     const data = JSON.parse(config.data);
+    if (table === 'adjustment') {
+      const barang = db.barang.find((item) => item.id === Number(data.barang_id) && !item.is_deleted);
+      const qty = Number(data.qty);
+      if (!barang) return [404, { message: 'Barang tidak ditemukan' }];
+      if (!Number.isInteger(qty) || qty < 1) return [400, { message: 'Qty harus bilangan bulat minimal 1' }];
+      if (!['Tambah', 'Kurang'].includes(data.tipe)) return [400, { message: 'Tipe adjustment tidak valid' }];
+      if (!data.alasan?.trim()) return [400, { message: 'Alasan wajib diisi' }];
+      if (data.tipe === 'Kurang' && qty > Number(barang.stok)) {
+        return [409, { message: `Stok tidak cukup. Stok tersedia ${barang.stok}` }];
+      }
+
+      const user = currentUser();
+      const no_ref = nextAdjustmentReference();
+      barang.stok = data.tipe === 'Tambah' ? Number(barang.stok) + qty : Number(barang.stok) - qty;
+      const newItem = {
+        id: Date.now(),
+        tanggal: data.tanggal || new Date().toISOString().slice(0, 10),
+        no_ref,
+        barang_id: barang.id,
+        tipe: data.tipe,
+        qty,
+        alasan: data.alasan.trim(),
+        user_id: user?.id || null,
+      };
+      db.adjustment.unshift(newItem);
+      db.kartu_stok.unshift({
+        id: Date.now() + 1,
+        tanggal: new Date().toISOString(),
+        tipe: data.tipe === 'Tambah' ? 'Masuk' : 'Keluar',
+        no_ref,
+        barang_id: barang.id,
+        user_id: user?.id || null,
+        qty,
+        saldo: barang.stok,
+        keterangan: data.alasan.trim(),
+      });
+      pushLog({ aksi: 'Adjustment', modul: 'Adjustment Stok', detail: `${no_ref}: ${barang.nama} ${data.tipe.toLowerCase()} ${qty}. Saldo akhir ${barang.stok}` });
+      return [201, viewItem(table, newItem)];
+    }
     if (table === 'barang' && db.barang.some((item) => item.barcode === data.barcode)) {
       return [409, { message: 'Barcode sudah digunakan' }];
     }
@@ -179,13 +286,20 @@ setupCrud('log-activity', 'log_activity');
 setupCrud('shift', 'shift');
 
 mock.onGet('/dashboard/stats').reply(() => {
+  const today = new Date().toISOString().slice(0, 10);
+  const barang = db.barang.filter((item) => !item.is_deleted);
+  const kartuStok = [...db.kartu_stok].sort((a, b) => String(b.tanggal).localeCompare(String(a.tanggal)) || Number(b.id) - Number(a.id));
   return [200, {
-    totalBarang: db.barang.length,
-    totalTransaksi: db.kartu_stok.length,
-    stokMenipis: db.barang.filter(b => b.stok <= b.stok_min).length,
-    nilaiInventory: db.barang.reduce((acc, curr) => acc + (curr.stok * curr.harga), 0),
-    aktivitasTerbaru: db.kartu_stok.slice(0, 5),
-    lowStockItems: db.barang.filter(b => b.stok <= b.stok_min).slice(0, 5)
+    totalBarang: barang.length,
+    totalTransaksi: kartuStok.filter((item) => String(item.tanggal || '').slice(0, 10) === today).length,
+    stokMenipis: barang.filter(b => b.stok <= b.stok_min).length,
+    nilaiInventory: barang.reduce((acc, curr) => acc + (curr.stok * curr.harga), 0),
+    aktivitasTerbaru: kartuStok.slice(0, 5).map((item) => ({
+      ...item,
+      barang: db.barang.find((row) => Number(row.id) === Number(item.barang_id))?.nama || '-',
+      user: db.pengguna.find((row) => Number(row.id) === Number(item.user_id))?.nama || '-',
+    })),
+    lowStockItems: barang.filter(b => b.stok <= b.stok_min).map(hydrateBarang).slice(0, 5)
   }];
 });
 
@@ -221,6 +335,17 @@ mock.onPost('/rak/scan').reply((config) => {
   return [200, { valid: true, rak: hydrateRak(rak), barang: hydrateBarang(barang) }];
 });
 
+mock.onPost('/rak/items').reply((config) => {
+  const { qr_code } = JSON.parse(config.data);
+  const rak = db.rak.find((item) => item.qr_code === qr_code?.trim() || item.kode === qr_code?.trim());
+  if (!rak) return [404, { message: 'QR rak tidak terdaftar' }];
+  const barang = db.barang
+    .filter((item) => Number(item.rak_id) === Number(rak.id) && !item.is_deleted)
+    .map(hydrateBarang);
+  pushLog({ aksi: 'Scan', modul: 'Scan QR Rak', detail: `Scan QR rak: ${rak.nama}` });
+  return [200, { valid: true, rak: hydrateRak(rak), barang }];
+});
+
 mock.onPost('/pengambilan/execute').reply((config) => {
   const payload = JSON.parse(config.data);
   const barang = db.barang.find((item) => item.id === Number(payload.barang_id) && !item.is_deleted);
@@ -238,7 +363,48 @@ mock.onPost('/pengambilan/execute').reply((config) => {
   db.pengambilan.push(transaction);
   db.kartu_stok.unshift({ id: Date.now() + 1, tanggal: new Date().toISOString(), tipe: 'Keluar', no_ref, barang_id: barang.id, user_id: operator.id, qty, saldo: barang.stok, keterangan: `Diambil oleh ${transaction.pemohon} dari ${rak.nama}` });
   db.log_activity.unshift({ id: Date.now() + 2, waktu: new Date().toISOString(), user_id: operator.id, aksi: 'Pengambilan', modul: 'Pengambilan Barang', detail: `${no_ref}: ${barang.nama} ${qty} ${hydrateBarang(barang).satuan_detail?.nama}; pengambil ${transaction.pemohon}; QR ${rak.qr_code}`, ip: 'demo-local' });
+  pushPengambilanNotification({ transaction, barang: hydrateBarang(barang), operator, stokAkhir: barang.stok });
   return [201, { transaction: hydrateTransaction(transaction, 'operator_detail'), stok_akhir: barang.stok }];
+});
+
+mock.onGet('/notifications/settings').reply(() => [200, currentNotificationSetting()]);
+
+mock.onPut('/notifications/settings').reply((config) => {
+  const data = JSON.parse(config.data);
+  db.notification_settings ||= {};
+  db.notification_settings.pengambilan_barang = {
+    level_ids: Array.isArray(data.level_ids) ? data.level_ids.map(Number).filter(Boolean) : [],
+    user_ids: Array.isArray(data.user_ids) ? data.user_ids.map(Number).filter(Boolean) : [],
+  };
+  pushLog({ aksi: 'Edit', modul: 'Pengaturan Notifikasi', detail: 'Edit penerima notifikasi pengambilan barang' });
+  return [200, db.notification_settings.pengambilan_barang];
+});
+
+mock.onGet('/notifications').reply(() => {
+  const user = currentUser();
+  const recipients = db.notification_recipients || [];
+  const rows = recipients
+    .filter((item) => Number(item.user_id) === Number(user?.id))
+    .map((item) => ({ ...(db.notifications || []).find((notification) => Number(notification.id) === Number(item.notification_id)), read_at: item.read_at }))
+    .filter((item) => item.id)
+    .sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+  return [200, { rows, unread: rows.filter((item) => !item.read_at).length }];
+});
+
+mock.onPatch('/notifications/read-all').reply(() => {
+  const user = currentUser();
+  (db.notification_recipients || []).forEach((item) => {
+    if (Number(item.user_id) === Number(user?.id) && !item.read_at) item.read_at = new Date().toISOString();
+  });
+  return [200, { updated: true }];
+});
+
+mock.onPatch(new RegExp('^/notifications/([0-9]+)/read$')).reply((config) => {
+  const user = currentUser();
+  const id = Number(config.url.match(/^\/notifications\/([0-9]+)\/read$/)?.[1]);
+  const item = (db.notification_recipients || []).find((row) => Number(row.user_id) === Number(user?.id) && Number(row.notification_id) === id);
+  if (item && !item.read_at) item.read_at = new Date().toISOString();
+  return [200, { updated: Boolean(item) }];
 });
 
 mock.onPost('/auth/login').reply((config) => {

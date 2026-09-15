@@ -1,4 +1,4 @@
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight, LoaderCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Select,
@@ -9,7 +9,7 @@ import {
 } from '@/components/ui/select';
 import { emptyPagination } from '@/services/api';
 
-export default function Pagination({ pagination = emptyPagination, onPageChange, onLimitChange }) {
+export default function Pagination({ pagination = emptyPagination, onPageChange, onLimitChange, pageLoadingDirection, limitLoading = false }) {
   const page = pagination.page || 1;
   const totalPages = pagination.total_pages || 1;
   const total = pagination.total || 0;
@@ -18,16 +18,17 @@ export default function Pagination({ pagination = emptyPagination, onPageChange,
   const to = Math.min(total, page * limit);
 
   return (
-    <div className="flex flex-col gap-3 rounded-lg border bg-card px-3 py-3 text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
-      <div>
+    <div className="flex items-center justify-between gap-2 rounded-lg border bg-card px-2 py-2 text-sm text-muted-foreground sm:flex-row sm:px-3 sm:py-3">
+      <div className="hidden sm:block">
         Menampilkan <span className="font-medium text-foreground">{from}-{to}</span> dari{' '}
         <span className="font-medium text-foreground">{total}</span> data
       </div>
-      <div className="flex flex-wrap items-center gap-2">
+      <div className="flex w-full items-center justify-between gap-2 sm:w-auto sm:justify-end">
         {onLimitChange && (
-          <Select value={String(limit)} onValueChange={(value) => onLimitChange(Number(value))}>
-            <SelectTrigger className="h-9 w-[100px]">
+          <Select value={String(limit)} onValueChange={(value) => onLimitChange(Number(value))} disabled={limitLoading}>
+            <SelectTrigger className="hidden h-9 w-[118px] sm:flex">
               <SelectValue />
+              {limitLoading && <LoaderCircle className="ml-1 size-3.5 animate-spin text-muted-foreground" />}
             </SelectTrigger>
             <SelectContent>
               {[10, 25, 50, 100].map((value) => (
@@ -42,26 +43,26 @@ export default function Pagination({ pagination = emptyPagination, onPageChange,
           type="button"
           variant="outline"
           size="icon"
-          className="size-9"
+          className="size-8 sm:size-9"
           onClick={() => onPageChange?.(page - 1)}
-          disabled={!pagination.has_prev}
+          disabled={!pagination.has_prev || pageLoadingDirection === 'prev'}
           aria-label="Halaman sebelumnya"
         >
-          <ChevronLeft className="size-4" />
+          {pageLoadingDirection === 'prev' ? <LoaderCircle className="size-4 animate-spin" /> : <ChevronLeft className="size-4" />}
         </Button>
-        <span className="min-w-24 text-center font-medium text-foreground">
+        <span className="min-w-0 flex-1 text-center text-xs font-medium text-foreground sm:min-w-24 sm:flex-none sm:text-sm">
           {page} / {totalPages}
         </span>
         <Button
           type="button"
           variant="outline"
           size="icon"
-          className="size-9"
+          className="size-8 sm:size-9"
           onClick={() => onPageChange?.(page + 1)}
-          disabled={!pagination.has_next}
+          disabled={!pagination.has_next || pageLoadingDirection === 'next'}
           aria-label="Halaman berikutnya"
         >
-          <ChevronRight className="size-4" />
+          {pageLoadingDirection === 'next' ? <LoaderCircle className="size-4 animate-spin" /> : <ChevronRight className="size-4" />}
         </Button>
       </div>
     </div>

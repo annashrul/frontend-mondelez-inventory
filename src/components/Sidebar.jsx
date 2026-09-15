@@ -5,6 +5,7 @@ import {
   Archive, Ruler, Activity, Lock, LogOut, ChevronLeft, ChevronRight, Boxes, MapPin,
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
+import { useAppStore } from '@/stores/appStore';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { canAccess } from '@/lib/permissions';
@@ -12,31 +13,40 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import logoUrl from '../../logo.webp';
 
-const menuItems = [
-  { path: '/', label: 'Dashboard', icon: LayoutDashboard, permission: 'dashboard' },
-  { type: 'divider', label: 'Master Data' },
-  { path: '/master-barang', label: 'Master Barang', icon: Package, permission: 'barang.read' },
-  { path: '/kelompok-barang', label: 'Kelompok Barang', icon: FolderTree, permission: 'barang.read' },
-  { path: '/master-rak', label: 'Master Rak', icon: Archive, permission: 'rak.read' },
-  { path: '/master-lokasi', label: 'Master Lokasi', icon: MapPin, permission: 'rak.read' },
-  { path: '/master-satuan', label: 'Master Satuan', icon: Ruler, permission: 'barang.read' },
-  { type: 'divider', label: 'Pengguna' },
-  { path: '/master-pengguna', label: 'Master Pengguna', icon: Users, permission: 'pengguna.read' },
-  { path: '/level-pengguna', label: 'Level Pengguna', icon: ShieldCheck, permission: 'level.read' },
-  { type: 'divider', label: 'Transaksi' },
-  { path: '/adjustment-stok', label: 'Adjustment Stok', icon: ClipboardList, permission: 'adjustment.read' },
-  { path: '/kartu-stok', label: 'Kartu Stok', icon: CreditCard, permission: 'kartu.read' },
-  { path: '/pengambilan-barang', label: 'Pengambilan Barang', icon: ShoppingCart, permission: 'pengambilan.read' },
-  { type: 'divider', label: 'Lainnya' },
-  { path: '/cetak-barcode', label: 'Cetak Barcode/QR', icon: QrCode, permission: 'barcode.read' },
-  { path: '/log-activity', label: 'Log Activity', icon: Activity, permission: 'log.read' },
-  { path: '/closing', label: 'Closing Shift', icon: Lock, permission: 'closing.read' },
-  { path: '/pengaturan', label: 'Pengaturan', icon: Settings, permission: 'pengaturan.read' },
-];
+const menuIcons = {
+  dashboard: LayoutDashboard,
+  barang: Package,
+  kelompok: FolderTree,
+  satuan: Ruler,
+  lokasi: MapPin,
+  rak: Archive,
+  pengguna: Users,
+  level: ShieldCheck,
+  adjustment: ClipboardList,
+  kartu: CreditCard,
+  pengambilan: ShoppingCart,
+  barcode: QrCode,
+  log: Activity,
+  closing: Lock,
+  pengaturan: Settings,
+};
+
+function getMenuItems(menus) {
+  return menus.map((menu) => ({
+    ...menu,
+    path: menu.path || '/',
+    label: menu.nama,
+    icon: menuIcons[menu.key] || Boxes,
+    permission: `${menu.key}.read`,
+  }));
+}
 
 export default function Sidebar({ collapsed, setCollapsed }) {
   const { user, logout } = useAuth();
+  const menus = useAppStore((state) => state.menus);
+  const menuItems = getMenuItems(menus);
 
   const SidebarLink = ({ item }) => {
     const Icon = item.icon;
@@ -45,17 +55,17 @@ export default function Sidebar({ collapsed, setCollapsed }) {
         to={item.path}
         className={({ isActive }) =>
           cn(
-            'flex items-center gap-3 px-3 py-2 rounded-md mb-0.5 transition-all duration-200 text-sm font-medium',
+            'mb-1 flex h-10 items-center gap-3 rounded-lg px-3 text-sm font-medium transition-all duration-200',
             isActive
-              ? 'bg-primary text-primary-foreground'
+              ? 'bg-primary text-primary-foreground shadow-sm'
               : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground',
-            collapsed && 'justify-center px-2'
+            collapsed && 'mx-auto w-10 justify-center px-0'
           )
         }
         end={item.path === '/'}
       >
-        <Icon size={20} className="shrink-0" />
-        {!collapsed && <span>{item.label}</span>}
+        <Icon size={18} className="shrink-0" />
+        {!collapsed && <span className="truncate">{item.label}</span>}
       </NavLink>
     );
     if (collapsed) {
@@ -72,40 +82,52 @@ export default function Sidebar({ collapsed, setCollapsed }) {
   return (
     <TooltipProvider>
       <aside className={cn(
-        'fixed left-0 top-0 hidden h-screen bg-card border-r transition-all duration-300 z-50 lg:flex flex-col shadow-sm',
+        'no-print fixed left-0 top-0 hidden h-screen bg-card border-r transition-all duration-300 z-50 lg:flex flex-col shadow-sm',
         collapsed ? 'w-[68px]' : 'w-64'
       )}>
-        <div className="flex items-center justify-between px-4 h-14 border-b shrink-0">
+        <div className={cn(
+          'relative flex h-16 items-center border-b shrink-0',
+          collapsed ? 'justify-center px-2' : 'justify-between px-4'
+        )}>
           {!collapsed && (
-            <div className="flex items-center gap-2">
-              <Boxes className="w-6 h-6 text-primary" />
-              <span className="font-bold text-base">Inventory</span>
+            <div className="flex items-center">
+              <span className="grid h-10 max-w-36 place-items-center overflow-hidden">
+                <img src={logoUrl} alt="Inventory" className="max-h-10 max-w-36 object-contain" />
+              </span>
             </div>
           )}
-          {collapsed && <Boxes className="w-6 h-6 text-primary mx-auto" />}
-          <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={() => setCollapsed(!collapsed)}>
+          {collapsed && (
+            <span className="grid h-10 w-10 place-items-center rounded-xl bg-primary text-base font-bold text-primary-foreground shadow-sm">
+              M
+            </span>
+          )}
+          <Button
+            variant="ghost"
+            size="icon"
+            className={cn(
+              'h-7 w-7 shrink-0',
+              collapsed && 'absolute -right-3 top-1/2 z-10 -translate-y-1/2 rounded-full border bg-card shadow-sm'
+            )}
+            onClick={() => setCollapsed(!collapsed)}
+          >
             {collapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
           </Button>
         </div>
         <ScrollArea className="flex-1">
-          <nav className="py-2 px-2">
-            {menuItems.filter((item, index, all) => {
-              if (item.type !== 'divider') return canAccess(user, item.permission);
-              const section = all.slice(index + 1);
-              const nextDivider = section.findIndex((next) => next.type === 'divider');
-              const sectionItems = nextDivider === -1 ? section : section.slice(0, nextDivider);
-              return sectionItems.some((next) => canAccess(user, next.permission));
-            }).map((item, index) => {
-              if (item.type === 'divider') {
-                return !collapsed ? (
-                  <div key={index} className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mt-4 mb-1 px-3">
-                    {item.label}
-                  </div>
-                ) : (
-                  <Separator key={index} className="my-2 mx-1" />
-                );
-              }
-              return <SidebarLink key={item.path} item={item} />;
+          <nav className={cn('py-3', collapsed ? 'px-2' : 'px-3')}>
+            {menuItems.filter((item) => canAccess(user, item.permission)).map((item, index, visibleItems) => {
+              const previous = visibleItems[index - 1];
+              const showGroup = !previous || previous.grup !== item.grup;
+              return (
+                <div key={item.id || item.key}>
+                  {showGroup && (!collapsed ? (
+                    <div className="mb-2 mt-5 px-3 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground first:mt-1">
+                      {item.grup}
+                    </div>
+                  ) : index > 0 ? <Separator className="mx-auto my-3 w-8" /> : null)}
+                  <SidebarLink item={item} />
+                </div>
+              );
             })}
           </nav>
         </ScrollArea>
