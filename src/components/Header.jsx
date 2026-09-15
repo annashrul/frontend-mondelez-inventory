@@ -26,7 +26,7 @@ export default function Header() {
   }, [connect, disconnect, load, user]);
 
   return (
-    <header className="bg-card/95 border-b h-[calc(3.75rem+env(safe-area-inset-top))] px-4 pt-[env(safe-area-inset-top)] flex items-center justify-between sticky top-0 z-40 shrink-0 backdrop-blur-xl lg:h-14 lg:pt-0">
+    <header className="bg-card/95 border-b h-[calc(3.75rem+env(safe-area-inset-top))] px-4 pt-[env(safe-area-inset-top)] flex items-center justify-between sticky top-0 z-40 shrink-0 backdrop-blur-xl lg:h-16 lg:pt-0">
       <div className="flex items-center gap-3">
         <div className="flex items-center lg:hidden">
           <span className="grid  place-items-center overflow-hidden ">

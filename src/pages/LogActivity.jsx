@@ -1,8 +1,8 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import dayjs from 'dayjs';
-import { Activity, AlertTriangle, CheckCircle2, Clock3, FileSearch, LogIn, Pencil, Plus, ScanLine, Search, Trash2, UserRound } from 'lucide-react';
+import { Activity, AlertTriangle, CheckCircle2, Clock3, FileSearch, LoaderCircle, LogIn, Pencil, Plus, ScanLine, Search, Trash2, UserRound } from 'lucide-react';
+import { toast } from 'sonner';
 import PageHeader from '@/components/PageHeader';
-import Pagination from '@/components/Pagination';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import api, { emptyPagination, getList, getPagination } from '@/services/api';
@@ -40,23 +40,39 @@ function formatDayDivider(value) {
   return date.isValid() ? date.format('DD MMM YYYY') : 'Tanggal tidak diketahui';
 }
 
+function actorLabel(log) {
+  return log.user_detail?.nama || log.user_detail?.username || 'System';
+}
+
+function ipLabel(value) {
+  if (!value) return '-';
+  return String(value).replace(/^::ffff:/, '');
+}
+
 export default function LogActivity() {
   const [logs, setLogs] = useState([]);
   const [search, setSearch] = useState('');
   const debouncedSearch = useDebounce(search);
-  const [page, setPage] = useState(1);
-  const [limit, setLimit] = useState(10);
   const [pagination, setPagination] = useState(emptyPagination);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [hasNext, setHasNext] = useState(true);
+  const [page, setPage] = useState(1);
+  const loadMoreRef = useRef(null);
 
   useEffect(() => {
     let active = true;
     setLoading(true);
-    api.get('/log-activity', { params: { search: debouncedSearch, page, limit } })
+    setLogs([]);
+    setPage(1);
+    setHasNext(true);
+    api.get('/log-activity', { params: { search: debouncedSearch, page: 1, limit: 20 } })
       .then((res) => {
         if (!active) return;
         setLogs(getList(res));
-        setPagination(getPagination(res));
+        const nextPagination = getPagination(res);
+        setPagination(nextPagination);
+        setHasNext(nextPagination.has_next);
       })
       .catch(() => {
         if (active) setLogs([]);
@@ -65,7 +81,29 @@ export default function LogActivity() {
         if (active) setLoading(false);
       });
     return () => { active = false; };
-  }, [debouncedSearch, page, limit]);
+  }, [debouncedSearch]);
+
+  useEffect(() => {
+    if (!loadMoreRef.current || loading || loadingMore || !hasNext) return undefined;
+
+    const observer = new IntersectionObserver(([entry]) => {
+      if (!entry.isIntersecting) return;
+      setLoadingMore(true);
+      api.get('/log-activity', { params: { search: debouncedSearch, page: page + 1, limit: 20 } })
+        .then((res) => {
+          const nextPagination = getPagination(res);
+          setLogs((current) => [...current, ...getList(res)]);
+          setPage(nextPagination.page || page + 1);
+          setPagination(nextPagination);
+          setHasNext(nextPagination.has_next);
+        })
+        .catch(() => toast.error('Gagal memuat log berikutnya'))
+        .finally(() => setLoadingMore(false));
+    }, { rootMargin: '240px' });
+
+    observer.observe(loadMoreRef.current);
+    return () => observer.disconnect();
+  }, [debouncedSearch, hasNext, loading, loadingMore, logs.length, page]);
 
   const summary = useMemo(() => {
     const failed = logs.filter((log) => log.aksi?.toLowerCase().includes('gagal')).length;
@@ -133,13 +171,13 @@ export default function LogActivity() {
         </Card>
       </div>
 
-      <div className="overflow-hidden rounded-lg border bg-card">
-        <div className="flex items-center justify-between border-b bg-muted/25 px-4 py-3">
+      <div className="overflow-hidden rounded-xl border bg-card shadow-sm">
+        <div className="flex items-center justify-between border-b bg-muted/25 px-3 py-3 sm:px-4">
           <div>
             <h2 className="text-sm font-semibold">Riwayat Aktivitas</h2>
             <p className="text-xs text-muted-foreground">Urutan terbaru berada paling atas</p>
           </div>
-          <Badge variant="outline">{pagination.page || 1} / {pagination.total_pages || 1}</Badge>
+          <Badge variant="outline" className="shrink-0">{pagination.total || logs.length} aktivitas</Badge>
         </div>
 
         {loading ? (
@@ -157,59 +195,70 @@ export default function LogActivity() {
             </div>
           </div>
         ) : (
-          <div className="space-y-1 p-3">
+          <div className="space-y-1 p-2 sm:p-3">
             {groupedLogs.map((group) => (
               <section key={group.key} className="space-y-2">
-                <div className="flex items-center gap-3 px-1 py-2">
+                <div className="sticky top-[calc(3.75rem+env(safe-area-inset-top))] z-30 -mx-3 flex items-center gap-3 bg-card/95 px-4 py-2 backdrop-blur lg:top-14">
                   <span className="h-px flex-1 bg-border" />
                   <span className="rounded-full border bg-muted/60 px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
                     {group.label}
                   </span>
                   <span className="h-px flex-1 bg-border" />
                 </div>
-                <div className="overflow-hidden rounded-lg border bg-background">
-                  <div className="divide-y">
+                <div className="space-y-2 sm:space-y-3">
                     {group.items.map((log) => {
                       const meta = actionMeta(log.aksi);
                       const Icon = meta.icon;
                       return (
-                        <article key={log.id} className="grid gap-3 px-4 py-4 transition-colors hover:bg-muted/25 sm:grid-cols-[auto_minmax(0,1fr)_auto] sm:items-start">
-                          <span className={`grid size-10 place-items-center rounded-lg ring-1 ${meta.className}`}>
-                            <Icon className="size-5" />
-                          </span>
-                          <div className="min-w-0 space-y-2">
-                            <div className="flex flex-wrap items-center gap-2">
-                              <Badge variant={meta.variant}>{log.aksi || '-'}</Badge>
-                              <Badge variant="outline">{log.modul || '-'}</Badge>
+                        <article key={log.id} className="overflow-hidden rounded-2xl border bg-background shadow-sm transition-colors hover:bg-muted/20">
+                          <div className="grid gap-3 p-3 sm:grid-cols-[auto_minmax(0,1fr)] sm:p-4">
+                            <span className={`grid size-10 place-items-center rounded-xl ring-1 sm:size-11 ${meta.className}`}>
+                              <Icon className="size-[18px] sm:size-5" />
+                            </span>
+                            <div className="min-w-0 space-y-2 sm:space-y-2.5">
+                              <div className="flex items-start justify-between gap-2">
+                                <div className="flex min-w-0 flex-wrap items-center gap-1.5">
+                                  <Badge variant={meta.variant} className="text-[11px]">{log.aksi || '-'}</Badge>
+                                  <Badge variant="outline" className="max-w-[46vw] truncate text-[11px]">{log.modul || '-'}</Badge>
+                                </div>
+                                <div className="inline-flex shrink-0 items-center gap-1 rounded-full bg-muted px-2 py-1 text-[11px] font-medium text-muted-foreground sm:gap-1.5 sm:px-2.5 sm:text-xs">
+                                  <Clock3 className="size-3 sm:size-3.5" />
+                                  {formatTime(log.waktu)}
+                                </div>
+                              </div>
+
+                              <div className="rounded-xl bg-muted/45 px-3 py-2.5 sm:bg-transparent sm:px-0 sm:py-0">
+                                <p className="text-[13px] font-semibold leading-5 text-foreground sm:text-sm sm:leading-6">{log.detail || '-'}</p>
+                              </div>
+
+                              <div className="grid grid-cols-2 gap-1.5 text-[11px] text-muted-foreground sm:flex sm:flex-wrap sm:gap-2 sm:text-xs">
+                                <div className="inline-flex min-w-0 items-center gap-1 rounded-lg bg-muted/60 px-2 py-1.5 sm:gap-1.5 sm:rounded-full sm:px-2.5 sm:py-1">
+                                  <UserRound className="size-3.5 shrink-0 sm:size-4" />
+                                  <span className="shrink-0">User</span>
+                                  <span className="truncate font-medium text-foreground">{actorLabel(log)}</span>
+                                </div>
+                                <div className="inline-flex min-w-0 items-center gap-1 rounded-lg bg-muted/60 px-2 py-1.5 sm:gap-1.5 sm:rounded-full sm:px-2.5 sm:py-1">
+                                  <CheckCircle2 className="size-3.5 shrink-0 sm:size-4" />
+                                  <span className="shrink-0">IP</span>
+                                  <span className="truncate font-medium text-foreground">{ipLabel(log.ip)}</span>
+                                </div>
+                              </div>
                             </div>
-                            <p className="text-sm font-medium leading-6">{log.detail || '-'}</p>
-                            <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
-                              <span className="inline-flex items-center gap-1.5">
-                                <UserRound className="size-3.5" />
-                                {log.user_detail?.nama || log.user_detail?.username || 'System'}
-                              </span>
-                              <span className="inline-flex items-center gap-1.5">
-                                <CheckCircle2 className="size-3.5" />
-                                IP {log.ip || '-'}
-                              </span>
-                            </div>
-                          </div>
-                          <div className="inline-flex items-center gap-1.5 whitespace-nowrap text-xs text-muted-foreground sm:justify-end">
-                            <Clock3 className="size-3.5" />
-                            {formatTime(log.waktu)}
                           </div>
                         </article>
                       );
                     })}
-                  </div>
                 </div>
               </section>
             ))}
           </div>
         )}
+        {logs.length > 0 && (
+          <div ref={loadMoreRef} className="flex min-h-12 items-center justify-center border-t px-4 py-3 text-xs text-muted-foreground">
+            {loadingMore ? <><LoaderCircle className="mr-2 size-4 animate-spin" /> Memuat aktivitas berikutnya...</> : hasNext ? 'Gulir untuk memuat lebih banyak' : 'Semua aktivitas sudah ditampilkan'}
+          </div>
+        )}
       </div>
-
-      <Pagination pagination={pagination} onPageChange={setPage} onLimitChange={(value) => { setLimit(value); setPage(1); }} />
     </div>
   );
 }

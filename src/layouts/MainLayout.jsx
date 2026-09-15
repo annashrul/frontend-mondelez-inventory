@@ -16,7 +16,7 @@ export default function MainLayout() {
         }`}
       >
         <Header />
-        <main className="flex-1 overflow-x-hidden px-4 pb-[calc(6rem+env(safe-area-inset-bottom))] pt-4 sm:px-5 lg:p-6">
+        <main className="flex-1 overflow-x-clip px-4 pb-[calc(6rem+env(safe-area-inset-bottom))] pt-4 sm:px-5 lg:p-6">
           <div className="mx-auto w-full max-w-[1600px]"><Outlet /></div>
         </main>
         <MobileNavigation />
