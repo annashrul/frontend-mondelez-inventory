@@ -34,7 +34,7 @@ const columns = [
   {
     key: "tanggal",
     label: "Waktu",
-    render: (v) => dayjs(v).format("DD/MM/YYYY HH:mm"),
+    render: (value, row) => dayjs(row.created_at || value).format("DD/MM/YYYY HH:mm:ss"),
   },
   { key: "no_ref", label: "No. Referensi" },
   { key: "pemohon", label: "Diambil Oleh" },
