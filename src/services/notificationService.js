@@ -1,8 +1,9 @@
-import api from '@/services/api';
+import api, { apiBaseUrl } from '@/services/api';
 
+// Alamat socket diambil dari .env (VITE_SOCKET_URL).
+// Kosongkan di .env agar otomatis mengikuti host dari VITE_API_URL.
 export function notificationSocketUrl() {
-  const baseUrl = import.meta.env.VITE_API_URL || '/api/v1';
-  return new URL(baseUrl.replace(/\/api\/v1\/?$/, ''), window.location.origin).toString();
+  return import.meta.env.VITE_SOCKET_URL || new URL(apiBaseUrl, window.location.origin).origin;
 }
 
 export const notificationService = {

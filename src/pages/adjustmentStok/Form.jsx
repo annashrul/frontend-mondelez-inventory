@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
+import { parseNumberInput } from '@/lib/utils';
 import { getBarangStockOptions } from '@/services/barangService';
 
 export default function AdjustmentStokForm({ open, form, saving, onClose, onSubmit, onFieldChange }) {
@@ -41,7 +42,7 @@ export default function AdjustmentStokForm({ open, form, saving, onClose, onSubm
           </div>
           <div className="space-y-1.5">
             <Label>Qty</Label>
-            <Input type="number" value={form.qty} onChange={(event) => onFieldChange('qty', Number(event.target.value))} min="1" required />
+            <Input type="number" value={form.qty ?? ''} onChange={(event) => onFieldChange('qty', parseNumberInput(event.target.value))} min="1" required />
           </div>
         </div>
         <div className="space-y-1.5">

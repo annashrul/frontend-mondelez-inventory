@@ -28,7 +28,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/context/AuthContext";
 import { canAccess } from "@/lib/permissions";
 import useDebounce from "@/hooks/useDebounce";
-import api, { emptyPagination, getList, getPagination } from "@/services/api";
+import { parseNumberInput } from "@/lib/utils";
+import api, { aiSearchTimeout, emptyPagination, getList, getPagination } from "@/services/api";
 
 const columns = [
   {
@@ -240,10 +241,14 @@ export default function PengambilanBarang() {
     setSelected(null);
     setVerifiedRack(null);
     try {
-      const response = await api.post("/ai/search-image", {
-        image: photo,
-        limit: 5,
-      });
+      const response = await api.post(
+        "/ai/search-image",
+        {
+          image: photo,
+          limit: 5,
+        },
+        { timeout: aiSearchTimeout }
+      );
       const matches = response.results || [];
       setResults(matches);
       setSelected(matches[0] || null);
@@ -376,7 +381,9 @@ export default function PengambilanBarang() {
                 </div>
                 <h3 className="mt-5 text-lg font-semibold tracking-tight">Mulai pengambilan</h3>
                 <p className="mx-auto mt-2 max-w-sm text-[13px] leading-5 text-muted-foreground">
-                  Pilih salah satu alur. Scan rak untuk melihat semua barang di rak, atau cari barang menggunakan gambar.
+                  {loading && flow === "image"
+                    ? "Sedang menganalisis gambar, proses ini bisa memakan waktu sampai 1 menit. Mohon tunggu."
+                    : "Pilih salah satu alur. Scan rak untuk melihat semua barang di rak, atau cari barang menggunakan gambar."}
                 </p>
                 <input
                   ref={inputRef}
@@ -670,9 +677,9 @@ export default function PengambilanBarang() {
                       min="1"
                       max={selected.stok}
                       step="1"
-                      value={form.qty}
+                      value={form.qty ?? ""}
                       onChange={(e) =>
-                        setForm({ ...form, qty: Number(e.target.value) })
+                        setForm({ ...form, qty: parseNumberInput(e.target.value) })
                       }
                       required
                     />

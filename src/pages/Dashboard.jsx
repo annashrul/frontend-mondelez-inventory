@@ -1,32 +1,11 @@
-import { useState, useEffect } from 'react';
 import { Package, ShoppingCart, AlertTriangle, TrendingUp, ArrowUpRight, ArrowDownRight, Clock } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import api from '@/services/api';
+import { useDashboardData } from '@/hooks/useDashboardData';
 import { Skeleton } from '@/components/ui/skeleton';
-import { toast } from 'sonner';
 
 export default function Dashboard() {
-  const [stats, setStats] = useState(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    let active = true;
-    const fetchStats = async () => {
-      try {
-        const res = await api.get('/dashboard/stats');
-        if (active) setStats(res);
-      } catch (e) {
-        if (active) toast.error(e.message || 'Gagal memuat dashboard');
-      } finally {
-        if (active) setLoading(false);
-      }
-    };
-    fetchStats();
-    return () => {
-      active = false;
-    };
-  }, []);
+  const { stats, loading } = useDashboardData();
 
   if (loading) return (
     <div className="space-y-6">

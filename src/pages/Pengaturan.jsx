@@ -8,7 +8,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { cn } from '@/lib/utils';
+import { cn, parseNumberInput } from '@/lib/utils';
 import api, { getList } from '@/services/api';
 import { notificationService } from '@/services/notificationService';
 
@@ -38,6 +38,8 @@ function FormInput({ label, value, onChange, type = 'text', rows }) {
       <Label>{label}</Label>
       {rows ? (
         <Textarea value={value} onChange={onChange} rows={rows} />
+      ) : type === 'number' ? (
+        <Input type={type} value={value ?? ''} onChange={(event) => onChange({ target: { value: parseNumberInput(event.target.value) } })} />
       ) : (
         <Input type={type} value={value} onChange={onChange} />
       )}
@@ -201,7 +203,7 @@ export default function Pengaturan() {
                 </SelectContent>
               </Select>
             </div>
-            <FormInput label="Item Per Halaman" value={s.items_per_page} onChange={e => u('items_per_page', Number(e.target.value))} type="number" />
+            <FormInput label="Item Per Halaman" value={s.items_per_page} onChange={(event) => u('items_per_page', event.target.value)} type="number" />
           </div>
         );
       case 'database':
@@ -216,7 +218,7 @@ export default function Pengaturan() {
       default:
         return (
           <div className="space-y-4">
-            <FormInput label="Session Timeout (menit)" value={s.session_timeout} onChange={e => u('session_timeout', Number(e.target.value))} type="number" />
+            <FormInput label="Session Timeout (menit)" value={s.session_timeout} onChange={(event) => u('session_timeout', event.target.value)} type="number" />
             <ToggleRow label="Two-Factor Auth" desc="Aktifkan verifikasi 2 langkah untuk semua admin" on={s.two_factor} onToggle={v => u('two_factor', v)} />
           </div>
         );

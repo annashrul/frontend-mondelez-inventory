@@ -1,15 +1,21 @@
-import api, { getList } from '@/services/api';
+import api, { getList, uploadTimeout } from '@/services/api';
+
+// Payload FormData berarti ada gambar yang perlu di-embedding di backend,
+// sehingga perlu timeout khusus agar tidak kena batas waktu CRUD biasa.
+function uploadConfig(payload) {
+  return payload instanceof FormData ? { timeout: uploadTimeout } : undefined;
+}
 
 export function getBarangList(params) {
   return api.get('/barang', { params });
 }
 
 export function createBarang(payload) {
-  return api.post('/barang', payload);
+  return api.post('/barang', payload, uploadConfig(payload));
 }
 
 export function updateBarang(id, payload) {
-  return api.put(`/barang/${id}`, payload);
+  return api.put(`/barang/${id}`, payload, uploadConfig(payload));
 }
 
 export function deleteBarang(id) {

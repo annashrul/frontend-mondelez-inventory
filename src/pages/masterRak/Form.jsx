@@ -4,6 +4,7 @@ import { Combobox } from '@/components/ui/combobox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { LoaderCircle, Wand2 } from 'lucide-react';
+import { parseNumberInput } from '@/lib/utils';
 
 export default function MasterRakForm({ open, editId, form, saving, generatingCode, lokasiOptions, onClose, onSubmit, onFieldChange, onGenerateCode }) {
   return (
@@ -51,7 +52,7 @@ export default function MasterRakForm({ open, editId, form, saving, generatingCo
         </div>
         <div className="space-y-1.5">
           <Label htmlFor="rak-kapasitas">Kapasitas</Label>
-          <Input id="rak-kapasitas" type="number" min="0" value={form.kapasitas} onChange={(event) => onFieldChange('kapasitas', Number(event.target.value))} required disabled={saving} />
+          <Input id="rak-kapasitas" type="number" min="0" value={form.kapasitas ?? ''} onChange={(event) => onFieldChange('kapasitas', parseNumberInput(event.target.value))} required disabled={saving} />
         </div>
         <div className="flex justify-end gap-2 pt-2">
           <Button type="button" variant="outline" onClick={onClose} disabled={saving}>Batal</Button>

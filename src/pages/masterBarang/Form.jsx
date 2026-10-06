@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { LoaderCircle, Wand2 } from 'lucide-react';
+import { parseNumberInput } from '@/lib/utils';
 import { getKelompokOptions, getRakOptions, getSatuanOptions } from '@/services/barangService';
 
 function FormField({ field, label, type = 'text', value, onChange }) {
@@ -14,8 +15,8 @@ function FormField({ field, label, type = 'text', value, onChange }) {
       <Input
         id={field}
         type={type}
-        value={value}
-        onChange={(event) => onChange(field, type === 'number' ? Number(event.target.value) : event.target.value)}
+        value={value ?? ''}
+        onChange={(event) => onChange(field, type === 'number' ? parseNumberInput(event.target.value) : event.target.value)}
         required
       />
     </div>

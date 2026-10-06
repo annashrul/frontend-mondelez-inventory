@@ -3,6 +3,9 @@ import { Camera, CameraOff, Upload } from 'lucide-react';
 import Modal from '@/components/Modal';
 import { Button } from '@/components/ui/button';
 
+// Harus sama dengan kelas `inset-[12%]` pada kotak panduan di bawah.
+const GUIDE_INSET = 0.12;
+
 export default function ProductCamera({ open, onClose, onCapture, onUpload }) {
   const videoRef = useRef(null);
   const [error, setError] = useState('');
@@ -47,14 +50,44 @@ export default function ProductCamera({ open, onClose, onCapture, onUpload }) {
 
   const takePhoto = () => {
     const video = videoRef.current;
-    if (!video?.videoWidth || !video.videoHeight) return;
+    const vw = video?.videoWidth;
+    const vh = video?.videoHeight;
+    if (!vw || !vh) return;
+
+    // Preview memakai `object-cover`: video diperbesar untuk menutupi kontainer
+    // lalu dipotong di tengah. Balikkan transformasi itu agar koordinat kotak
+    // panduan di layar bisa dipetakan ke koordinat frame video asli.
+    const containerW = video.clientWidth || vw;
+    const containerH = video.clientHeight || vh;
+    const coverScale = Math.max(containerW / vw, containerH / vh);
+    const offsetX = (containerW - vw * coverScale) / 2;
+    const offsetY = (containerH - vh * coverScale) / 2;
+
+    const boxX = containerW * GUIDE_INSET;
+    const boxY = containerH * GUIDE_INSET;
+    const boxW = containerW * (1 - GUIDE_INSET * 2);
+    const boxH = containerH * (1 - GUIDE_INSET * 2);
+
+    let sx = (boxX - offsetX) / coverScale;
+    let sy = (boxY - offsetY) / coverScale;
+    let sw = boxW / coverScale;
+    let sh = boxH / coverScale;
+
+    // Jaga-jaga agar tetap di dalam frame.
+    sx = Math.max(0, Math.min(sx, vw));
+    sy = Math.max(0, Math.min(sy, vh));
+    sw = Math.max(1, Math.min(sw, vw - sx));
+    sh = Math.max(1, Math.min(sh, vh - sy));
+
     const canvas = document.createElement('canvas');
     const maxSize = 1280;
-    const scale = Math.min(1, maxSize / Math.max(video.videoWidth, video.videoHeight));
-    canvas.width = Math.round(video.videoWidth * scale);
-    canvas.height = Math.round(video.videoHeight * scale);
-    canvas.getContext('2d').drawImage(video, 0, 0, canvas.width, canvas.height);
-    onCapture(canvas.toDataURL('image/jpeg', 0.85));
+    const scale = Math.min(1, maxSize / Math.max(sw, sh));
+    canvas.width = Math.round(sw * scale);
+    canvas.height = Math.round(sh * scale);
+    canvas
+      .getContext('2d')
+      .drawImage(video, sx, sy, sw, sh, 0, 0, canvas.width, canvas.height);
+    onCapture(canvas.toDataURL('image/jpeg', 0.9));
   };
 
   return (
