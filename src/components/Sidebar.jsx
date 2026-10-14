@@ -1,4 +1,3 @@
-import { translate as translateUi, useTranslation as useUiLanguage } from '@/lib/i18n';
 import { useTranslation } from '@/lib/i18n';
 import { useSettingsStore } from '@/stores/settingsStore';
 import { NavLink } from 'react-router-dom';
@@ -46,6 +45,41 @@ function getMenuItems(menus) {
   }));
 }
 
+function SidebarLink({ item, collapsed }) {
+  const { t } = useTranslation();
+  const Icon = item.icon;
+  const link = (
+    <NavLink
+      to={item.path}
+      aria-label={t(item.label)}
+      className={({ isActive }) =>
+        cn(
+          'flex h-10 items-center gap-3 rounded-lg text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-card',
+          isActive
+            ? 'bg-primary text-primary-foreground shadow-sm'
+            : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground',
+          collapsed ? 'mx-auto w-10 justify-center px-0' : 'w-full px-3'
+        )
+      }
+      end={item.path === '/'}
+    >
+      <Icon size={20} className="shrink-0" />
+      {!collapsed && <span className="truncate">{t(item.label)}</span>}
+    </NavLink>
+  );
+  if (collapsed) {
+    return (
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <div className="w-full">{link}</div>
+        </TooltipTrigger>
+        <TooltipContent side="right" sideOffset={12}>{t(item.label)}</TooltipContent>
+      </Tooltip>
+    );
+  }
+  return link;
+}
+
 export default function Sidebar({ collapsed, setCollapsed }) {
   const logoUrl = useThemeLogo();
   const { t } = useTranslation();
@@ -54,42 +88,10 @@ export default function Sidebar({ collapsed, setCollapsed }) {
   const menus = useAppStore((state) => state.menus);
   const menuItems = getMenuItems(menus);
 
-  const SidebarLink = ({ item }) => {
-  useUiLanguage();
-    const Icon = item.icon;
-    const link = (
-      <NavLink
-        to={item.path}
-        className={({ isActive }) =>
-          cn(
-            'mb-1 flex h-10 items-center gap-3 rounded-lg px-3 text-sm font-medium transition-all duration-200',
-            isActive
-              ? 'bg-primary text-primary-foreground shadow-sm'
-              : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground',
-            collapsed && 'mx-auto w-10 justify-center px-0'
-          )
-        }
-        end={item.path === '/'}
-      >
-        <Icon size={18} className="shrink-0" />
-        {!collapsed && <span className="truncate">{t(item.label)}</span>}
-      </NavLink>
-    );
-    if (collapsed) {
-      return (
-        <Tooltip>
-          <TooltipTrigger asChild>{link}</TooltipTrigger>
-          <TooltipContent side="right">{t(item.label)}</TooltipContent>
-        </Tooltip>
-      );
-    }
-    return link;
-  };
-
   return (
-    <TooltipProvider>
+    <TooltipProvider delayDuration={150}>
       <aside className={cn(
-        'no-print fixed left-0 top-0 hidden h-screen bg-card border-r transition-all duration-300 z-50 lg:flex flex-col shadow-sm',
+        'no-print fixed left-0 top-0 hidden h-dvh bg-card border-r transition-all duration-300 z-50 lg:flex flex-col shadow-sm',
         collapsed ? 'w-[68px]' : 'w-64'
       )}>
         <div className={cn(
@@ -119,8 +121,8 @@ export default function Sidebar({ collapsed, setCollapsed }) {
             {collapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
           </Button>
         </div>
-        <ScrollArea className="flex-1">
-          <nav className={cn('py-3', collapsed ? 'px-2' : 'px-3')}>
+        <ScrollArea className="min-h-0 w-full flex-1">
+          <nav className={cn('space-y-1 py-3', collapsed ? 'px-2' : 'px-3')}>
             {menuItems.filter((item) => canAccess(user, item.permission)).map((item, index, visibleItems) => {
               const previous = visibleItems[index - 1];
               const showGroup = !previous || previous.grup !== item.grup;
@@ -131,7 +133,7 @@ export default function Sidebar({ collapsed, setCollapsed }) {
                       {t(item.grup)}
                     </div>
                   ) : index > 0 ? <Separator className="mx-auto my-3 w-8" /> : null)}
-                  <SidebarLink item={item} />
+                  <SidebarLink item={item} collapsed={collapsed} />
                 </div>
               );
             })}
@@ -147,22 +149,22 @@ export default function Sidebar({ collapsed, setCollapsed }) {
                   </AvatarFallback>
                 </Avatar>
                 <div className="min-w-0">
-                  <p className="text-sm font-medium truncate">{user?.nama || translateUi("Pengguna")}</p>
-                  <p className="text-xs text-muted-foreground truncate">{user?.level || translateUi("Administrator")}</p>
+                  <p className="text-sm font-medium truncate">{user?.nama || t("Pengguna")}</p>
+                  <p className="text-xs text-muted-foreground truncate">{user?.level || t("Administrator")}</p>
                 </div>
               </div>
-              <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive shrink-0" aria-label={translateUi("Logout")} onClick={logout}>
+              <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive shrink-0" aria-label={t("Logout")} onClick={logout}>
                 <LogOut size={16} />
               </Button>
             </div>
           ) : (
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button variant="ghost" size="icon" className="w-full text-muted-foreground hover:text-destructive" aria-label={translateUi("Logout")} onClick={logout}>
+                <Button variant="ghost" size="icon" className="mx-auto flex h-10 w-10 text-muted-foreground hover:text-destructive" aria-label={t("Logout")} onClick={logout}>
                   <LogOut size={16} />
                 </Button>
               </TooltipTrigger>
-              <TooltipContent side="right">{translateUi("Logout")}</TooltipContent>
+              <TooltipContent side="right">{t("Logout")}</TooltipContent>
             </Tooltip>
           )}
         </div>
