@@ -90,7 +90,7 @@ export default function Sidebar({ collapsed, setCollapsed }) {
 
   return (
     <TooltipProvider delayDuration={150}>
-      <aside className={cn(
+      <aside data-sidebar="desktop" className={cn(
         'no-print fixed left-0 top-0 hidden h-dvh bg-card border-r transition-all duration-300 z-50 lg:flex flex-col shadow-sm',
         collapsed ? 'w-[68px]' : 'w-64'
       )}>

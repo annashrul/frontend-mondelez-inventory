@@ -110,10 +110,12 @@ export const useNotificationStore = create((set, get) => {
       let hasConnected = false;
       socket.on('connect', () => {
         set({ connected: true });
+        window.dispatchEvent(new Event('inventory-dashboard-updated'));
         // Ambil notifikasi yang terlewat hanya setelah koneksi pulih.
         if (hasConnected) get().load().catch(() => {});
         hasConnected = true;
       });
+      socket.on('dashboard:updated', () => window.dispatchEvent(new Event('inventory-dashboard-updated')));
       socket.on('notification:new', receiveNotification);
       socket.on('settings:updated', settings => useSettingsStore.getState().apply(settings));
       socket.on('disconnect', () => {

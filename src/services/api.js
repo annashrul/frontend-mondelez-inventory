@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { isDashboardMutation } from '@/lib/dashboardRealtime';
 import { toast } from '@/lib/toast';
 
 // Base URL dan timeout API diambil dari .env
@@ -50,7 +51,12 @@ api.interceptors.request.use(
 );
 
 api.interceptors.response.use(
-  (response) => response.data,
+  (response) => {
+    if (isDashboardMutation(response.config?.url, response.config?.method)) {
+      window.dispatchEvent(new Event('inventory-dashboard-updated'));
+    }
+    return response.data;
+  },
   (error) => {
     if (error.code === 'ECONNABORTED' || error.code === 'ETIMEDOUT') {
       return Promise.reject(

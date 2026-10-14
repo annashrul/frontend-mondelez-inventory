@@ -1,22 +1,31 @@
 import { useCallback, useEffect } from 'react';
-import { keepPreviousData, useQuery } from '@tanstack/react-query';
+import { keepPreviousData, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from '@/lib/toast';
 import { getDashboardStats } from '@/services/dashboardService';
+import { subscribeDashboardRefresh } from '@/lib/dashboardRealtime';
 import { useDashboardStore } from '@/stores/dashboardStore';
 
 const dashboardQueryKey = ['dashboard-stats'];
 
 export function useDashboardData(days = 30) {
+  const queryClient = useQueryClient();
   const lastResponse = useDashboardStore((state) => state.lastResponse);
   const setQueryResponse = useDashboardStore((state) => state.setQueryResponse);
 
   const query = useQuery({
     queryKey: [...dashboardQueryKey, { days }],
-    queryFn: () => getDashboardStats({ days }),
+    queryFn: ({ signal }) => getDashboardStats({ days }, { signal }),
     placeholderData: keepPreviousData,
-    // Data dashboard tidak perlu refetch agresif; cukup saat mount/invalidasi.
-    staleTime: 30_000,
+    staleTime: 0,
+    refetchOnWindowFocus: true,
+    refetchOnReconnect: true,
+    refetchInterval: 30_000,
+    refetchIntervalInBackground: false,
   });
+
+  useEffect(() => subscribeDashboardRefresh(window, () => {
+    void queryClient.invalidateQueries({ queryKey: dashboardQueryKey });
+  }), [queryClient]);
 
   // Response yang sedang ditampilkan: data baru, atau fallback data terakhir
   // yang tersimpan di store agar tidak kedip saat navigasi kembali.
