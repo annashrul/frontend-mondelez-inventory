@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Combobox } from '@/components/ui/combobox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { LoaderCircle, Wand2 } from 'lucide-react';
+import { RefreshCw } from 'lucide-react';
 import { parseNumberInput } from '@/lib/utils';
 
 export default function MasterRakForm({ open, editId, form, saving, generatingCode, lokasiOptions, onClose, onSubmit, onFieldChange, onGenerateCode }) {
@@ -26,8 +26,8 @@ export default function MasterRakForm({ open, editId, form, saving, generatingCo
               required
               disabled={saving}
             />
-            <Button type="button" variant="outline" className="shrink-0 gap-2" onClick={onGenerateCode} disabled={saving || generatingCode}>
-              {generatingCode ? <LoaderCircle className="size-4 animate-spin" /> : <Wand2 size={16} />}{translateUi("Buat Kode")}</Button>
+            <Button type="button" variant="outline" size="icon" className="shrink-0" aria-label={translateUi("Buat Kode")} title={translateUi("Buat Kode")} onClick={onGenerateCode} aria-busy={generatingCode} disabled={saving || generatingCode}>
+              <RefreshCw size={16} className={generatingCode ? "animate-spin" : undefined} /></Button>
           </div>
         </div>
         <div className="space-y-1.5">

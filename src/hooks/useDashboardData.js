@@ -1,27 +1,27 @@
 import { useCallback, useEffect } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { toast } from '@/lib/toast';
 import { getDashboardStats } from '@/services/dashboardService';
 import { useDashboardStore } from '@/stores/dashboardStore';
 
 const dashboardQueryKey = ['dashboard-stats'];
 
-export function useDashboardData() {
+export function useDashboardData(days = 30) {
   const lastResponse = useDashboardStore((state) => state.lastResponse);
-  const hasLoadedOnce = useDashboardStore((state) => state.hasLoadedOnce);
   const setQueryResponse = useDashboardStore((state) => state.setQueryResponse);
 
   const query = useQuery({
-    queryKey: dashboardQueryKey,
-    queryFn: getDashboardStats,
+    queryKey: [...dashboardQueryKey, { days }],
+    queryFn: () => getDashboardStats({ days }),
+    placeholderData: keepPreviousData,
     // Data dashboard tidak perlu refetch agresif; cukup saat mount/invalidasi.
     staleTime: 30_000,
   });
 
   // Response yang sedang ditampilkan: data baru, atau fallback data terakhir
   // yang tersimpan di store agar tidak kedip saat navigasi kembali.
-  const displayResponse = query.data || lastResponse;
-  const loading = query.isPending && !hasLoadedOnce;
+  const displayResponse = query.data || (lastResponse?.analytics?.days === days ? lastResponse : null);
+  const loading = query.isPending && !displayResponse;
 
   // Sama seperti pola master barang: simpan response sukses ke store,
   // dan tampilkan error via toast lewat useEffect.

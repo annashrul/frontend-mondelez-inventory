@@ -1,6 +1,10 @@
+import { useState } from 'react';
+import DashboardCharts from '@/components/DashboardCharts';
+import { Button } from '@/components/ui/button';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { translate as translateUi, translateStockNote } from '@/lib/i18n';
 import { useTranslation } from '@/lib/i18n';
-import { Package, ShoppingCart, AlertTriangle, TrendingUp, ArrowUpRight, ArrowDownRight, Clock } from 'lucide-react';
+import { Package, ShoppingCart, AlertTriangle, TrendingUp, LoaderCircle, Clock } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useDashboardData } from '@/hooks/useDashboardData';
@@ -8,7 +12,8 @@ import { Skeleton } from '@/components/ui/skeleton';
 
 export default function Dashboard() {
   const { t, locale } = useTranslation();
-  const { stats, loading } = useDashboardData();
+  const [days, setDays] = useState(30);
+  const { stats, loading, query } = useDashboardData(days);
 
   if (loading) return (
     <div className="space-y-6">
@@ -20,17 +25,16 @@ export default function Dashboard() {
         {[1,2,3,4].map(i => <Skeleton key={i} className="h-32 w-full" />)}
       </div>
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Skeleton className="h-[400px] w-full" />
-        <Skeleton className="h-[400px] w-full" />
+        {[1, 2, 3, 4, 5, 6].map(item => <Skeleton key={item} className="h-80 w-full" />)}
       </div>
     </div>
   );
 
   const statCards = [
-    { label: 'Total Barang', value: stats?.totalBarang, change: '+12%', up: true, icon: Package, color: 'text-blue-600 bg-blue-100' },
-    { label: 'Transaksi Hari Ini', value: stats?.totalTransaksi, change: '+8%', up: true, icon: ShoppingCart, color: 'text-green-600 bg-green-100' },
-    { label: 'Stok Menipis', value: stats?.stokMenipis, change: '+3%', up: false, icon: AlertTriangle, color: 'text-amber-600 bg-amber-100' },
-    { label: 'Nilai Inventory', value: `Rp ${(stats?.nilaiInventory || 0).toLocaleString(locale)}`, change: '+5%', up: true, icon: TrendingUp, color: 'text-purple-600 bg-purple-100' },
+    { label: 'Total Barang', value: (stats?.totalBarang || 0).toLocaleString(locale), icon: Package, color: 'text-blue-600 bg-blue-100' },
+    { label: 'Transaksi Hari Ini', value: (stats?.totalTransaksi || 0).toLocaleString(locale), icon: ShoppingCart, color: 'text-green-600 bg-green-100' },
+    { label: 'Stok Menipis', value: (stats?.stokMenipis || 0).toLocaleString(locale), icon: AlertTriangle, color: 'text-amber-600 bg-amber-100' },
+    { label: 'Nilai Inventory', value: `Rp ${(stats?.nilaiInventory || 0).toLocaleString(locale)}`, icon: TrendingUp, color: 'text-purple-600 bg-purple-100' },
   ];
 
   return (
@@ -51,10 +55,7 @@ export default function Dashboard() {
                   <div className={`p-2.5 rounded-lg ${bgColor}`}>
                     <Icon size={20} className={textColor} />
                   </div>
-                  <Badge variant={stat.up ? 'success' : 'destructive'} className="text-[11px]">
-                    {stat.up ? <ArrowUpRight size={12} /> : <ArrowDownRight size={12} />}
-                    {stat.change}
-                  </Badge>
+
                 </div>
                 <p className="text-2xl font-bold">{stat.value}</p>
                 <p className="text-sm text-muted-foreground mt-1">{t(stat.label)}</p>
@@ -63,6 +64,21 @@ export default function Dashboard() {
           );
         })}
       </div>
+
+      {query.isError && <div role="alert" className="flex items-center justify-between gap-3 rounded-lg border p-4"><p className="text-sm text-muted-foreground">{t('Gagal memuat dashboard')}</p><Button variant="outline" size="sm" onClick={() => query.refetch()}>{t('Coba lagi')}</Button></div>}
+      <section className="space-y-4">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div><h2 className="text-lg font-semibold">{t('Analisis Inventory')}</h2><p className="mt-1 text-xs text-muted-foreground">{t('Tren transaksi berdasarkan tanggal WIB')}</p></div>
+          <div className="flex items-center gap-2">
+            {query.isFetching && <LoaderCircle role="status" aria-label={t('Memuat grafik...')} className="size-4 animate-spin text-muted-foreground" />}
+            <Select value={String(days)} onValueChange={value => setDays(Number(value))}>
+              <SelectTrigger className="w-40" aria-label={t('Periode grafik')}><SelectValue>{t('{value0} hari terakhir', { value0: days })}</SelectValue></SelectTrigger>
+              <SelectContent>{[7, 30, 90].map(value => <SelectItem key={value} value={String(value)}>{t('{value0} hari terakhir', { value0: value })}</SelectItem>)}</SelectContent>
+            </Select>
+          </div>
+        </div>
+        {query.isPlaceholderData ? <div role="status" aria-label={t('Memuat grafik...')} className="grid gap-6 lg:grid-cols-2">{[1, 2, 3, 4].map(item => <Skeleton key={item} className="h-80 w-full" />)}</div> : <DashboardCharts analytics={stats?.analytics} />}
+      </section>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card>
@@ -74,11 +90,12 @@ export default function Dashboard() {
           </CardHeader>
           <CardContent className="pt-0">
             <div className="divide-y">
+              {!stats?.aktivitasTerbaru?.length && <p className="py-6 text-sm text-muted-foreground">{t('Belum ada aktivitas')}</p>}
               {stats?.aktivitasTerbaru?.map((act) => (
                 <div key={act.id} className="py-3 flex items-center justify-between first:pt-0 last:pb-0">
                   <div>
                     <p className="text-sm font-medium">{act.barang}</p>
-                    <p className="text-xs text-muted-foreground">{translateStockNote(act)}{translateUi(" oleh ")}{act.user} • {act.tanggal.split('T')[0]}</p>
+                    <p className="text-xs text-muted-foreground">{translateStockNote(act)}{translateUi(" oleh ")}{act.user} • {new Intl.DateTimeFormat(locale, { day: 'numeric', month: 'short', timeZone: 'Asia/Jakarta' }).format(new Date(act.tanggal))}</p>
                   </div>
                   <span className={`text-sm font-semibold ${act.tipe === 'Masuk' ? 'text-green-600' : 'text-red-500'}`}>
                     {act.tipe === 'Masuk' ? '+' : '-'}{act.qty}
@@ -98,6 +115,7 @@ export default function Dashboard() {
           </CardHeader>
           <CardContent className="pt-0">
             <div className="divide-y">
+              {!stats?.lowStockItems?.length && <p className="py-6 text-sm text-muted-foreground">{t('Tidak ada barang dengan stok menipis')}</p>}
               {stats?.lowStockItems?.map((item) => (
                 <div key={item.id} className="py-3 flex items-center justify-between first:pt-0 last:pb-0">
                   <div>

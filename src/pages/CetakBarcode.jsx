@@ -1,15 +1,16 @@
 import { useTranslation } from '@/lib/i18n';
 import { useSettingsStore } from '@/stores/settingsStore';
-import { useEffect, useState } from 'react';
-import { Printer, QrCode, Search } from 'lucide-react';
-import { toast } from '@/lib/toast';
+import { useState } from 'react';
+import { Printer, QrCode, Search, LoaderCircle } from 'lucide-react';
+import { useQrRackData } from '@/hooks/useQrRackData';
+import { useAuth } from '@/context/AuthContext';
+import { Skeleton } from '@/components/ui/skeleton';
 import QrImage from '@/components/QrImage';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import api, { getList } from '@/services/api';
 
 function rackLocation(rack) {
   return rack.lokasi_detail?.nama || rack.lokasi || '-';
@@ -18,17 +19,15 @@ function rackLocation(rack) {
 export default function CetakBarcode() {
   const { t } = useTranslation();
   const company = useSettingsStore(state => state.settings);
-  const [racks, setRacks] = useState([]);
-  const [selected, setSelected] = useState([]);
+  const { user } = useAuth();
+  const { query, racks, loading } = useQrRackData(user?.id);
+  const [selectedIds, setSelectedIds] = useState([]);
+  const selected = selectedIds.map(id => racks.find(rack => String(rack.id) === id)).filter(Boolean);
   const [search, setSearch] = useState('');
   const [loadedCodes, setLoadedCodes] = useState(new Set());
-  useEffect(() => {
-    api.get('/rak', { params: { limit: 100 } }).then(res => setRacks(getList(res)))
-      .catch(() => toast.error('Gagal memuat daftar rak'));
-  }, []);
   const filtered = racks.filter(rack => `${rack.kode} ${rack.nama} ${rackLocation(rack)}`.toLowerCase().includes(search.toLowerCase()));
-  const toggle = rack => setSelected(current => current.some(item => item.id === rack.id)
-    ? current.filter(item => item.id !== rack.id) : [...current, rack]);
+  const toggle = rack => setSelectedIds(current => current.includes(String(rack.id))
+    ? current.filter(id => id !== String(rack.id)) : [...current, String(rack.id)]);
   const printReady = selected.length > 0 && selected.every(rack => loadedCodes.has(rack.qr_code));
 
   return (
@@ -39,12 +38,13 @@ export default function CetakBarcode() {
       </div>
       <div className="qr-print-layout grid gap-6 lg:grid-cols-3">
         <Card className="h-fit no-print">
-          <CardHeader><CardTitle className="text-base">{t('Pilih Rak')}</CardTitle></CardHeader>
+          <CardHeader className="flex flex-row items-center justify-between"><CardTitle className="text-base">{t('Pilih Rak')}</CardTitle>{query.isFetching && !loading && <LoaderCircle role="status" aria-label={t('Memuat daftar rak...')} className="size-4 animate-spin text-muted-foreground" />}</CardHeader>
           <CardContent className="space-y-4">
             <div className="relative"><Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={16} /><Input className="pl-9" value={search} onChange={event => setSearch(event.target.value)} placeholder={t('Cari rak atau lokasi...')} /></div>
+            {query.isError && <div role="alert" className="space-y-2"><p className="text-sm text-muted-foreground">{t('Gagal memuat daftar rak')}</p><Button variant="outline" size="sm" disabled={query.isFetching} onClick={() => query.refetch()}>{t('Coba lagi')}</Button></div>}
             <ScrollArea className="h-80 rounded-md border p-2">
               <div className="space-y-1">
-                {filtered.map(rack => (
+                {loading ? <div role="status" aria-label={t('Memuat daftar rak...')} className="space-y-3 p-2">{Array.from({ length: 5 }, (_, index) => <div key={index} className="flex items-center gap-3"><Skeleton className="size-4 shrink-0" /><div className="flex-1 space-y-2"><Skeleton className="h-4 w-3/4" /><Skeleton className="h-3 w-1/2" /></div></div>)}</div> : !filtered.length && !query.isError ? <p className="p-4 text-center text-sm text-muted-foreground">{t('Tidak ada rak yang cocok')}</p> : filtered.map(rack => (
                   <label key={rack.id} className="flex cursor-pointer items-center gap-3 rounded-md p-2 hover:bg-muted">
                     <Checkbox checked={selected.some(item => item.id === rack.id)} onCheckedChange={() => toggle(rack)} />
                     <span><span className="block text-sm font-medium">{rack.nama}</span><span className="block text-xs text-muted-foreground">{rack.kode} · {rackLocation(rack)}</span></span>
@@ -60,12 +60,12 @@ export default function CetakBarcode() {
             <Button onClick={() => window.print()} disabled={!printReady}><Printer size={16} />{t('Cetak QR Rak')}</Button>
           </CardHeader>
           <CardContent className="qr-preview-content">
-            {!selected.length ? (
+            {loading ? <div role="status" aria-label={t('Memuat daftar rak...')} className="grid gap-6 sm:grid-cols-2 no-print">{[1, 2].map(item => <Skeleton key={item} className="aspect-[210/297] w-full" />)}</div> : !selected.length ? (
               <div className="py-20 text-center text-muted-foreground no-print"><QrCode size={48} className="mx-auto mb-2 opacity-50" />{t('Pilih rak untuk membuat label')}</div>
             ) : (
               <div className="qr-print-document grid gap-6 sm:grid-cols-2">
                 {selected.map(rack => (
-                  <article key={rack.id} className="qr-sheet relative aspect-[210/297] overflow-hidden border bg-white text-black shadow-sm">
+                  <article key={rack.id} className="qr-sheet relative aspect-[210/297] overflow-hidden border bg-card text-card-foreground shadow-sm">
                     <div className="absolute inset-x-[8%] top-[12%] text-center">
                       <p className="font-semibold">{company.nama_perusahaan}</p>
                       <p className="mt-1 break-words text-xs">{[company.alamat, company.telepon, company.email].filter(Boolean).join(' · ')}</p>

@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { LoaderCircle, Wand2 } from 'lucide-react';
+import { RefreshCw } from 'lucide-react';
 
 export default function MasterLokasiForm({ open, editId, form, saving, generatingCode, onClose, onSubmit, onFieldChange, onGenerateCode }) {
   useUiLanguage();
@@ -15,8 +15,8 @@ export default function MasterLokasiForm({ open, editId, form, saving, generatin
           <Label htmlFor="lokasi-kode">{translateUi("Kode")}</Label>
           <div className="flex gap-2">
             <Input id="lokasi-kode" value={form.kode} onChange={(event) => onFieldChange('kode', event.target.value)} required disabled={saving} />
-            <Button type="button" variant="outline" className="shrink-0 gap-2" onClick={onGenerateCode} disabled={saving || generatingCode}>
-              {generatingCode ? <LoaderCircle className="size-4 animate-spin" /> : <Wand2 size={16} />}{translateUi("Buat Kode")}</Button>
+            <Button type="button" variant="outline" size="icon" className="shrink-0" aria-label={translateUi("Buat Kode")} title={translateUi("Buat Kode")} onClick={onGenerateCode} aria-busy={generatingCode} disabled={saving || generatingCode}>
+              <RefreshCw size={16} className={generatingCode ? "animate-spin" : undefined} /></Button>
           </div>
         </div>
         <div className="space-y-1.5">

@@ -130,7 +130,7 @@ export default function Pengaturan() {
 
   const handleTestEmail = async (event) => {
     event.preventDefault();
-    if (!canSave || sendingTestEmail) return;
+    if (!canSave || sendingTestEmail || !notificationSetting.email_enabled) return;
     try {
       const result = await testEmailMutation.mutateAsync(testEmail.trim());
       toast.success(result.message || 'Email uji dikirim. Periksa inbox atau spam.');
@@ -155,10 +155,10 @@ export default function Pengaturan() {
           <div className="space-y-4">
             <ToggleRow label={translateUi("Notifikasi Stok Minimum")} desc="Alert saat stok mendekati batas minimum" on={notificationSetting.stock_enabled} onToggle={stock_enabled => updateNotification(current => ({ ...current, stock_enabled }))} />
             <ToggleRow label={translateUi("Notifikasi Email")} desc="Kirim email saat pengambilan barang ke penerima yang dipilih di bawah" on={notificationSetting.email_enabled} onToggle={email_enabled => updateNotification(current => ({ ...current, email_enabled }))} />
-            <form onSubmit={handleTestEmail} className="space-y-3 rounded-lg border p-4">
+            {notificationSetting.email_enabled && <form onSubmit={handleTestEmail} className="space-y-3 rounded-lg border p-4">
               <div>
                 <p className="text-sm font-medium">{t("Kirim Email Uji")}</p>
-                <p className="mt-1 text-xs text-muted-foreground">{t("Uji pengiriman ke alamat berikut tanpa membuat transaksi atau mengubah penerima notifikasi. Bisa digunakan saat notifikasi email OFF.")}</p>
+                <p className="mt-1 text-xs text-muted-foreground">{t("Uji pengiriman ke alamat berikut tanpa membuat transaksi atau mengubah penerima notifikasi. Aktifkan notifikasi email untuk menggunakan pengujian ini.")}</p>
               </div>
               <Label htmlFor="test-email">{t("Email tujuan")}</Label>
               <div className="flex flex-col gap-2 sm:flex-row">
@@ -167,7 +167,7 @@ export default function Pengaturan() {
                   {sendingTestEmail ? translateUi("Mengirim...") : translateUi("Kirim Email Uji")}
                 </Button>
               </div>
-            </form>
+            </form>}
             <ToggleRow label={translateUi("Notifikasi Transaksi")} desc="Alert untuk setiap transaksi baru" on={notificationSetting.transaction_enabled} onToggle={transaction_enabled => updateNotification(current => ({ ...current, transaction_enabled }))} />
             <div className="rounded-lg border bg-card">
               <div className="border-b px-4 py-3">

@@ -1,5 +1,5 @@
 import api from '@/services/api';
 
-export function getDashboardStats() {
-  return api.get('/dashboard/stats');
+export function getDashboardStats(params) {
+  return api.get('/dashboard/stats', { params });
 }

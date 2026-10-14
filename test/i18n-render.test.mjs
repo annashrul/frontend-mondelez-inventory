@@ -2,6 +2,8 @@ import test, { before, after } from 'node:test';
 import assert from 'node:assert/strict';
 import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { MemoryRouter } from 'react-router-dom';
 import { createServer } from 'vite';
 import reactPlugin from '@vitejs/plugin-react';
 import { fileURLToPath } from 'node:url';
@@ -12,6 +14,12 @@ let Calendar;
 let AsyncCombobox;
 let DataTable;
 let SettingsSkeleton;
+let Pengaturan;
+let LogActivity;
+let CetakBarcode;
+let AuthProvider;
+let DashboardCharts;
+let Dashboard;
 before(async () => {
   server = await createServer({
     configFile: false,
@@ -28,6 +36,12 @@ before(async () => {
   AsyncCombobox = (await server.ssrLoadModule('/src/components/ui/async-combobox.jsx')).AsyncCombobox;
   DataTable = (await server.ssrLoadModule('/src/components/DataTable.jsx')).default;
   SettingsSkeleton = (await server.ssrLoadModule('/src/components/SettingsSkeleton.jsx')).default;
+  Pengaturan = (await server.ssrLoadModule('/src/pages/Pengaturan.jsx')).default;
+  LogActivity = (await server.ssrLoadModule('/src/pages/LogActivity.jsx')).default;
+  CetakBarcode = (await server.ssrLoadModule('/src/pages/CetakBarcode.jsx')).default;
+  AuthProvider = (await server.ssrLoadModule('/src/context/AuthContext.jsx')).AuthProvider;
+  DashboardCharts = (await server.ssrLoadModule('/src/components/DashboardCharts.jsx')).default;
+  Dashboard = (await server.ssrLoadModule('/src/pages/Dashboard.jsx')).default;
 });
 after(async () => { await server?.close(); });
 // Zustand uses its initial snapshot during server rendering. Set that snapshot too.
@@ -94,4 +108,85 @@ test('settings skeleton provides translated loading status for every tab', () =>
     setLanguage('en');
     assert.match(render(SettingsSkeleton, { tab }), /aria-label="Loading settings\.\.\."/);
   }
+});
+
+function renderPage(Component, client, url) {
+  return renderToStaticMarkup(React.createElement(QueryClientProvider, { client },
+    React.createElement(AuthProvider, null,
+      React.createElement(MemoryRouter, { initialEntries: [url] }, React.createElement(Component)))));
+}
+
+test('test email form is visible only when email notifications are enabled', () => {
+  setLanguage('id');
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: Infinity } } });
+  try {
+    client.setQueryData(['settings', undefined], settings.getState().settings);
+    client.setQueryData(['settings-recipients', undefined], { levels: [], users: [] });
+    client.setQueryData(['notification-settings', undefined], { email_enabled: false, level_ids: [], user_ids: [], stock_enabled: true, transaction_enabled: true });
+    assert.doesNotMatch(renderPage(Pengaturan, client, '/pengaturan?tab=notifikasi'), /id="test-email"/);
+    client.setQueryData(['notification-settings', undefined], { email_enabled: true, level_ids: [], user_ids: [], stock_enabled: true, transaction_enabled: true });
+    assert.match(renderPage(Pengaturan, client, '/pengaturan?tab=notifikasi'), /id="test-email"/);
+  } finally { client.clear(); }
+});
+
+test('activity and QR pages show skeletons before their initial data arrives', () => {
+  setLanguage('id');
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: Infinity } } });
+  try {
+    const logs = renderPage(LogActivity, client, '/log-activity');
+    assert.match(logs, /aria-label="Memuat log aktivitas\.\.\."/);
+    assert.match(logs, /shimmer/);
+    assert.doesNotMatch(logs, /Tidak ada log aktivitas/);
+    const qr = renderPage(CetakBarcode, client, '/cetak-barcode');
+    assert.match(qr, /aria-label="Memuat daftar rak\.\.\."/);
+    assert.match(qr, /shimmer/);
+    assert.doesNotMatch(qr, /Tidak ada rak yang cocok/);
+  } finally { client.clear(); }
+});
+
+const chartFixture = {
+  days: 7, startDate: '2026-10-10', endDate: '2026-10-16',
+  daily: Array.from({ length: 7 }, (_, index) => ({ date: `2026-10-${10 + index}`, pengambilan: index % 3, masuk: index % 2, keluar: index % 3 })),
+  popularItems: [{ barang_id: 1, nama: 'Nama Barang', satuan: 'Satuan', total_transaksi: 5, total_qty: 12 }],
+  categories: [{ kelompok_id: 1, nama: 'Kelompok Barang', total_barang: 3 }, { kelompok_id: null, nama: null, total_barang: 2 }],
+  statuses: [{ status: 'Disetujui', total: 5 }, { status: 'Pending', total: 1 }],
+};
+
+test('dashboard charts translate labels, expose per-day details and preserve user names and units', () => {
+  setLanguage('en');
+  const english = render(DashboardCharts, { analytics: chartFixture });
+  assert.match(english, /Item Withdrawal Trend/);
+  assert.match(english, /Stock Movements/);
+  assert.match(english, /Outgoing/);
+  assert.doesNotMatch(english, /Sign Out/);
+  assert.match(english, /Item Group Distribution/);
+  assert.match(english, /Ungrouped/);
+  assert.match(english, />Nama Barang</);
+  assert.match(english, /12 Satuan/);
+  assert.match(english, />Kelompok Barang</);
+  assert.match(english, /role="button"/);
+  assert.match(english, /aria-valuenow="5"/);
+  setLanguage('id');
+  assert.match(render(DashboardCharts, { analytics: chartFixture }), /Tren Pengambilan Barang/);
+});
+
+test('empty dashboard charts show explicit empty states instead of fabricated data', () => {
+  setLanguage('id');
+  const empty = render(DashboardCharts, { analytics: { ...chartFixture, daily: chartFixture.daily.map(day => ({ ...day, pengambilan: 0, masuk: 0, keluar: 0 })), popularItems: [], categories: [], statuses: [] } });
+  assert.match(empty, /Belum ada transaksi pada periode ini/);
+  assert.match(empty, /Belum ada data barang/);
+  assert.doesNotMatch(empty, /NaN|Infinity/);
+});
+
+test('dashboard uses the period-specific cached API response and removes unsupported percentage changes', () => {
+  setLanguage('id');
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: Infinity } } });
+  try {
+    client.setQueryData(['dashboard-stats', { days: 30 }], { totalBarang: 5, totalTransaksi: 2, stokMenipis: 1, nilaiInventory: 1000, aktivitasTerbaru: [], lowStockItems: [], analytics: { ...chartFixture, days: 30 } });
+    const html = renderPage(Dashboard, client, '/');
+    assert.match(html, /Analisis Inventory/);
+    assert.match(html, /Periode grafik/);
+    assert.match(html, /30 hari terakhir/);
+    assert.doesNotMatch(html, /\+12%|\+8%|\+3%|\+5%/);
+  } finally { client.clear(); }
 });

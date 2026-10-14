@@ -1,3 +1,5 @@
+import { buildDashboardAnalytics, wibDate } from './dashboardAnalytics';
+import { generateInternalBarcode } from '@/lib/barcode';
 import { catalogWithIds } from './menuCatalog';
 import { ROLE_ACCESS } from '@/lib/permissions';
 import { defaultSettings, useSettingsStore } from '@/stores/settingsStore';
@@ -6,6 +8,14 @@ import api from '../api';
 import { db } from './db';
 
 const mock = new MockAdapter(api, { delayResponse: 500 });
+
+mock.onGet('/barang/barcode-otomatis').reply(() => {
+  for (let attempt = 0; attempt < 20; attempt++) {
+    const barcode = generateInternalBarcode();
+    if (!db.barang.some(item => item.barcode === barcode)) return [200, { barcode }];
+  }
+  return [503, { message: 'Gagal generate barcode barang' }];
+});
 
 const currentUser = () => {
   try { return JSON.parse(localStorage.getItem('user')) || db.pengguna[0]; }
@@ -292,13 +302,16 @@ setupCrud('kartu-stok', 'kartu_stok');
 setupCrud('log-activity', 'log_activity');
 setupCrud('shift', 'shift');
 
-mock.onGet('/dashboard/stats').reply(() => {
-  const today = new Date().toISOString().slice(0, 10);
+mock.onGet('/dashboard/stats').reply(config => {
+  const days = Number(config.params?.days ?? 30);
+  if (![7, 30, 90].includes(days)) return [422, { message: 'Periode dashboard tidak valid' }];
+  const today = wibDate();
   const barang = db.barang.filter((item) => !item.is_deleted);
   const kartuStok = [...db.kartu_stok].sort((a, b) => String(b.tanggal).localeCompare(String(a.tanggal)) || Number(b.id) - Number(a.id));
   return [200, {
+    analytics: buildDashboardAnalytics(db, { days }),
     totalBarang: barang.length,
-    totalTransaksi: kartuStok.filter((item) => String(item.tanggal || '').slice(0, 10) === today).length,
+    totalTransaksi: kartuStok.filter((item) => wibDate(item.tanggal) === today).length,
     stokMenipis: barang.filter(b => b.stok <= b.stok_min).length,
     nilaiInventory: barang.reduce((acc, curr) => acc + (curr.stok * curr.harga), 0),
     aktivitasTerbaru: kartuStok.slice(0, 5).map((item) => ({

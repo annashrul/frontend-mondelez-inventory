@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
-import { LoaderCircle, Search, ShieldCheck, Wand2 } from 'lucide-react';
+import { Search, ShieldCheck, RefreshCw } from 'lucide-react';
 
 export default function LevelPenggunaForm({
   open,
@@ -62,8 +62,8 @@ export default function LevelPenggunaForm({
             <Label htmlFor="level-kode">{translateUi("Kode")}</Label>
             <div className="flex gap-2">
               <Input id="level-kode" value={form.kode} onChange={(e) => onFieldChange('kode', e.target.value)} required disabled={saving} />
-              <Button type="button" variant="outline" className="shrink-0 gap-2" onClick={onGenerateCode} disabled={saving || generatingCode}>
-                {generatingCode ? <LoaderCircle className="size-4 animate-spin" /> : <Wand2 size={16} />}{translateUi("Buat Kode")}</Button>
+              <Button type="button" variant="outline" size="icon" className="shrink-0" aria-label={translateUi("Buat Kode")} title={translateUi("Buat Kode")} onClick={onGenerateCode} aria-busy={generatingCode} disabled={saving || generatingCode}>
+                <RefreshCw size={16} className={generatingCode ? "animate-spin" : undefined} /></Button>
             </div>
           </div>
           <div className="space-y-1.5">

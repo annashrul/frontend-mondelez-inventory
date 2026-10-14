@@ -5,7 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { LoaderCircle, Wand2 } from 'lucide-react';
+import { RefreshCw } from 'lucide-react';
 import { parseNumberInput } from '@/lib/utils';
 import { getKelompokOptions, getRakOptions, getSatuanOptions } from '@/services/barangService';
 
@@ -33,11 +33,13 @@ export default function MasterBarangForm({
   imageFile,
   saving,
   generatingCode,
+  generatingBarcode,
   onClose,
   onSubmit,
   onFieldChange,
   onImageChange,
   onGenerateCode,
+  onGenerateBarcode,
 }) {
   useUiLanguage();
   return (
@@ -46,12 +48,20 @@ export default function MasterBarangForm({
         <div className="space-y-1.5">
           <Label htmlFor="kode">{translateUi("Kode Barang")}</Label>
           <div className="flex gap-2">
-            <Input id="kode" value={form.kode} onChange={(event) => onFieldChange('kode', event.target.value)} required />
-            <Button type="button" variant="outline" className="shrink-0 gap-2" onClick={onGenerateCode} disabled={saving || generatingCode}>
-              {generatingCode ? <LoaderCircle className="size-4 animate-spin" /> : <Wand2 size={16} />}{translateUi("Buat Kode")}</Button>
+            <Input id="kode" value={form.kode} onChange={(event) => onFieldChange('kode', event.target.value)} required disabled={saving || generatingCode} />
+            <Button type="button" variant="outline" size="icon" className="shrink-0" aria-label={translateUi("Buat Kode Barang")} title={translateUi("Buat Kode Barang")} onClick={onGenerateCode} aria-busy={generatingCode} disabled={saving || generatingCode}>
+              <RefreshCw size={16} className={generatingCode ? "animate-spin" : undefined} /></Button>
           </div>
         </div>
-        <FormField field="barcode" label={translateUi("Barcode")} value={form.barcode} onChange={onFieldChange} />
+        <div className="space-y-1.5">
+          <Label htmlFor="barcode">{translateUi("Barcode")}</Label>
+          <div className="flex gap-2">
+            <Input id="barcode" value={form.barcode} onChange={event => onFieldChange('barcode', event.target.value)} required disabled={saving || generatingBarcode} />
+            <Button type="button" variant="outline" size="icon" className="shrink-0" aria-label={translateUi("Buat Barcode")} title={translateUi("Buat Barcode")} onClick={onGenerateBarcode} aria-busy={generatingBarcode} disabled={saving || generatingBarcode}>
+              <RefreshCw size={16} className={generatingBarcode ? "animate-spin" : undefined} />
+            </Button>
+          </div>
+        </div>
         <FormField field="nama" label={translateUi("Nama Barang")} value={form.nama} onChange={onFieldChange} />
         <div className="space-y-1.5">
           <Label>{translateUi("Kelompok Barang")}</Label>
@@ -111,7 +121,7 @@ export default function MasterBarangForm({
       </form>
       <ModalFooter className="-mx-5 -mb-5 mt-6 sm:-mx-6 sm:-mb-6">
         <Button type="button" variant="outline" onClick={onClose} disabled={saving}>{translateUi("Batal")}</Button>
-        <Button type="submit" form="barang-form" disabled={saving}>{saving ? translateUi("Memproses gambar...") : translateUi("Simpan")}</Button>
+        <Button type="submit" form="barang-form" disabled={saving || generatingCode || generatingBarcode}>{saving ? translateUi("Memproses gambar...") : translateUi("Simpan")}</Button>
       </ModalFooter>
     </Modal>
   );

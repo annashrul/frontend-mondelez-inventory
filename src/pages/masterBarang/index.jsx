@@ -6,7 +6,7 @@ import { toast } from '@/lib/toast';
 import useDebounce from '@/hooks/useDebounce';
 import { useMasterBarangData } from '@/hooks/useMasterBarangData';
 import { useMasterBarangStore } from '@/stores/masterBarangStore';
-import { generateBarangCode } from '@/services/barangService';
+import { generateBarangCode, generateBarangBarcode } from '@/services/barangService';
 import MasterBarangForm from './Form';
 import MasterBarangList from './List';
 
@@ -38,6 +38,12 @@ export default function MasterBarang() {
     mutationFn: generateBarangCode,
     onSuccess: (response) => updateField('kode', response.kode),
     onError: (error) => toast.error(error.message || 'Gagal generate kode barang'),
+  });
+
+  const generateBarcodeMutation = useMutation({
+    mutationFn: generateBarangBarcode,
+    onSuccess: response => updateField('barcode', response.barcode),
+    onError: error => toast.error(error.message || 'Gagal generate barcode barang'),
   });
 
   const resetImage = () => {
@@ -119,7 +125,7 @@ export default function MasterBarang() {
 
   const handleSave = async (event) => {
     event.preventDefault();
-    if (saveMutation.isPending) return;
+    if (saveMutation.isPending || generateCodeMutation.isPending || generateBarcodeMutation.isPending) return;
     await saveMutation.mutateAsync().catch(() => {});
   };
 
@@ -153,11 +159,13 @@ export default function MasterBarang() {
         imageFile={imageFile}
         saving={saveMutation.isPending}
         generatingCode={generateCodeMutation.isPending}
+        generatingBarcode={generateBarcodeMutation.isPending}
         onClose={closeModal}
         onSubmit={handleSave}
         onFieldChange={updateField}
         onImageChange={handleImage}
         onGenerateCode={() => generateCodeMutation.mutate()}
+        onGenerateBarcode={() => generateBarcodeMutation.mutate()}
       />
     </div>
   );

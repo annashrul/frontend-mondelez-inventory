@@ -26,6 +26,10 @@ export function generateBarangCode() {
   return api.get('/barang/kode-otomatis');
 }
 
+export function generateBarangBarcode() {
+  return api.get('/barang/barcode-otomatis');
+}
+
 function optionLabel(item, detail) {
   return detail ? `${item.kode} - ${item.nama} - ${detail}` : `${item.kode} - ${item.nama}`;
 }
