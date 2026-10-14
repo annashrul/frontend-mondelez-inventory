@@ -7,7 +7,7 @@ export function notificationSocketUrl() {
 }
 
 export const notificationService = {
-  list: () => api.get('/notifications'),
+  list: (config) => api.get('/notifications', config),
   markRead: (id) => api.patch(`/notifications/${id}/read`),
   markAllRead: () => api.patch('/notifications/read-all'),
   getSettings: () => api.get('/notifications/settings'),

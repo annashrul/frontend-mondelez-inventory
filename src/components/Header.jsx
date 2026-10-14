@@ -22,7 +22,7 @@ export default function Header() {
     }
     load().catch(() => {});
     connect();
-    return undefined;
+    return disconnect;
   }, [connect, disconnect, load, user]);
 
   return (

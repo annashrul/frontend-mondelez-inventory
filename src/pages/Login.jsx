@@ -17,23 +17,17 @@ export default function Login() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (loading) return;
     setLoading(true);
     try {
       const res = await api.post('/auth/login', form);
       login(res.user, res.token);
       toast.success('Login berhasil!');
     } catch (err) {
-      if (form.username === 'admin' && form.password === 'admin') {
-        login(
-          { id: 1, nama: 'Administrator', username: 'admin', level: 'Admin' },
-          'demo-token-12345'
-        );
-        toast.success('Login berhasil! (Demo Mode)');
-      } else {
-        toast.error(err.message || 'Username atau password salah');
-      }
+      toast.error(err.message || 'Username atau password salah');
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   return (
@@ -90,9 +84,11 @@ export default function Login() {
               <Button type="submit" className="w-full" disabled={loading}>
                 {loading ? 'Memproses...' : 'Login'}
               </Button>
-              <p className="text-center text-xs text-muted-foreground">
-                Demo: <strong>admin/admin</strong>, <strong>budi/budi</strong>, atau <strong>owner/owner</strong>
-              </p>
+              {import.meta.env.VITE_USE_MOCKS === 'true' && (
+                <p className="text-center text-xs text-muted-foreground">
+                  Demo: <strong>admin/admin</strong>, <strong>budi/budi</strong>, atau <strong>owner/owner</strong>
+                </p>
+              )}
             </form>
           </CardContent>
         </Card>

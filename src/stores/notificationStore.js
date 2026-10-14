@@ -5,19 +5,7 @@ import { notificationService, notificationSocketUrl } from '@/services/notificat
 
 let socket = null;
 let mockListener = null;
-let fallbackTimer = null;
-
-function stopFallback() {
-  if (fallbackTimer) clearInterval(fallbackTimer);
-  fallbackTimer = null;
-}
-
-function startFallback(load) {
-  if (fallbackTimer) return;
-  fallbackTimer = setInterval(() => {
-    load().catch(() => {});
-  }, 5000);
-}
+let pendingLoad = null;
 
 export const useNotificationStore = create((set, get) => ({
   items: [],
@@ -25,13 +13,25 @@ export const useNotificationStore = create((set, get) => ({
   loading: false,
   connected: false,
   load: async () => {
+    if (pendingLoad) return pendingLoad.promise;
+    const controller = new AbortController();
+    const request = { controller, promise: null };
+    pendingLoad = request;
     set({ loading: true });
-    try {
-      const response = await notificationService.list();
-      set({ items: response.rows || [], unread: response.unread || 0 });
-    } finally {
-      set({ loading: false });
-    }
+    request.promise = (async () => {
+      try {
+        const response = await notificationService.list({ signal: controller.signal });
+        if (!controller.signal.aborted) {
+          set({ items: response.rows || [], unread: response.unread || 0 });
+        }
+      } finally {
+        if (pendingLoad === request) {
+          pendingLoad = null;
+          set({ loading: false });
+        }
+      }
+    })();
+    return request.promise;
   },
   connect: () => {
     if (socket || !localStorage.getItem('token')) return;
@@ -53,9 +53,12 @@ export const useNotificationStore = create((set, get) => ({
       auth: { token: localStorage.getItem('token') },
       transports: ['websocket', 'polling'],
     });
+    let hasConnected = false;
     socket.on('connect', () => {
-      stopFallback();
       set({ connected: true });
+      // Ambil notifikasi yang terlewat hanya setelah koneksi pulih.
+      if (hasConnected) get().load().catch(() => {});
+      hasConnected = true;
     });
     socket.on('notification:new', (notification) => {
       set((state) => ({
@@ -66,22 +69,22 @@ export const useNotificationStore = create((set, get) => ({
     });
     socket.on('disconnect', () => {
       set({ connected: false });
-      startFallback(get().load);
     });
     socket.on('connect_error', () => {
       set({ connected: false });
-      startFallback(get().load);
     });
   },
   disconnect: () => {
+    socket?.removeAllListeners();
     socket?.disconnect();
     socket = null;
-    stopFallback();
+    pendingLoad?.controller.abort();
+    pendingLoad = null;
     if (mockListener) {
       window.removeEventListener('inventory-notification', mockListener);
       mockListener = null;
     }
-    set({ connected: false, items: [], unread: 0 });
+    set({ connected: false, items: [], unread: 0, loading: false });
   },
   markRead: async (id) => {
     await notificationService.markRead(id);

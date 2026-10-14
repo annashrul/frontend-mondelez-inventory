@@ -31,11 +31,11 @@ api.interceptors.request.use(
     if (config.data instanceof FormData) delete config.headers['Content-Type'];
     // Inject token if needed
     const token = localStorage.getItem('token');
-    if (token) {
+    if (token && config.url !== '/auth/login') {
       config.headers.Authorization = `Bearer ${token}`;
     }
     const user = localStorage.getItem('user');
-    if (user) {
+    if (user && config.url !== '/auth/login') {
       try {
         const parsed = JSON.parse(user);
         if (parsed?.id) config.headers['X-User-Id'] = String(parsed.id);
@@ -58,7 +58,7 @@ api.interceptors.response.use(
       );
     }
     const message = error.response?.data?.message || error.message || 'Terjadi kesalahan jaringan';
-    if (error.response?.status === 401) {
+    if (error.response?.status === 401 && error.config?.url !== '/auth/login') {
       // Handle unauthorized
       toast.error('Sesi berakhir, silakan login kembali');
     }
