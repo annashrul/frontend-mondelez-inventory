@@ -1,7 +1,8 @@
+import { withSettingsPageSize } from '@/stores/settingsStore';
 import { create } from 'zustand';
 
 export function createCrudPageStore(emptyForm) {
-  return create((set) => ({
+  return withSettingsPageSize(create((set) => ({
     search: '',
     page: 1,
     limit: 10,
@@ -23,5 +24,5 @@ export function createCrudPageStore(emptyForm) {
     openAdd: () => set({ form: emptyForm, editId: null, modalOpen: true }),
     openEdit: (row) => set({ form: row, editId: row.id, modalOpen: true }),
     closeModal: () => set({ modalOpen: false }),
-  }));
+  })));
 }

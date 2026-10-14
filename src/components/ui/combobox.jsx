@@ -1,3 +1,4 @@
+import { useTranslation } from '@/lib/i18n'
 import * as React from "react"
 import { CheckIcon, ChevronsUpDown } from "lucide-react"
 import { cn } from "@/lib/utils"
@@ -33,6 +34,7 @@ export function Combobox({
   emptyText = "Tidak ditemukan.",
   className,
 }) {
+  const { t } = useTranslation()
   const [open, setOpen] = React.useState(false)
 
   const selectedLabel = React.useMemo(() => {
@@ -53,15 +55,15 @@ export function Combobox({
             className
           )}
         >
-          <span className="truncate">{selectedLabel ?? placeholder}</span>
+          <span className="truncate">{selectedLabel ?? t(placeholder)}</span>
           <ChevronsUpDown className="ml-2 size-4 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
         <Command>
-          <CommandInput placeholder={searchPlaceholder} />
+          <CommandInput placeholder={t(searchPlaceholder)} />
           <CommandList>
-            <CommandEmpty>{emptyText}</CommandEmpty>
+            <CommandEmpty>{t(emptyText)}</CommandEmpty>
             <CommandGroup>
               {options.map((opt) => (
                 <CommandItem

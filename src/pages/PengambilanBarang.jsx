@@ -1,3 +1,4 @@
+import { translate as translateUi, useTranslation as useUiLanguage } from '@/lib/i18n';
 import { useEffect, useRef, useState } from "react";
 import dayjs from "dayjs";
 import {
@@ -12,7 +13,7 @@ import {
   Search,
   Upload,
 } from "lucide-react";
-import { toast } from "sonner";
+import { toast } from '@/lib/toast';
 import { useSearchParams } from "react-router-dom";
 import PageHeader from "@/components/PageHeader";
 import DataTable from "@/components/DataTable";
@@ -45,7 +46,7 @@ const columns = [
     render: (value) => value?.nama || "-",
   },
   { key: "rak_detail", label: "Rak", render: (value) => value?.nama || "-" },
-  { key: "qty", label: "Qty" },
+  { key: "qty", label: "Jumlah" },
   {
     key: "status",
     label: "Status",
@@ -78,6 +79,7 @@ function readTransactionDraft() {
 }
 
 export default function PengambilanBarang() {
+  useUiLanguage();
   const { user } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
   const inputRef = useRef(null);
@@ -332,13 +334,13 @@ export default function PengambilanBarang() {
   return (
     <div className="mx-auto space-y-6 pb-6 lg:space-y-8">
       <PageHeader
-        title="Pengambilan Barang"
-        subtitle="Scan barang dan rak untuk mencatat stok keluar"
+        title={translateUi("Pengambilan Barang")}
+        subtitle={translateUi("Scan barang dan rak untuk mencatat stok keluar")}
       />
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="grid h-11 w-full max-w-md grid-cols-2 rounded-xl bg-muted/70 p-1">
-          <TabsTrigger value="transaksi" className="rounded-lg">Transaksi</TabsTrigger>
-          <TabsTrigger value="riwayat" className="rounded-lg">Riwayat</TabsTrigger>
+          <TabsTrigger value="transaksi" className="rounded-lg">{translateUi("Transaksi")}</TabsTrigger>
+          <TabsTrigger value="riwayat" className="rounded-lg">{translateUi("Riwayat")}</TabsTrigger>
         </TabsList>
         <TabsContent value="transaksi">
           {canCreate && (
@@ -346,20 +348,17 @@ export default function PengambilanBarang() {
           <div className="border-b bg-muted/25 px-4 py-4 sm:px-6 sm:py-5">
             <div className="flex items-center justify-between gap-4">
               <div>
-                <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
-                  Proses baru
-                </p>
+                <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">{translateUi("Proses baru")}</p>
                 <h2 className="mt-1 text-base font-semibold tracking-tight sm:text-lg">
-                  {steps[step - 1]}
+                  {translateUi(steps[step - 1])}
                 </h2>
               </div>
               <span className="rounded-full bg-primary/10 px-3 py-1.5 text-xs font-semibold text-primary">
-                {step} dari 4
-              </span>
+                {step}{translateUi(" dari 4")}</span>
             </div>
             <div
               className="mt-4 grid grid-cols-4 gap-1.5"
-              aria-label={`Tahap ${step} dari 4`}
+              aria-label={translateUi("Tahap {value0} dari 4", { value0: step })}
             >
               {steps.map((label, index) => (
                 <div
@@ -379,11 +378,11 @@ export default function PengambilanBarang() {
                     <QrCode size={30} />
                   )}
                 </div>
-                <h3 className="mt-5 text-lg font-semibold tracking-tight">Mulai pengambilan</h3>
+                <h3 className="mt-5 text-lg font-semibold tracking-tight">{translateUi("Mulai pengambilan")}</h3>
                 <p className="mx-auto mt-2 max-w-sm text-[13px] leading-5 text-muted-foreground">
                   {loading && flow === "image"
-                    ? "Sedang menganalisis gambar, proses ini bisa memakan waktu sampai 1 menit. Mohon tunggu."
-                    : "Pilih salah satu alur. Scan rak untuk melihat semua barang di rak, atau cari barang menggunakan gambar."}
+                    ? translateUi("Sedang menganalisis gambar, proses ini bisa memakan waktu sampai 1 menit. Mohon tunggu.")
+                    : translateUi("Pilih salah satu alur. Scan rak untuk melihat semua barang di rak, atau cari barang menggunakan gambar.")}
                 </p>
                 <input
                   ref={inputRef}
@@ -402,9 +401,7 @@ export default function PengambilanBarang() {
                     }}
                     disabled={loading}
                   >
-                    <QrCode />
-                    Scan Rak
-                  </Button>
+                    <QrCode />{translateUi("Scan Rak")}</Button>
                   <Button
                     type="button"
                     className="h-12 rounded-xl text-sm"
@@ -415,9 +412,7 @@ export default function PengambilanBarang() {
                     }}
                     disabled={loading}
                   >
-                    <Camera />
-                    Cari Barang by Gambar
-                  </Button>
+                    <Camera />{translateUi("Cari Barang by Gambar")}</Button>
                   <Button
                     type="button"
                     className="h-12 rounded-xl text-sm"
@@ -428,9 +423,7 @@ export default function PengambilanBarang() {
                     }}
                     disabled={loading}
                   >
-                    <Upload />
-                    Pilih dari Galeri
-                  </Button>
+                    <Upload />{translateUi("Pilih dari Galeri")}</Button>
                 </div>
               </section>
             )}
@@ -441,7 +434,7 @@ export default function PengambilanBarang() {
                   {flow === "image" && image ? (
                     <img
                       src={image}
-                      alt="Barang yang dicari"
+                      alt={translateUi("Barang yang dicari")}
                       className="size-16 rounded-2xl border object-cover"
                     />
                   ) : (
@@ -450,9 +443,9 @@ export default function PengambilanBarang() {
                     </span>
                   )}
                   <div className="min-w-0">
-                    <h3 className="text-sm font-semibold">{flow === "rack" ? "Pilih barang di rak ini" : "Pilih barang yang sesuai"}</h3>
+                    <h3 className="text-sm font-semibold">{flow === "rack" ? translateUi("Pilih barang di rak ini") : translateUi("Pilih barang yang sesuai")}</h3>
                     <p className="mt-1 text-xs leading-5 text-muted-foreground">
-                      {flow === "rack" ? `${verifiedRack?.nama || "Rak"} berisi ${results.length} barang.` : "Ketuk salah satu hasil identifikasi."}
+                      {flow === "rack" ? translateUi("{value0} berisi {value1} barang.", { value0: verifiedRack?.nama || translateUi("Rak"), value1: results.length }) : translateUi("Ketuk salah satu hasil identifikasi.")}
                     </p>
                   </div>
                 </div>
@@ -481,9 +474,7 @@ export default function PengambilanBarang() {
                           className="size-12 shrink-0 rounded-md border object-cover"
                         />
                       ) : (
-                        <span className="grid size-12 shrink-0 place-items-center rounded-md border bg-muted text-center text-[10px] leading-tight text-muted-foreground">
-                          Belum ada
-                        </span>
+                        <span className="grid size-12 shrink-0 place-items-center rounded-md border bg-muted text-center text-[10px] leading-tight text-muted-foreground">{translateUi("Belum ada")}</span>
                       )}
                       <div className="min-w-0 flex-1">
                         <p className="truncate text-sm font-semibold">
@@ -505,8 +496,7 @@ export default function PengambilanBarang() {
                         <Badge
                           variant={Number(item.stok) > 0 ? "secondary" : "destructive"}
                           className="shrink-0"
-                        >
-                          Stok {item.stok}
+                        >{translateUi("Stok ")}{item.stok}
                         </Badge>
                       )}
                     </button>
@@ -520,9 +510,7 @@ export default function PengambilanBarang() {
                     variant="outline"
                     onClick={() => setStep(1)}
                   >
-                    <ChevronLeft />
-                    Kembali
-                  </Button>
+                    <ChevronLeft />{translateUi("Kembali")}</Button>
                   <Button
                     type="button"
                     className="h-12 flex-[2] rounded-xl sm:flex-none"
@@ -531,9 +519,7 @@ export default function PengambilanBarang() {
                       setStep(4);
                     }}
                     disabled={!selected}
-                  >
-                    Lanjutkan
-                    <ChevronRight />
+                  >{translateUi("Lanjutkan")}<ChevronRight />
                   </Button>
                 </div>
               </section>
@@ -542,9 +528,7 @@ export default function PengambilanBarang() {
             {step === 3 && selected && (
               <section className="px-4 py-5 sm:px-6 sm:py-6">
                 <div className="rounded-2xl bg-muted/60 p-4">
-                  <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-                    Tujuan rak
-                  </p>
+                  <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">{translateUi("Tujuan rak")}</p>
                   <div className="mt-2 flex items-center gap-3">
                     {selected.gambar && selected.gambar.length > 0 ? (
                       <img
@@ -563,15 +547,13 @@ export default function PengambilanBarang() {
                       </p>
                       <p className="mt-0.5 text-xs text-muted-foreground">
                         {selected.rak_detail?.lokasi_detail?.nama ||
-                          "Lokasi rak tidak tersedia"}
+                          translateUi("Lokasi rak tidak tersedia")}
                       </p>
                     </div>
                   </div>
                 </div>
                 <div className="mt-6 space-y-2">
-                  <Label htmlFor="qr-code" className="text-xs font-semibold">
-                    Kode QR rak
-                  </Label>
+                  <Label htmlFor="qr-code" className="text-xs font-semibold">{translateUi("Kode QR rak")}</Label>
                   <Input
                     id="qr-code"
                     autoFocus
@@ -580,12 +562,10 @@ export default function PengambilanBarang() {
                       setQrCode(e.target.value);
                       setVerifiedRack(null);
                     }}
-                    placeholder="Scan atau ketik kode QR"
+                    placeholder={translateUi("Scan atau ketik kode QR")}
                     className="h-12 rounded-xl bg-muted/25 px-4"
                   />
-                  <p className="px-1 text-[11px] leading-4 text-muted-foreground">
-                    Anda juga dapat memakai scanner USB atau mengetik kode.
-                  </p>
+                  <p className="px-1 text-[11px] leading-4 text-muted-foreground">{translateUi("Anda juga dapat memakai scanner USB atau mengetik kode.")}</p>
                 </div>
                 <div className="mt-6 grid gap-2.5">
                   <Button
@@ -594,9 +574,7 @@ export default function PengambilanBarang() {
                     onClick={() => setScannerOpen(true)}
                     disabled={loading}
                   >
-                    <Camera />
-                    Scan dengan Kamera
-                  </Button>
+                    <Camera />{translateUi("Scan dengan Kamera")}</Button>
                   <Button
                     type="button"
                     className="h-12 rounded-xl"
@@ -604,9 +582,7 @@ export default function PengambilanBarang() {
                     onClick={() => scanRackItems()}
                     disabled={!qrCode.trim() || loading}
                   >
-                    <QrCode />
-                    Lanjutkan dengan Kode
-                  </Button>
+                    <QrCode />{translateUi("Lanjutkan dengan Kode")}</Button>
                 </div>
                 <Button
                   type="button"
@@ -614,9 +590,7 @@ export default function PengambilanBarang() {
                   variant="ghost"
                   onClick={() => setStep(2)}
                 >
-                  <ChevronLeft />
-                  Kembali pilih barang
-                </Button>
+                  <ChevronLeft />{translateUi("Kembali pilih barang")}</Button>
               </section>
             )}
 
@@ -636,9 +610,7 @@ export default function PengambilanBarang() {
                       </span>
                     )}
                     <div>
-                      <p className="text-sm font-semibold">
-                        Rak siap digunakan
-                      </p>
+                      <p className="text-sm font-semibold">{translateUi("Rak siap digunakan")}</p>
                       <p className="mt-0.5 text-xs text-emerald-700">
                         {verifiedRack.nama} · {verifiedRack.lokasi_detail?.nama}
                       </p>
@@ -647,9 +619,7 @@ export default function PengambilanBarang() {
                 </div>
                 <div className="grid gap-5 px-4 py-5 sm:grid-cols-2 sm:px-6 sm:py-6">
                   <div className="space-y-2">
-                    <Label htmlFor="pemohon" className="text-xs font-semibold">
-                      Nama pengambil
-                    </Label>
+                    <Label htmlFor="pemohon" className="text-xs font-semibold">{translateUi("Nama pengambil")}</Label>
                     <Input
                       id="pemohon"
                       className="h-12 rounded-xl px-4"
@@ -657,17 +627,14 @@ export default function PengambilanBarang() {
                       onChange={(e) =>
                         setForm({ ...form, pemohon: e.target.value })
                       }
-                      placeholder="Contoh: Budi - Engineering"
+                      placeholder={translateUi("Contoh: Budi - Engineering")}
                       required
                     />
                   </div>
                   <div className="space-y-2">
                     <div className="flex items-center justify-between">
-                      <Label htmlFor="qty" className="text-xs font-semibold">
-                        Jumlah diambil
-                      </Label>
-                      <span className="text-[11px] text-muted-foreground">
-                        Stok {selected.stok} {selected.satuan_detail?.nama}
+                      <Label htmlFor="qty" className="text-xs font-semibold">{translateUi("Jumlah diambil")}</Label>
+                      <span className="text-[11px] text-muted-foreground">{translateUi("Stok ")}{selected.stok} {selected.satuan_detail?.nama}
                       </span>
                     </div>
                     <Input
@@ -688,11 +655,8 @@ export default function PengambilanBarang() {
                     <Label
                       htmlFor="keterangan"
                       className="text-xs font-semibold"
-                    >
-                      Keterangan{" "}
-                      <span className="font-normal text-muted-foreground">
-                        (opsional)
-                      </span>
+                    >{translateUi("Keterangan")}{" "}
+                      <span className="font-normal text-muted-foreground">{translateUi("(opsional)")}</span>
                     </Label>
                     <Textarea
                       id="keterangan"
@@ -701,7 +665,7 @@ export default function PengambilanBarang() {
                       onChange={(e) =>
                         setForm({ ...form, keterangan: e.target.value })
                       }
-                      placeholder="Keperluan atau nomor work order"
+                      placeholder={translateUi("Keperluan atau nomor work order")}
                     />
                   </div>
                 </div>
@@ -712,7 +676,7 @@ export default function PengambilanBarang() {
                     className="size-12 rounded-xl"
                     variant="outline"
                     onClick={() => setStep(2)}
-                    aria-label="Kembali"
+                    aria-label={translateUi("Kembali")}
                   >
                     <ChevronLeft />
                   </Button>
@@ -722,7 +686,7 @@ export default function PengambilanBarang() {
                     className="hidden size-12 rounded-xl sm:inline-flex"
                     variant="outline"
                     onClick={reset}
-                    aria-label="Reset"
+                    aria-label={translateUi("Atur Ulang")}
                   >
                     <RotateCcw />
                   </Button>
@@ -732,7 +696,7 @@ export default function PengambilanBarang() {
                     disabled={loading}
                   >
                     <PackageCheck />
-                    {loading ? "Menyimpan..." : "Konfirmasi Pengambilan"}
+                    {loading ? translateUi("Menyimpan...") : translateUi("Konfirmasi Pengambilan")}
                   </Button>
                 </div>
               </form>
@@ -745,15 +709,15 @@ export default function PengambilanBarang() {
           <Card className="gap-4 border-border/70 shadow-sm">
             <CardHeader className="gap-4 sm:flex-row sm:items-center sm:justify-between">
               <div>
-                <CardTitle className="text-base tracking-tight">Riwayat Pengambilan</CardTitle>
-                <p className="text-xs text-muted-foreground">Transaksi stok keluar terbaru</p>
+                <CardTitle className="text-base tracking-tight">{translateUi("Riwayat Pengambilan")}</CardTitle>
+                <p className="text-xs text-muted-foreground">{translateUi("Transaksi stok keluar terbaru")}</p>
               </div>
               <div className="relative w-full sm:w-72">
                 <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
                 <Input
                   value={search}
                   onChange={(event) => handleHistorySearchChange(event.target.value)}
-                  placeholder="Cari riwayat..."
+                  placeholder={translateUi("Cari riwayat...")}
                   className="h-9 pl-9 pr-9"
                 />
                 {historySearchLoading && (

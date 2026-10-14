@@ -1,7 +1,9 @@
+import { translate as translateUi, useTranslation as useUiLanguage } from '@/lib/i18n';
+import { useSettingsStore } from '@/stores/settingsStore';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import dayjs from 'dayjs';
 import { Activity, AlertTriangle, CheckCircle2, Clock3, FileSearch, LoaderCircle, LogIn, Pencil, Plus, ScanLine, Search, Trash2, UserRound } from 'lucide-react';
-import { toast } from 'sonner';
+import { toast } from '@/lib/toast';
 import PageHeader from '@/components/PageHeader';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
@@ -30,18 +32,18 @@ function formatDateKey(value) {
   return date.isValid() ? date.format('YYYY-MM-DD') : 'unknown';
 }
 
-function formatDayDivider(value) {
+function formatDayDivider(value, locale) {
   if (value === 'unknown') return 'Tanggal tidak diketahui';
   const date = dayjs(value);
   const today = dayjs().format('YYYY-MM-DD');
   const yesterday = dayjs().subtract(1, 'day').format('YYYY-MM-DD');
   if (value === today) return 'Hari ini';
   if (value === yesterday) return 'Kemarin';
-  return date.isValid() ? date.format('DD MMM YYYY') : 'Tanggal tidak diketahui';
+  return date.isValid() ? new Intl.DateTimeFormat(locale, { day: '2-digit', month: 'short', year: 'numeric' }).format(date.toDate()) : 'Tanggal tidak diketahui';
 }
 
 function actorLabel(log) {
-  return log.user_detail?.nama || log.user_detail?.username || 'System';
+  return log.user_detail?.nama || log.user_detail?.username || translateUi('Sistem');
 }
 
 function ipLabel(value) {
@@ -50,6 +52,8 @@ function ipLabel(value) {
 }
 
 export default function LogActivity() {
+  const { locale } = useUiLanguage();
+  const pageLimit = useSettingsStore(state => state.settings.items_per_page);
   const [logs, setLogs] = useState([]);
   const [search, setSearch] = useState('');
   const debouncedSearch = useDebounce(search);
@@ -59,14 +63,17 @@ export default function LogActivity() {
   const [hasNext, setHasNext] = useState(true);
   const [page, setPage] = useState(1);
   const loadMoreRef = useRef(null);
+  const queryVersion = useRef(0);
 
   useEffect(() => {
     let active = true;
+    queryVersion.current++;
+    setLoadingMore(false);
     setLoading(true);
     setLogs([]);
     setPage(1);
     setHasNext(true);
-    api.get('/log-activity', { params: { search: debouncedSearch, page: 1, limit: 20 } })
+    api.get('/log-activity', { params: { search: debouncedSearch, page: 1, limit: pageLimit } })
       .then((res) => {
         if (!active) return;
         setLogs(getList(res));
@@ -81,7 +88,7 @@ export default function LogActivity() {
         if (active) setLoading(false);
       });
     return () => { active = false; };
-  }, [debouncedSearch]);
+  }, [debouncedSearch, pageLimit]);
 
   useEffect(() => {
     if (!loadMoreRef.current || loading || loadingMore || !hasNext) return undefined;
@@ -89,21 +96,23 @@ export default function LogActivity() {
     const observer = new IntersectionObserver(([entry]) => {
       if (!entry.isIntersecting) return;
       setLoadingMore(true);
-      api.get('/log-activity', { params: { search: debouncedSearch, page: page + 1, limit: 20 } })
+      const version = queryVersion.current;
+      api.get('/log-activity', { params: { search: debouncedSearch, page: page + 1, limit: pageLimit } })
         .then((res) => {
+          if (version !== queryVersion.current) return;
           const nextPagination = getPagination(res);
           setLogs((current) => [...current, ...getList(res)]);
           setPage(nextPagination.page || page + 1);
           setPagination(nextPagination);
           setHasNext(nextPagination.has_next);
         })
-        .catch(() => toast.error('Gagal memuat log berikutnya'))
-        .finally(() => setLoadingMore(false));
+        .catch(() => { if (version === queryVersion.current) toast.error('Gagal memuat log berikutnya'); })
+        .finally(() => { if (version === queryVersion.current) setLoadingMore(false); });
     }, { rootMargin: '240px' });
 
     observer.observe(loadMoreRef.current);
     return () => observer.disconnect();
-  }, [debouncedSearch, hasNext, loading, loadingMore, logs.length, page]);
+  }, [debouncedSearch, hasNext, loading, loadingMore, logs.length, page, pageLimit]);
 
   const summary = useMemo(() => {
     const failed = logs.filter((log) => log.aksi?.toLowerCase().includes('gagal')).length;
@@ -118,19 +127,19 @@ export default function LogActivity() {
       const key = formatDateKey(log.waktu);
       let group = groups.find((item) => item.key === key);
       if (!group) {
-        group = { key, label: formatDayDivider(key), items: [] };
+        group = { key, label: formatDayDivider(key, locale), items: [] };
         groups.push(group);
       }
       group.items.push(log);
     });
     return groups;
-  }, [logs]);
+  }, [logs, locale]);
 
   return (
     <div className="space-y-5">
       <PageHeader
-        title="Log Aktivitas"
-        subtitle="Jejak audit aksi pengguna di seluruh modul"
+        title={translateUi("Log Aktivitas")}
+        subtitle={translateUi("Jejak audit aksi pengguna di seluruh modul")}
         searchValue={search}
         onSearchChange={(value) => { setSearch(value); setPage(1); }}
       />
@@ -142,7 +151,7 @@ export default function LogActivity() {
               <FileSearch className="size-5" />
             </span>
             <div>
-              <p className="text-xs text-muted-foreground">Total ditemukan</p>
+              <p className="text-xs text-muted-foreground">{translateUi("Total ditemukan")}</p>
               <p className="text-2xl font-semibold tracking-tight">{pagination.total || 0}</p>
             </div>
           </CardContent>
@@ -153,7 +162,7 @@ export default function LogActivity() {
               <Activity className="size-5" />
             </span>
             <div>
-              <p className="text-xs text-muted-foreground">Modul di halaman ini</p>
+              <p className="text-xs text-muted-foreground">{translateUi("Modul di halaman ini")}</p>
               <p className="text-2xl font-semibold tracking-tight">{summary.modules}</p>
             </div>
           </CardContent>
@@ -164,7 +173,7 @@ export default function LogActivity() {
               <AlertTriangle className="size-5" />
             </span>
             <div>
-              <p className="text-xs text-muted-foreground">Perlu perhatian</p>
+              <p className="text-xs text-muted-foreground">{translateUi("Perlu perhatian")}</p>
               <p className="text-2xl font-semibold tracking-tight">{summary.failed + summary.destructive}</p>
             </div>
           </CardContent>
@@ -174,10 +183,10 @@ export default function LogActivity() {
       <div className="overflow-hidden rounded-xl border bg-card shadow-sm">
         <div className="flex items-center justify-between border-b bg-muted/25 px-3 py-3 sm:px-4">
           <div>
-            <h2 className="text-sm font-semibold">Riwayat Aktivitas</h2>
-            <p className="text-xs text-muted-foreground">Urutan terbaru berada paling atas</p>
+            <h2 className="text-sm font-semibold">{translateUi("Riwayat Aktivitas")}</h2>
+            <p className="text-xs text-muted-foreground">{translateUi("Urutan terbaru berada paling atas")}</p>
           </div>
-          <Badge variant="outline" className="shrink-0">{pagination.total || logs.length} aktivitas</Badge>
+          <Badge variant="outline" className="shrink-0">{pagination.total || logs.length}{translateUi(" aktivitas")}</Badge>
         </div>
 
         {loading ? (
@@ -190,8 +199,8 @@ export default function LogActivity() {
           <div className="grid min-h-56 place-items-center p-8 text-center text-muted-foreground">
             <div>
               <FileSearch className="mx-auto mb-3 size-10" />
-              <p className="text-sm font-medium text-foreground">Tidak ada log aktivitas</p>
-              <p className="mt-1 text-xs">Coba ubah kata kunci pencarian.</p>
+              <p className="text-sm font-medium text-foreground">{translateUi("Tidak ada log aktivitas")}</p>
+              <p className="mt-1 text-xs">{translateUi("Coba ubah kata kunci pencarian.")}</p>
             </div>
           </div>
         ) : (
@@ -201,7 +210,7 @@ export default function LogActivity() {
                 <div className="sticky top-[calc(3.75rem+env(safe-area-inset-top))] z-30 -mx-3 flex items-center gap-3 bg-card/95 px-4 py-2 backdrop-blur lg:top-14">
                   <span className="h-px flex-1 bg-border" />
                   <span className="rounded-full border bg-muted/60 px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-                    {group.label}
+                    {translateUi(group.label)}
                   </span>
                   <span className="h-px flex-1 bg-border" />
                 </div>
@@ -228,18 +237,18 @@ export default function LogActivity() {
                               </div>
 
                               <div className="rounded-xl bg-muted/45 px-3 py-2.5 sm:bg-transparent sm:px-0 sm:py-0">
-                                <p className="text-[13px] font-semibold leading-5 text-foreground sm:text-sm sm:leading-6">{log.detail || '-'}</p>
+                                <p className="text-[13px] font-semibold leading-5 text-foreground sm:text-sm sm:leading-6">{translateUi(log.detail || '-')}</p>
                               </div>
 
                               <div className="grid grid-cols-2 gap-1.5 text-[11px] text-muted-foreground sm:flex sm:flex-wrap sm:gap-2 sm:text-xs">
                                 <div className="inline-flex min-w-0 items-center gap-1 rounded-lg bg-muted/60 px-2 py-1.5 sm:gap-1.5 sm:rounded-full sm:px-2.5 sm:py-1">
                                   <UserRound className="size-3.5 shrink-0 sm:size-4" />
-                                  <span className="shrink-0">User</span>
+                                  <span className="shrink-0">{translateUi("Pengguna")}</span>
                                   <span className="truncate font-medium text-foreground">{actorLabel(log)}</span>
                                 </div>
                                 <div className="inline-flex min-w-0 items-center gap-1 rounded-lg bg-muted/60 px-2 py-1.5 sm:gap-1.5 sm:rounded-full sm:px-2.5 sm:py-1">
                                   <CheckCircle2 className="size-3.5 shrink-0 sm:size-4" />
-                                  <span className="shrink-0">IP</span>
+                                  <span className="shrink-0">{translateUi("IP")}</span>
                                   <span className="truncate font-medium text-foreground">{ipLabel(log.ip)}</span>
                                 </div>
                               </div>
@@ -255,7 +264,7 @@ export default function LogActivity() {
         )}
         {logs.length > 0 && (
           <div ref={loadMoreRef} className="flex min-h-12 items-center justify-center border-t px-4 py-3 text-xs text-muted-foreground">
-            {loadingMore ? <><LoaderCircle className="mr-2 size-4 animate-spin" /> Memuat aktivitas berikutnya...</> : hasNext ? 'Gulir untuk memuat lebih banyak' : 'Semua aktivitas sudah ditampilkan'}
+            {loadingMore ? <><LoaderCircle className="mr-2 size-4 animate-spin" />{translateUi(" Memuat aktivitas berikutnya...")}</> : hasNext ? translateUi("Gulir untuk memuat lebih banyak") : translateUi("Semua aktivitas sudah ditampilkan")}
           </div>
         )}
       </div>

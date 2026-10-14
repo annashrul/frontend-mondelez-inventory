@@ -1,7 +1,8 @@
+import { withSettingsPageSize } from '@/stores/settingsStore';
 import { create } from 'zustand';
 
 function createListPageStore(extra = {}, actions = () => ({})) {
-  return create((set) => ({
+  return withSettingsPageSize(create((set) => ({
     search: '',
     page: 1,
     limit: 10,
@@ -17,7 +18,7 @@ function createListPageStore(extra = {}, actions = () => ({})) {
     setLimit: (limit) => set({ limit, page: 1, loadingSource: { type: 'limit' } }),
     setQueryResponse: (lastResponse) => set({ lastResponse, hasLoadedOnce: true, loadingSource: null }),
     ...actions(set),
-  }));
+  })));
 }
 
 export const useKartuStokStore = createListPageStore({

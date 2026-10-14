@@ -1,3 +1,4 @@
+import { useTranslation } from '@/lib/i18n'
 import * as React from "react"
 import { cn } from "@/lib/utils"
 import { cva } from "class-variance-authority"
@@ -22,8 +23,9 @@ const badgeVariants = cva(
   }
 )
 
-function Badge({ className, variant, ...props }) {
-  return <div data-slot="badge" className={cn(badgeVariants({ variant }), className)} {...props} />
+function Badge({ className, variant, children, ...props }) {
+  const { t } = useTranslation()
+  return <div data-slot="badge" className={cn(badgeVariants({ variant }), className)} {...props}>{React.Children.map(children, child => typeof child === "string" ? t(child) : child)}</div>
 }
 
 export { Badge, badgeVariants }

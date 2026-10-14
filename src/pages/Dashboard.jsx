@@ -1,3 +1,5 @@
+import { translate as translateUi, translateStockNote } from '@/lib/i18n';
+import { useTranslation } from '@/lib/i18n';
 import { Package, ShoppingCart, AlertTriangle, TrendingUp, ArrowUpRight, ArrowDownRight, Clock } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -5,6 +7,7 @@ import { useDashboardData } from '@/hooks/useDashboardData';
 import { Skeleton } from '@/components/ui/skeleton';
 
 export default function Dashboard() {
+  const { t, locale } = useTranslation();
   const { stats, loading } = useDashboardData();
 
   if (loading) return (
@@ -27,14 +30,14 @@ export default function Dashboard() {
     { label: 'Total Barang', value: stats?.totalBarang, change: '+12%', up: true, icon: Package, color: 'text-blue-600 bg-blue-100' },
     { label: 'Transaksi Hari Ini', value: stats?.totalTransaksi, change: '+8%', up: true, icon: ShoppingCart, color: 'text-green-600 bg-green-100' },
     { label: 'Stok Menipis', value: stats?.stokMenipis, change: '+3%', up: false, icon: AlertTriangle, color: 'text-amber-600 bg-amber-100' },
-    { label: 'Nilai Inventory', value: `Rp ${(stats?.nilaiInventory || 0).toLocaleString('id-ID')}`, change: '+5%', up: true, icon: TrendingUp, color: 'text-purple-600 bg-purple-100' },
+    { label: 'Nilai Inventory', value: `Rp ${(stats?.nilaiInventory || 0).toLocaleString(locale)}`, change: '+5%', up: true, icon: TrendingUp, color: 'text-purple-600 bg-purple-100' },
   ];
 
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">Dashboard</h1>
-        <p className="text-sm text-muted-foreground mt-1">Selamat datang di Sistem Inventory</p>
+        <h1 className="text-2xl font-bold tracking-tight">{translateUi("Dashboard")}</h1>
+        <p className="text-sm text-muted-foreground mt-1">{t('Selamat datang di Sistem Inventory')}</p>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -54,7 +57,7 @@ export default function Dashboard() {
                   </Badge>
                 </div>
                 <p className="text-2xl font-bold">{stat.value}</p>
-                <p className="text-sm text-muted-foreground mt-1">{stat.label}</p>
+                <p className="text-sm text-muted-foreground mt-1">{t(stat.label)}</p>
               </CardContent>
             </Card>
           );
@@ -66,7 +69,7 @@ export default function Dashboard() {
           <CardHeader className="pb-3">
             <div className="flex items-center gap-2">
               <Clock size={18} className="text-muted-foreground" />
-              <CardTitle className="text-base">Aktivitas Terbaru</CardTitle>
+              <CardTitle className="text-base">{translateUi("Aktivitas Terbaru")}</CardTitle>
             </div>
           </CardHeader>
           <CardContent className="pt-0">
@@ -75,7 +78,7 @@ export default function Dashboard() {
                 <div key={act.id} className="py-3 flex items-center justify-between first:pt-0 last:pb-0">
                   <div>
                     <p className="text-sm font-medium">{act.barang}</p>
-                    <p className="text-xs text-muted-foreground">{act.keterangan} oleh {act.user} • {act.tanggal.split('T')[0]}</p>
+                    <p className="text-xs text-muted-foreground">{translateStockNote(act)}{translateUi(" oleh ")}{act.user} • {act.tanggal.split('T')[0]}</p>
                   </div>
                   <span className={`text-sm font-semibold ${act.tipe === 'Masuk' ? 'text-green-600' : 'text-red-500'}`}>
                     {act.tipe === 'Masuk' ? '+' : '-'}{act.qty}
@@ -90,7 +93,7 @@ export default function Dashboard() {
           <CardHeader className="pb-3">
             <div className="flex items-center gap-2">
               <AlertTriangle size={18} className="text-amber-500" />
-              <CardTitle className="text-base">Stok Menipis</CardTitle>
+              <CardTitle className="text-base">{translateUi("Stok Menipis")}</CardTitle>
             </div>
           </CardHeader>
           <CardContent className="pt-0">
@@ -99,10 +102,9 @@ export default function Dashboard() {
                 <div key={item.id} className="py-3 flex items-center justify-between first:pt-0 last:pb-0">
                   <div>
                     <p className="text-sm font-medium">{item.nama}</p>
-                    <p className="text-xs text-muted-foreground">Min: {item.stok_min} {item.satuan_detail?.nama}</p>
+                    <p className="text-xs text-muted-foreground">{translateUi("Min: ")}{item.stok_min} {item.satuan_detail?.nama}</p>
                   </div>
-                  <Badge variant="destructive">
-                    Sisa: {item.stok} {item.satuan_detail?.nama}
+                  <Badge variant="destructive">{translateUi("Sisa: ")}{item.stok} {item.satuan_detail?.nama}
                   </Badge>
                 </div>
               ))}

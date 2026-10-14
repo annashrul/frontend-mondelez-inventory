@@ -1,3 +1,4 @@
+import { useTranslation } from '@/lib/i18n'
 import * as React from "react"
 import { cn } from "@/lib/utils"
 
@@ -10,11 +11,13 @@ function CardHeader({ className, ...props }) {
 }
 
 function CardTitle({ className, ...props }) {
-  return <div data-slot="card-title" className={cn("leading-none font-semibold", className)} {...props} />
+  const { t } = useTranslation()
+  return <div data-slot="card-title" className={cn("leading-none font-semibold", className)} {...props}>{React.Children.map(props.children, child => typeof child === 'string' ? t(child) : child)}</div>
 }
 
 function CardDescription({ className, ...props }) {
-  return <div data-slot="card-description" className={cn("text-muted-foreground text-sm", className)} {...props} />
+  const { t } = useTranslation()
+  return <div data-slot="card-description" className={cn("text-muted-foreground text-sm", className)} {...props}>{React.Children.map(props.children, child => typeof child === 'string' ? t(child) : child)}</div>
 }
 
 function CardContent({ className, ...props }) {

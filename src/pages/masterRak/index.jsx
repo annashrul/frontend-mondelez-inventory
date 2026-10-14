@@ -1,3 +1,4 @@
+import { translate as translateUi, useTranslation as useUiLanguage } from '@/lib/i18n';
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import PageHeader from '@/components/PageHeader';
@@ -14,6 +15,7 @@ const service = createCrudService('rak');
 const labels = { singular: 'Rak', lower: 'rak' };
 
 export default function MasterRak() {
+  useUiLanguage();
   const [qrTarget, setQrTarget] = useState(null);
   const page = useCrudPageController({
     store: useRakStore,
@@ -30,10 +32,10 @@ export default function MasterRak() {
   return (
     <div>
       <PageHeader
-        title="Master Rak Barang"
-        subtitle="Kelola lokasi rak penyimpanan"
+        title={translateUi("Master Rak Barang")}
+        subtitle={translateUi("Kelola lokasi rak penyimpanan")}
         onAdd={page.openAdd}
-        addLabel="Tambah Rak"
+        addLabel={translateUi("Tambah Rak")}
         searchValue={page.search}
         searchLoading={page.searchLoading}
         onSearchChange={page.setSearch}
@@ -65,8 +67,8 @@ export default function MasterRak() {
       <Modal
         isOpen={Boolean(qrTarget)}
         onClose={() => setQrTarget(null)}
-        title="QR Code Rak"
-        description={qrTarget ? `${qrTarget.nama || '-'} - ${qrTarget.lokasi_detail?.nama || 'Lokasi tidak tersedia'}` : undefined}
+        title={translateUi("QR Code Rak")}
+        description={qrTarget ? translateUi("{value0} - {value1}", { value0: qrTarget.nama || '-', value1: qrTarget.lokasi_detail?.nama || translateUi('Lokasi tidak tersedia') }) : undefined}
         size="sm"
       >
         {qrTarget && (
@@ -80,7 +82,7 @@ export default function MasterRak() {
               <code className="mt-3 inline-block rounded-md bg-muted px-3 py-1.5 text-xs">{qrTarget.qr_code}</code>
             </div>
             <div className="flex justify-end border-t pt-4">
-              <Button type="button" variant="outline" onClick={() => setQrTarget(null)}>Tutup</Button>
+              <Button type="button" variant="outline" onClick={() => setQrTarget(null)}>{translateUi("Tutup")}</Button>
             </div>
           </div>
         )}

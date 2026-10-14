@@ -1,14 +1,20 @@
+import { translate as translateUi, useTranslation as useUiLanguage } from '@/lib/i18n';
 import * as React from "react"
 import * as DialogPrimitive from "@radix-ui/react-dialog"
 import { XIcon } from "lucide-react"
 import { cn } from "@/lib/utils"
 
-function Dialog(props) { return <DialogPrimitive.Root data-slot="dialog" {...props} /> }
-function DialogTrigger(props) { return <DialogPrimitive.Trigger data-slot="dialog-trigger" {...props} /> }
-function DialogClose(props) { return <DialogPrimitive.Close data-slot="dialog-close" {...props} /> }
-function DialogPortal(props) { return <DialogPrimitive.Portal data-slot="dialog-portal" {...props} /> }
+function Dialog(props) {
+  useUiLanguage(); return <DialogPrimitive.Root data-slot="dialog" {...props} /> }
+function DialogTrigger(props) {
+  useUiLanguage(); return <DialogPrimitive.Trigger data-slot="dialog-trigger" {...props} /> }
+function DialogClose(props) {
+  useUiLanguage(); return <DialogPrimitive.Close data-slot="dialog-close" {...props} /> }
+function DialogPortal(props) {
+  useUiLanguage(); return <DialogPrimitive.Portal data-slot="dialog-portal" {...props} /> }
 
 function DialogOverlay({ className, ...props }) {
+  useUiLanguage();
   return (
     <DialogPrimitive.Overlay
       data-slot="dialog-overlay"
@@ -19,6 +25,7 @@ function DialogOverlay({ className, ...props }) {
 }
 
 function DialogContent({ className, children, ...props }) {
+  useUiLanguage();
   return (
     <DialogPortal>
       <DialogOverlay />
@@ -33,7 +40,7 @@ function DialogContent({ className, children, ...props }) {
         {children}
         <DialogPrimitive.Close className="ring-offset-background focus:ring-ring data-[state=open]:bg-accent data-[state=open]:text-muted-foreground absolute top-4 right-4 rounded-xs opacity-70 transition-opacity hover:opacity-100 focus:ring-2 focus:ring-offset-2 focus:outline-hidden disabled:pointer-events-none [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4">
           <XIcon />
-          <span className="sr-only">Close</span>
+          <span className="sr-only">{translateUi("Tutup")}</span>
         </DialogPrimitive.Close>
       </DialogPrimitive.Content>
     </DialogPortal>
@@ -41,18 +48,22 @@ function DialogContent({ className, children, ...props }) {
 }
 
 function DialogHeader({ className, ...props }) {
+  useUiLanguage();
   return <div data-slot="dialog-header" className={cn("flex flex-col gap-2 text-center sm:text-left", className)} {...props} />
 }
 
 function DialogFooter({ className, ...props }) {
+  useUiLanguage();
   return <div data-slot="dialog-footer" className={cn("flex flex-col-reverse gap-2 sm:flex-row sm:justify-end", className)} {...props} />
 }
 
 function DialogTitle({ className, ...props }) {
+  useUiLanguage();
   return <DialogPrimitive.Title data-slot="dialog-title" className={cn("text-lg font-semibold leading-none", className)} {...props} />
 }
 
 function DialogDescription({ className, ...props }) {
+  useUiLanguage();
   return <DialogPrimitive.Description data-slot="dialog-description" className={cn("text-muted-foreground text-sm", className)} {...props} />
 }
 

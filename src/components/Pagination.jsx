@@ -1,3 +1,4 @@
+import { useTranslation } from '@/lib/i18n';
 import { ChevronLeft, ChevronRight, LoaderCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -10,6 +11,7 @@ import {
 import { emptyPagination } from '@/services/api';
 
 export default function Pagination({ pagination = emptyPagination, onPageChange, onLimitChange, pageLoadingDirection, limitLoading = false }) {
+  const { t } = useTranslation();
   const page = pagination.page || 1;
   const totalPages = pagination.total_pages || 1;
   const total = pagination.total || 0;
@@ -20,8 +22,8 @@ export default function Pagination({ pagination = emptyPagination, onPageChange,
   return (
     <div className="flex items-center justify-between gap-2 rounded-lg border bg-card px-2 py-2 text-sm text-muted-foreground sm:flex-row sm:px-3 sm:py-3">
       <div className="hidden sm:block">
-        Menampilkan <span className="font-medium text-foreground">{from}-{to}</span> dari{' '}
-        <span className="font-medium text-foreground">{total}</span> data
+        {t("Menampilkan")} <span className="font-medium text-foreground">{from}-{to}</span> {t("dari")}{' '}
+        <span className="font-medium text-foreground">{total}</span> {t("data")}
       </div>
       <div className="flex w-full items-center justify-between gap-2 sm:w-auto sm:justify-end">
         {onLimitChange && (
@@ -31,9 +33,9 @@ export default function Pagination({ pagination = emptyPagination, onPageChange,
               {limitLoading && <LoaderCircle className="ml-1 size-3.5 animate-spin text-muted-foreground" />}
             </SelectTrigger>
             <SelectContent>
-              {[10, 25, 50, 100].map((value) => (
+              {[...new Set([limit, 5, 10, 25, 50, 100])].sort((a, b) => a-b).map((value) => (
                 <SelectItem key={value} value={String(value)}>
-                  {value} / hal
+                  {value} / {t("hal")}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -46,7 +48,7 @@ export default function Pagination({ pagination = emptyPagination, onPageChange,
           className="size-8 sm:size-9"
           onClick={() => onPageChange?.(page - 1)}
           disabled={!pagination.has_prev || pageLoadingDirection === 'prev'}
-          aria-label="Halaman sebelumnya"
+          aria-label={t('Halaman sebelumnya')}
         >
           {pageLoadingDirection === 'prev' ? <LoaderCircle className="size-4 animate-spin" /> : <ChevronLeft className="size-4" />}
         </Button>
@@ -60,7 +62,7 @@ export default function Pagination({ pagination = emptyPagination, onPageChange,
           className="size-8 sm:size-9"
           onClick={() => onPageChange?.(page + 1)}
           disabled={!pagination.has_next || pageLoadingDirection === 'next'}
-          aria-label="Halaman berikutnya"
+          aria-label={t('Halaman berikutnya')}
         >
           {pageLoadingDirection === 'next' ? <LoaderCircle className="size-4 animate-spin" /> : <ChevronRight className="size-4" />}
         </Button>

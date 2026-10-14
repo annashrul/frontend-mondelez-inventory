@@ -1,7 +1,8 @@
+import { translate as translateUi, useTranslation as useUiLanguage } from '@/lib/i18n';
 import { useEffect, useState } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import PageHeader from '@/components/PageHeader';
-import { toast } from 'sonner';
+import { toast } from '@/lib/toast';
 import useDebounce from '@/hooks/useDebounce';
 import { useMasterBarangData } from '@/hooks/useMasterBarangData';
 import { useMasterBarangStore } from '@/stores/masterBarangStore';
@@ -10,6 +11,7 @@ import MasterBarangForm from './Form';
 import MasterBarangList from './List';
 
 export default function MasterBarang() {
+  useUiLanguage();
   const {
     search,
     page,
@@ -124,10 +126,10 @@ export default function MasterBarang() {
   return (
     <div>
       <PageHeader
-        title="Master Barang"
-        subtitle="Kelola data barang inventory"
+        title={translateUi("Master Barang")}
+        subtitle={translateUi("Kelola data barang inventory")}
         onAdd={openAdd}
-        addLabel="Tambah Barang"
+        addLabel={translateUi("Tambah Barang")}
         searchValue={search}
         searchLoading={searchLoading}
         onSearchChange={setSearch}

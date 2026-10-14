@@ -1,3 +1,5 @@
+import { translate as translateUi, useTranslation as useUiLanguage } from '@/lib/i18n';
+import { getAppLocale } from '@/lib/i18n';
 import DataTable from '@/components/DataTable';
 import { Badge } from '@/components/ui/badge';
 
@@ -7,7 +9,7 @@ const columns = [
     label: 'Gambar',
     render: (val, row) => (
       <div className="grid size-12 shrink-0 place-items-center overflow-hidden rounded-lg border bg-muted text-center text-[10px] leading-tight text-muted-foreground">
-        {val ? <img src={val} alt={row.nama} className="size-full object-cover" /> : 'Belum ada'}
+        {val ? <img src={val} alt={row.nama} className="size-full object-cover" /> : translateUi("Belum ada")}
       </div>
     ),
   },
@@ -27,14 +29,14 @@ const columns = [
   {
     key: 'harga',
     label: 'Harga',
-    render: (val) => `Rp ${val?.toLocaleString('id-ID')}`,
+    render: (val) => `Rp ${val?.toLocaleString(getAppLocale())}`,
   },
   {
     key: 'has_embedding',
     label: 'AI',
     render: (val, row) => (
       <Badge variant={val ? 'success' : 'outline'} title={row.embedding_model || ''}>
-        {val ? 'Siap dicari' : 'Belum ada'}
+        {val ? translateUi("Siap dicari") : translateUi("Belum ada")}
       </Badge>
     ),
   },
@@ -51,6 +53,7 @@ export default function MasterBarangList({
   pageLoadingDirection,
   limitLoading,
 }) {
+  useUiLanguage();
   return (
     <DataTable
       columns={columns}

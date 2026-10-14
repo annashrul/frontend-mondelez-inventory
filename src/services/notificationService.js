@@ -12,4 +12,5 @@ export const notificationService = {
   markAllRead: () => api.patch('/notifications/read-all'),
   getSettings: () => api.get('/notifications/settings'),
   saveSettings: (payload) => api.put('/notifications/settings', payload),
+  testEmail: (email) => api.post('/notifications/test-email', { email }, { timeout: 45000 }),
 };

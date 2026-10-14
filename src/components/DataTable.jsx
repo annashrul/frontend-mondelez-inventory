@@ -1,3 +1,5 @@
+import { translate as translateUi } from '@/lib/i18n';
+import { useTranslation } from '@/lib/i18n';
 import { useState } from 'react';
 import { Inbox } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -35,26 +37,27 @@ export default function DataTable({ columns, data, loading = false, onEdit, onDe
   const renderActions = (row, mobile = false) => (onEdit || onDelete || actions) && (
     <div className={mobile ? 'flex items-center gap-2 border-t pt-3' : 'flex items-center justify-center gap-1'}>
       {actions && actions(row)}
-      {onEdit && <Button variant="outline" size="sm" className={mobile ? 'h-9 flex-1' : 'h-7 text-xs'} onClick={() => onEdit(row)}>Edit</Button>}
-      {onDelete && <Button variant="outline" size="sm" className={mobile ? 'h-9 flex-1 text-destructive hover:text-destructive' : 'h-7 text-xs text-destructive hover:text-destructive'} onClick={() => setDeleteTarget(row)}>Hapus</Button>}
+      {onEdit && <Button variant="outline" size="sm" className={mobile ? 'h-9 flex-1' : 'h-7 text-xs'} onClick={() => onEdit(row)}>{translateUi("Edit")}</Button>}
+      {onDelete && <Button variant="outline" size="sm" className={mobile ? 'h-9 flex-1 text-destructive hover:text-destructive' : 'h-7 text-xs text-destructive hover:text-destructive'} onClick={() => setDeleteTarget(row)}>{translateUi("Hapus")}</Button>}
     </div>
   );
   const hasActions = Boolean(onEdit || onDelete || actions);
   const totalColumns = columns.length + 1 + (hasActions ? 1 : 0);
   const skeletonRows = Math.min(Math.max(pagination?.limit || 5, 3), 8);
 
+  const { t } = useTranslation();
   return (
     <>
     <div className="hidden overflow-x-auto rounded-lg border bg-card shadow-sm md:block">
       <Table className="min-w-max">
         <TableHeader>
           <TableRow className="bg-muted/50 hover:bg-muted/50">
-            <TableHead className={cn('text-center w-12', fixedColumnClass('left', true))}>No</TableHead>
+            <TableHead className={cn('text-center w-12', fixedColumnClass('left', true))}>{translateUi("No")}</TableHead>
             {columns.map((col) => (
-              <TableHead key={col.key} className={fixedColumnClass(col.fixed, true)}>{col.label}</TableHead>
+              <TableHead key={col.key} className={fixedColumnClass(col.fixed, true)}>{t(col.label)}</TableHead>
             ))}
             {(onEdit || onDelete || actions) && (
-              <TableHead className={cn('text-center w-32', fixedColumnClass(actionColumnFixed, true))}>Aksi</TableHead>
+              <TableHead className={cn('text-center w-32', fixedColumnClass(actionColumnFixed, true))}>{t("Aksi")}</TableHead>
             )}
           </TableRow>
         </TableHeader>
@@ -85,7 +88,7 @@ export default function DataTable({ columns, data, loading = false, onEdit, onDe
               <TableCell colSpan={totalColumns} className="h-32 text-center">
                 <div className="flex flex-col items-center gap-2 text-muted-foreground">
                   <Inbox className="h-10 w-10" />
-                  <p className="text-sm">Belum ada data</p>
+                  <p className="text-sm">{t("Belum ada data")}</p>
                 </div>
               </TableCell>
             </TableRow>
@@ -126,7 +129,7 @@ export default function DataTable({ columns, data, loading = false, onEdit, onDe
             ))}
           </div>
         </article>
-      )) : data.length === 0 ? <div className="flex min-h-40 flex-col items-center justify-center gap-2 rounded-2xl border bg-card text-muted-foreground"><Inbox className="h-10 w-10" /><p className="text-sm">Belum ada data</p></div> : data.map((row, index) => <article key={row.id || index} className="rounded-2xl border bg-card p-4 shadow-sm"><div className="mb-3 flex items-center justify-between"><span className="rounded-full bg-primary/10 px-2.5 py-1 text-xs font-semibold text-primary">#{rowOffset + index + 1}</span></div><dl className="space-y-2.5">{columns.map((col, colIndex) => <div key={col.key} className={colIndex === 0 ? 'pb-1' : 'grid grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)] gap-3'}>{colIndex !== 0 && <dt className="text-xs text-muted-foreground">{col.label}</dt>}<dd className={colIndex === 0 ? 'text-base font-semibold' : 'min-w-0 text-right text-sm font-medium break-words'}>{col.render ? col.render(row[col.key], row) : row[col.key]}</dd></div>)}</dl>{renderActions(row, true)}</article>)}
+      )) : data.length === 0 ? <div className="flex min-h-40 flex-col items-center justify-center gap-2 rounded-2xl border bg-card text-muted-foreground"><Inbox className="h-10 w-10" /><p className="text-sm">{t("Belum ada data")}</p></div> : data.map((row, index) => <article key={row.id || index} className="rounded-2xl border bg-card p-4 shadow-sm"><div className="mb-3 flex items-center justify-between"><span className="rounded-full bg-primary/10 px-2.5 py-1 text-xs font-semibold text-primary">#{rowOffset + index + 1}</span></div><dl className="space-y-2.5">{columns.map((col, colIndex) => <div key={col.key} className={colIndex === 0 ? 'pb-1' : 'grid grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)] gap-3'}>{colIndex !== 0 && <dt className="text-xs text-muted-foreground">{t(col.label)}</dt>}<dd className={colIndex === 0 ? 'text-base font-semibold' : 'min-w-0 text-right text-sm font-medium break-words'}>{col.render ? col.render(row[col.key], row) : row[col.key]}</dd></div>)}</dl>{renderActions(row, true)}</article>)}
     </div>
     {pagination && (
       <div className="mt-4">

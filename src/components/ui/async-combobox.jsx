@@ -1,3 +1,4 @@
+import { useTranslation } from '@/lib/i18n'
 import * as React from "react"
 import { CheckIcon, ChevronsUpDown } from "lucide-react"
 import { cn } from "@/lib/utils"
@@ -26,6 +27,7 @@ export function AsyncCombobox({
   selectedOption: selectedOptionProp,
   disabled = false,
 }) {
+  const { t } = useTranslation()
   const [open, setOpen] = React.useState(false)
   const [search, setSearch] = React.useState("")
   const [options, setOptions] = React.useState([])
@@ -91,8 +93,11 @@ export function AsyncCombobox({
     return () => window.clearTimeout(timeout)
   }, [open, search, debounceMs])
 
+  const optionLabel = option => option.localizedLabel
+    ? t(option.localizedLabel.key, option.localizedLabel.params)
+    : option.label
   const selectedLabel = selectedOption?.value === value && selectedOption.label
-    ? selectedOption.label
+    ? optionLabel(selectedOption)
     : value
 
   return (
@@ -106,7 +111,7 @@ export function AsyncCombobox({
           disabled={disabled}
           className={cn("w-full justify-between font-normal", !value && "text-muted-foreground", className)}
         >
-          <span className="truncate">{selectedLabel || placeholder}</span>
+          <span className="truncate">{selectedLabel || t(placeholder)}</span>
           <ChevronsUpDown className="ml-2 size-4 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>
@@ -115,18 +120,18 @@ export function AsyncCombobox({
           <CommandInput
             value={search}
             onValueChange={setSearch}
-            placeholder={searchPlaceholder}
+            placeholder={t(searchPlaceholder)}
           />
           <CommandList>
             {loading ? (
-              <div className="space-y-2 p-2" aria-label={loadingText}>
+              <div className="space-y-2 p-2" aria-label={t(loadingText)}>
                 {["w-4/5", "w-3/5", "w-11/12"].map((width) => (
                   <Skeleton key={width} className={cn("h-8", width)} />
                 ))}
               </div>
             ) : (
               <>
-                <CommandEmpty>{emptyText}</CommandEmpty>
+                <CommandEmpty>{t(emptyText)}</CommandEmpty>
                 <CommandGroup>
                   {options.map((option) => (
                     <CommandItem
@@ -140,7 +145,7 @@ export function AsyncCombobox({
                       }}
                     >
                       <CheckIcon className={cn("mr-2 size-4", value === option.value ? "opacity-100" : "opacity-0")} />
-                      <span className="truncate">{option.label}</span>
+                      <span className="truncate">{optionLabel(option)}</span>
                     </CommandItem>
                   ))}
                 </CommandGroup>

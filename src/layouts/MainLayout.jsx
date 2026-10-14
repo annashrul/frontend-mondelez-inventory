@@ -11,7 +11,7 @@ export default function MainLayout() {
     <div className="min-h-screen bg-muted/30 flex">
       <Sidebar collapsed={collapsed} setCollapsed={setCollapsed} />
       <div
-        className={`min-w-0 flex-1 flex flex-col transition-all duration-300 ${
+        className={`min-w-0 flex-1 flex flex-col transition-all duration-300 print:ml-0 print:block ${
           collapsed ? 'lg:ml-[68px]' : 'lg:ml-64'
         }`}
       >

@@ -1,3 +1,4 @@
+import { translate as translateUi, useTranslation as useUiLanguage } from '@/lib/i18n';
 import PageHeader from '@/components/PageHeader';
 import { useCrudPageController } from '@/hooks/useCrudPageController';
 import { createCrudService } from '@/services/crudService';
@@ -9,6 +10,7 @@ const service = createCrudService('lokasi');
 const labels = { singular: 'Lokasi', lower: 'lokasi' };
 
 export default function MasterLokasi() {
+  useUiLanguage();
   const page = useCrudPageController({
     store: useLokasiStore,
     service,
@@ -19,10 +21,10 @@ export default function MasterLokasi() {
   return (
     <div>
       <PageHeader
-        title="Master Lokasi"
-        subtitle="Kelola data lokasi penyimpanan"
+        title={translateUi("Master Lokasi")}
+        subtitle={translateUi("Kelola data lokasi penyimpanan")}
         onAdd={page.openAdd}
-        addLabel="Tambah Lokasi"
+        addLabel={translateUi("Tambah Lokasi")}
         searchValue={page.search}
         searchLoading={page.searchLoading}
         onSearchChange={page.setSearch}

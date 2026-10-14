@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { toast } from 'sonner';
+import { toast } from '@/lib/toast';
 
 // Base URL dan timeout API diambil dari .env
 export const apiBaseUrl = import.meta.env.VITE_API_URL || '/api/v1';
@@ -31,11 +31,11 @@ api.interceptors.request.use(
     if (config.data instanceof FormData) delete config.headers['Content-Type'];
     // Inject token if needed
     const token = localStorage.getItem('token');
-    if (token && config.url !== '/auth/login') {
+    if (token && !['/auth/login', '/auth/verify-otp'].includes(config.url)) {
       config.headers.Authorization = `Bearer ${token}`;
     }
     const user = localStorage.getItem('user');
-    if (user && config.url !== '/auth/login') {
+    if (user && !['/auth/login', '/auth/verify-otp'].includes(config.url)) {
       try {
         const parsed = JSON.parse(user);
         if (parsed?.id) config.headers['X-User-Id'] = String(parsed.id);
@@ -54,13 +54,14 @@ api.interceptors.response.use(
   (error) => {
     if (error.code === 'ECONNABORTED' || error.code === 'ETIMEDOUT') {
       return Promise.reject(
-        new Error('Server tidak merespons dalam batas waktu. Coba lagi, atau perbesar VITE_API_TIMEOUT / VITE_AI_SEARCH_TIMEOUT di .env.')
+        new Error('Server tidak merespons dalam batas waktu. Silakan coba lagi.')
       );
     }
-    const message = error.response?.data?.message || error.message || 'Terjadi kesalahan jaringan';
-    if (error.response?.status === 401 && error.config?.url !== '/auth/login') {
+    const message = error.response?.data?.message || (error.message === 'Network Error' ? 'Terjadi kesalahan jaringan' : error.message) || 'Terjadi kesalahan jaringan';
+    if (error.response?.status === 401 && !['/auth/login', '/auth/verify-otp'].includes(error.config?.url)) {
       // Handle unauthorized
       toast.error('Sesi berakhir, silakan login kembali');
+      window.dispatchEvent(new Event('auth-expired'));
     }
     return Promise.reject(new Error(message));
   }

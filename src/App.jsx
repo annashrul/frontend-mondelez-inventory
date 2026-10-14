@@ -1,5 +1,7 @@
+import { translate as translateUi, useTranslation as useUiLanguage } from '@/lib/i18n';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'sonner';
+import { useSettingsStore } from './stores/settingsStore';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import MainLayout from './layouts/MainLayout';
 import Login from './pages/Login';
@@ -21,12 +23,13 @@ import { canAccess } from './lib/permissions';
 import MasterPengguna from './pages/masterPengguna';
 
 function ProtectedRoute({ children }) {
+  useUiLanguage();
   const { user, loading } = useAuth();
   if (loading) return (
     <div className="min-h-screen flex items-center justify-center bg-background">
       <div className="flex flex-col items-center gap-3">
         <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full" />
-        <p className="text-sm text-muted-foreground">Memuat...</p>
+        <p className="text-sm text-muted-foreground">{translateUi("Memuat...")}</p>
       </div>
     </div>
   );
@@ -34,17 +37,21 @@ function ProtectedRoute({ children }) {
 }
 
 function AuthorizedRoute({ permission, children }) {
+  useUiLanguage();
   const { user } = useAuth();
   return canAccess(user, permission) ? children : <Navigate to="/" replace />;
 }
 
 function PublicRoute({ children }) {
+  useUiLanguage();
   const { user, loading } = useAuth();
   if (loading) return null;
   return user ? <Navigate to="/" /> : children;
 }
 
 export default function App() {
+  useUiLanguage();
+  const theme = useSettingsStore(state => state.settings.tema);
   return (
     <AuthProvider>
       <BrowserRouter>
@@ -69,7 +76,7 @@ export default function App() {
           </Route>
         </Routes>
       </BrowserRouter>
-      <Toaster position="top-right" richColors closeButton />
+      <Toaster theme={theme} position="top-right" richColors closeButton />
     </AuthProvider>
   );
 }

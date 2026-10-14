@@ -1,8 +1,9 @@
+import { translate as translateUi, useTranslation as useUiLanguage } from '@/lib/i18n';
 import { useState, useEffect } from 'react';
 import PageHeader from '@/components/PageHeader';
 import DataTable from '@/components/DataTable';
 import Modal from '@/components/Modal';
-import { toast } from 'sonner';
+import { toast } from '@/lib/toast';
 import dayjs from 'dayjs';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -10,14 +11,15 @@ import api, { emptyPagination, getList, getPagination } from '@/services/api';
 
 const columns = [
   { key: 'tanggal', label: 'Tanggal', render: (v) => dayjs(v).format('DD/MM/YYYY') },
-  { key: 'shift', label: 'Shift' },
+  { key: 'shift', label: 'Shift Kerja' },
   { key: 'waktu_mulai', label: 'Waktu Mulai', render: (v) => dayjs(v).format('HH:mm') },
   { key: 'waktu_selesai', label: 'Waktu Selesai', render: (v) => v ? dayjs(v).format('HH:mm') : '-' },
   { key: 'status', label: 'Status', render: (v) => <Badge variant={v === 'Selesai' ? 'success' : 'warning'}>{v}</Badge> },
-  { key: 'user_detail', label: 'User', render: (value) => value?.nama || '-' },
+  { key: 'user_detail', label: 'Pengguna', render: (value) => value?.nama || '-' },
 ];
 
 export default function Closing() {
+  useUiLanguage();
   const [data, setData] = useState([]);
   const [search, setSearch] = useState('');
   const [modalOpen, setModalOpen] = useState(false);
@@ -54,20 +56,20 @@ export default function Closing() {
     <div>
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Closing Shift</h1>
-          <p className="text-sm text-muted-foreground mt-1">Rekapitulasi akhir shift kerja</p>
+          <h1 className="text-2xl font-bold tracking-tight">{translateUi("Closing Shift")}</h1>
+          <p className="text-sm text-muted-foreground mt-1">{translateUi("Rekapitulasi akhir shift kerja")}</p>
         </div>
-        <Button onClick={() => setModalOpen(true)}>Closing Shift Saat Ini</Button>
+        <Button onClick={() => setModalOpen(true)}>{translateUi("Closing Shift Saat Ini")}</Button>
       </div>
 
       <DataTable columns={columns} data={filtered} loading={loading} pagination={pagination} onPageChange={setPage} onLimitChange={(value) => { setLimit(value); setPage(1); }} />
 
-      <Modal isOpen={modalOpen} onClose={() => setModalOpen(false)} title="Konfirmasi Closing Shift">
+      <Modal isOpen={modalOpen} onClose={() => setModalOpen(false)} title={translateUi("Konfirmasi Closing Shift")}>
         <div className="space-y-4">
-          <p className="text-sm text-muted-foreground">Apakah Anda yakin ingin melakukan closing pada shift yang sedang aktif? Tindakan ini tidak dapat dibatalkan.</p>
+          <p className="text-sm text-muted-foreground">{translateUi("Apakah Anda yakin ingin melakukan closing pada shift yang sedang aktif? Tindakan ini tidak dapat dibatalkan.")}</p>
           <div className="flex justify-end gap-2 pt-2">
-            <Button type="button" variant="outline" onClick={() => setModalOpen(false)}>Batal</Button>
-            <Button type="button" onClick={handleClosing}>Konfirmasi Closing</Button>
+            <Button type="button" variant="outline" onClick={() => setModalOpen(false)}>{translateUi("Batal")}</Button>
+            <Button type="button" onClick={handleClosing}>{translateUi("Konfirmasi Closing")}</Button>
           </div>
         </div>
       </Modal>

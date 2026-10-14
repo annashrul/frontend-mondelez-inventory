@@ -1,3 +1,4 @@
+import { translate as translateUi, useTranslation as useUiLanguage } from '@/lib/i18n';
 import PageHeader from '@/components/PageHeader';
 import { useCrudPageController } from '@/hooks/useCrudPageController';
 import { penggunaService } from '@/services/penggunaService';
@@ -8,6 +9,7 @@ import MasterPenggunaList from './List';
 const labels = { singular: 'Pengguna', lower: 'pengguna' };
 
 export default function MasterPengguna() {
+  useUiLanguage();
   const page = useCrudPageController({
     store: usePenggunaStore,
     service: penggunaService,
@@ -24,10 +26,10 @@ export default function MasterPengguna() {
   return (
     <div>
       <PageHeader
-        title="Master Pengguna"
-        subtitle="Kelola data pengguna sistem"
+        title={translateUi("Master Pengguna")}
+        subtitle={translateUi("Kelola data pengguna sistem")}
         onAdd={page.openAdd}
-        addLabel="Tambah Pengguna"
+        addLabel={translateUi("Tambah Pengguna")}
         searchValue={page.search}
         searchLoading={page.searchLoading}
         onSearchChange={page.setSearch}

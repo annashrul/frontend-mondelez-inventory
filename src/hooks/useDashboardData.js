@@ -1,6 +1,6 @@
 import { useCallback, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { toast } from 'sonner';
+import { toast } from '@/lib/toast';
 import { getDashboardStats } from '@/services/dashboardService';
 import { useDashboardStore } from '@/stores/dashboardStore';
 

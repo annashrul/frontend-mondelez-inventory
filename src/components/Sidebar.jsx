@@ -1,3 +1,6 @@
+import { translate as translateUi, useTranslation as useUiLanguage } from '@/lib/i18n';
+import { useTranslation } from '@/lib/i18n';
+import { useSettingsStore } from '@/stores/settingsStore';
 import { NavLink } from 'react-router-dom';
 import {
   LayoutDashboard, Package, FolderTree, Users, ShieldCheck,
@@ -13,7 +16,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import logoUrl from '../../logo.webp';
+import { useThemeLogo } from '@/hooks/useThemeLogo';
 
 const menuIcons = {
   dashboard: LayoutDashboard,
@@ -44,11 +47,15 @@ function getMenuItems(menus) {
 }
 
 export default function Sidebar({ collapsed, setCollapsed }) {
+  const logoUrl = useThemeLogo();
+  const { t } = useTranslation();
+  const company = useSettingsStore(state => state.settings.nama_perusahaan);
   const { user, logout } = useAuth();
   const menus = useAppStore((state) => state.menus);
   const menuItems = getMenuItems(menus);
 
   const SidebarLink = ({ item }) => {
+  useUiLanguage();
     const Icon = item.icon;
     const link = (
       <NavLink
@@ -65,14 +72,14 @@ export default function Sidebar({ collapsed, setCollapsed }) {
         end={item.path === '/'}
       >
         <Icon size={18} className="shrink-0" />
-        {!collapsed && <span className="truncate">{item.label}</span>}
+        {!collapsed && <span className="truncate">{t(item.label)}</span>}
       </NavLink>
     );
     if (collapsed) {
       return (
         <Tooltip>
           <TooltipTrigger asChild>{link}</TooltipTrigger>
-          <TooltipContent side="right">{item.label}</TooltipContent>
+          <TooltipContent side="right">{t(item.label)}</TooltipContent>
         </Tooltip>
       );
     }
@@ -92,14 +99,12 @@ export default function Sidebar({ collapsed, setCollapsed }) {
           {!collapsed && (
             <div className="flex items-center">
               <span className="grid h-10 max-w-36 place-items-center overflow-hidden">
-                <img src={logoUrl} alt="Inventory" className="max-h-10 max-w-36 object-contain" />
+                <img title={company} src={logoUrl} alt={company} className="max-h-10 max-w-36 object-contain" />
               </span>
             </div>
           )}
           {collapsed && (
-            <span className="grid h-10 w-10 place-items-center rounded-xl bg-primary text-base font-bold text-primary-foreground shadow-sm">
-              M
-            </span>
+            <span className="grid h-10 w-10 place-items-center rounded-xl bg-primary text-base font-bold text-primary-foreground shadow-sm">{"M"}</span>
           )}
           <Button
             variant="ghost"
@@ -108,6 +113,7 @@ export default function Sidebar({ collapsed, setCollapsed }) {
               'h-7 w-7 shrink-0',
               collapsed && 'absolute -right-3 top-1/2 z-10 -translate-y-1/2 rounded-full border bg-card shadow-sm'
             )}
+            aria-label={t(collapsed ? "Buka sidebar" : "Tutup sidebar")}
             onClick={() => setCollapsed(!collapsed)}
           >
             {collapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
@@ -122,7 +128,7 @@ export default function Sidebar({ collapsed, setCollapsed }) {
                 <div key={item.id || item.key}>
                   {showGroup && (!collapsed ? (
                     <div className="mb-2 mt-5 px-3 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground first:mt-1">
-                      {item.grup}
+                      {t(item.grup)}
                     </div>
                   ) : index > 0 ? <Separator className="mx-auto my-3 w-8" /> : null)}
                   <SidebarLink item={item} />
@@ -137,26 +143,26 @@ export default function Sidebar({ collapsed, setCollapsed }) {
               <div className="flex items-center gap-2 min-w-0">
                 <Avatar className="h-8 w-8">
                   <AvatarFallback className="bg-primary text-primary-foreground text-xs font-bold">
-                    {user?.nama?.charAt(0)?.toUpperCase() || 'U'}
+                    {user?.nama?.charAt(0)?.toUpperCase() || "U"}
                   </AvatarFallback>
                 </Avatar>
                 <div className="min-w-0">
-                  <p className="text-sm font-medium truncate">{user?.nama || 'User'}</p>
-                  <p className="text-xs text-muted-foreground truncate">{user?.level || 'Admin'}</p>
+                  <p className="text-sm font-medium truncate">{user?.nama || translateUi("Pengguna")}</p>
+                  <p className="text-xs text-muted-foreground truncate">{user?.level || translateUi("Administrator")}</p>
                 </div>
               </div>
-              <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive shrink-0" onClick={logout}>
+              <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive shrink-0" aria-label={translateUi("Logout")} onClick={logout}>
                 <LogOut size={16} />
               </Button>
             </div>
           ) : (
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button variant="ghost" size="icon" className="w-full text-muted-foreground hover:text-destructive" onClick={logout}>
+                <Button variant="ghost" size="icon" className="w-full text-muted-foreground hover:text-destructive" aria-label={translateUi("Logout")} onClick={logout}>
                   <LogOut size={16} />
                 </Button>
               </TooltipTrigger>
-              <TooltipContent side="right">Logout</TooltipContent>
+              <TooltipContent side="right">{translateUi("Logout")}</TooltipContent>
             </Tooltip>
           )}
         </div>

@@ -1,3 +1,6 @@
+import { translate as translateUi } from '@/lib/i18n';
+import { useTranslation } from '@/lib/i18n';
+import { useSettingsStore } from '@/stores/settingsStore';
 import { useState } from 'react';
 import { NavLink } from 'react-router-dom';
 import {
@@ -11,7 +14,7 @@ import { canAccess } from '@/lib/permissions';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import logoUrl from '../../logo.webp';
+import { useThemeLogo } from '@/hooks/useThemeLogo';
 
 const primaryKeys = ['dashboard', 'barang', 'pengambilan', 'kartu'];
 const menuIcons = {
@@ -33,6 +36,9 @@ const menuIcons = {
 };
 
 export default function MobileNavigation() {
+  const logoUrl = useThemeLogo();
+  const { t } = useTranslation();
+  const company = useSettingsStore(state => state.settings.nama_perusahaan);
   const { user, logout } = useAuth();
   const menus = useAppStore((state) => state.menus);
   const [open, setOpen] = useState(false);
@@ -55,23 +61,23 @@ export default function MobileNavigation() {
 
   return (
     <>
-      {open && <button type="button" aria-label="Tutup menu" className="fixed inset-0 z-50 bg-black/40 backdrop-blur-[2px] lg:hidden" onClick={() => setOpen(false)} />}
+      {open && <button type="button" aria-label={translateUi("Tutup menu")} className="fixed inset-0 z-50 bg-black/40 backdrop-blur-[2px] lg:hidden" onClick={() => setOpen(false)} />}
 
       <aside className={cn('no-print fixed inset-y-0 right-0 z-[60] flex w-72 max-w-[85vw] translate-x-full flex-col overflow-hidden border-l bg-card shadow-2xl transition-transform duration-300 lg:hidden', open && 'translate-x-0')}>
         <div className="flex h-16 shrink-0 items-center justify-between border-b px-4">
           <span className="grid h-10 max-w-36 place-items-center overflow-hidden">
-            <img src={logoUrl} alt="Inventory" className="max-h-10 max-w-36 object-contain" />
+            <img title={company} src={logoUrl} alt={company} className="max-h-10 max-w-36 object-contain" />
           </span>
-          <Button type="button" variant="ghost" size="icon" aria-label="Tutup menu" onClick={() => setOpen(false)}><X /></Button>
+          <Button type="button" variant="ghost" size="icon" aria-label={translateUi("Tutup menu")} onClick={() => setOpen(false)}><X /></Button>
         </div>
         <nav className="flex-1 overflow-y-auto px-3 py-3">
           {Object.entries(groupedMenuItems).map(([group, items]) => {
             const visibleItems = items.filter((item) => canAccess(user, item.permission));
             if (visibleItems.length === 0) return null;
             return (
-              <div key={group}>
+              <div key={t(group)}>
                 <div className="mb-2 mt-5 px-3 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground first:mt-1">
-                  {group}
+                  {t(group)}
                 </div>
                 {visibleItems.map((item) => {
                   const Icon = item.icon;
@@ -89,7 +95,7 @@ export default function MobileNavigation() {
                       )}
                     >
                       <Icon size={18} className="shrink-0" />
-                      <span className="truncate">{item.label}</span>
+                      <span className="truncate">{t(item.label)}</span>
                     </NavLink>
                   );
                 })}
@@ -102,15 +108,15 @@ export default function MobileNavigation() {
             <div className="flex min-w-0 items-center gap-2">
               <Avatar className="h-8 w-8">
                 <AvatarFallback className="bg-primary text-xs font-bold text-primary-foreground">
-                  {user?.nama?.charAt(0)?.toUpperCase() || 'U'}
+                  {user?.nama?.charAt(0)?.toUpperCase() || "U"}
                 </AvatarFallback>
               </Avatar>
               <div className="min-w-0">
-                <p className="truncate text-sm font-medium">{user?.nama || 'User'}</p>
-                <p className="truncate text-xs text-muted-foreground">{user?.level || 'Admin'}</p>
+                <p className="truncate text-sm font-medium">{user?.nama || translateUi("Pengguna")}</p>
+                <p className="truncate text-xs text-muted-foreground">{user?.level || translateUi("Administrator")}</p>
               </div>
             </div>
-            <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0 text-muted-foreground hover:text-destructive" onClick={logout}>
+            <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0 text-muted-foreground hover:text-destructive" aria-label={translateUi("Logout")} onClick={logout}>
               <LogOut size={16} />
             </Button>
           </div>
@@ -139,13 +145,13 @@ export default function MobileNavigation() {
                   )}>
                     <Icon size={item.emphasized ? 22 : 20} />
                   </span>
-                  {!item.emphasized && <span className="truncate">{item.label}</span>}
+                  {!item.emphasized && <span className="truncate">{t(item.label)}</span>}
                 </>
               )}
             </NavLink>
           );
         })}
-        <button type="button" onClick={() => setOpen(true)} className="flex min-w-0 flex-col items-center justify-center gap-1 text-[10px] font-medium text-muted-foreground"><span className="grid h-8 w-10 place-items-center rounded-xl"><Menu size={20} /></span><span>Lainnya</span></button>
+        <button type="button" onClick={() => setOpen(true)} className="flex min-w-0 flex-col items-center justify-center gap-1 text-[10px] font-medium text-muted-foreground"><span className="grid h-8 w-10 place-items-center rounded-xl"><Menu size={20} /></span><span>{translateUi("Lainnya")}</span></button>
       </nav>
     </>
   );

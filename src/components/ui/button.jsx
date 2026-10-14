@@ -1,3 +1,4 @@
+import { useTranslation } from '@/lib/i18n'
 import * as React from "react"
 import { Slot } from "@radix-ui/react-slot"
 import { cva } from "class-variance-authority"
@@ -30,13 +31,16 @@ const buttonVariants = cva(
 )
 
 function Button({ className, variant, size, asChild = false, ...props }) {
+  const { t } = useTranslation()
   const Comp = asChild ? Slot : "button"
   return (
     <Comp
       data-slot="button"
       className={cn(buttonVariants({ variant, size, className }))}
       {...props}
-    />
+    >
+      {asChild ? props.children : React.Children.map(props.children, child => typeof child === 'string' ? t(child) : child)}
+    </Comp>
   )
 }
 

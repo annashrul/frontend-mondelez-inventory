@@ -1,3 +1,5 @@
+import { useTranslation } from '@/lib/i18n'
+import { enGB, id } from 'react-day-picker/locale'
 import * as React from "react"
 import { ChevronDownIcon, ChevronLeftIcon, ChevronRightIcon } from "lucide-react"
 import { DayPicker, getDefaultClassNames } from "react-day-picker"
@@ -15,10 +17,12 @@ function Calendar({
   components,
   ...props
 }) {
+  const { language, locale } = useTranslation()
   const defaultClassNames = getDefaultClassNames()
 
   return (
     <DayPicker
+      locale={language === "en" ? enGB : id}
       showOutsideDays={showOutsideDays}
       className={cn(
         "bg-background group/calendar p-3 [--cell-size:--spacing(8)] [[data-slot=card-content]_&]:bg-transparent [[data-slot=popover-content]_&]:bg-transparent",
@@ -26,7 +30,7 @@ function Calendar({
       )}
       captionLayout={captionLayout}
       formatters={{
-        formatMonthDropdown: (date) => date.toLocaleString("default", { month: "short" }),
+        formatMonthDropdown: (date) => date.toLocaleString(locale, { month: "short" }),
         ...formatters,
       }}
       classNames={{

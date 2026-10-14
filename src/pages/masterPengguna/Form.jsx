@@ -1,3 +1,4 @@
+import { translate as translateUi, useTranslation as useUiLanguage } from '@/lib/i18n';
 import Modal, { ModalFooter } from '@/components/Modal';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -13,11 +14,12 @@ import {
 import { getLevelPenggunaOptions } from '@/services/penggunaService';
 
 export default function MasterPenggunaForm({ open, editId, form, saving, onClose, onSubmit, onFieldChange }) {
+  useUiLanguage();
   return (
-    <Modal isOpen={open} onClose={onClose} title={editId ? 'Edit Pengguna' : 'Tambah Pengguna'}>
+    <Modal isOpen={open} onClose={onClose} title={editId ? translateUi("Edit Pengguna") : translateUi("Tambah Pengguna")}>
       <form id="pengguna-form" onSubmit={onSubmit} className="space-y-4">
         <div className="space-y-1.5">
-          <Label htmlFor="pengguna-username">Username</Label>
+          <Label htmlFor="pengguna-username">{translateUi("Username")}</Label>
           <Input
             id="pengguna-username"
             value={form.username}
@@ -27,12 +29,9 @@ export default function MasterPenggunaForm({ open, editId, form, saving, onClose
           />
         </div>
         <div className="space-y-1.5">
-          <Label htmlFor="pengguna-password">
-            Password{' '}
+          <Label htmlFor="pengguna-password">{translateUi("Password")}{' '}
             {editId && (
-              <span className="font-normal text-muted-foreground">
-                (kosongkan jika tidak diubah)
-              </span>
+              <span className="font-normal text-muted-foreground">{translateUi("(kosongkan jika tidak diubah)")}</span>
             )}
           </Label>
           <Input
@@ -46,7 +45,7 @@ export default function MasterPenggunaForm({ open, editId, form, saving, onClose
           />
         </div>
         <div className="space-y-1.5">
-          <Label htmlFor="pengguna-nama">Nama Lengkap</Label>
+          <Label htmlFor="pengguna-nama">{translateUi("Nama Lengkap")}</Label>
           <Input
             id="pengguna-nama"
             value={form.nama}
@@ -56,7 +55,7 @@ export default function MasterPenggunaForm({ open, editId, form, saving, onClose
           />
         </div>
         <div className="space-y-1.5">
-          <Label htmlFor="pengguna-email">Email</Label>
+          <Label htmlFor="pengguna-email">{translateUi("Email")}</Label>
           <Input
             id="pengguna-email"
             type="email"
@@ -66,20 +65,20 @@ export default function MasterPenggunaForm({ open, editId, form, saving, onClose
           />
         </div>
         <div className="space-y-1.5">
-          <Label>Level Pengguna</Label>
+          <Label>{translateUi("Level Pengguna")}</Label>
           <AsyncCombobox
             value={String(form.level_id || '')}
             selectedOption={form.level_id ? { value: String(form.level_id), label: form.level_detail?.nama } : null}
             onValueChange={(val) => onFieldChange('level_id', Number(val))}
             loadOptions={getLevelPenggunaOptions}
-            placeholder="Pilih level..."
-            searchPlaceholder="Cari level..."
-            emptyText="Level tidak ditemukan."
+            placeholder={translateUi("Pilih level...")}
+            searchPlaceholder={translateUi("Cari level...")}
+            emptyText={translateUi("Level tidak ditemukan.")}
             disabled={saving}
           />
         </div>
         <div className="space-y-1.5">
-          <Label>Status</Label>
+          <Label>{translateUi("Status")}</Label>
           <Select
             value={form.status}
             onValueChange={(val) => onFieldChange('status', val)}
@@ -89,18 +88,16 @@ export default function MasterPenggunaForm({ open, editId, form, saving, onClose
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="Aktif">Aktif</SelectItem>
-              <SelectItem value="Nonaktif">Nonaktif</SelectItem>
+              <SelectItem value="Aktif">{translateUi("Aktif")}</SelectItem>
+              <SelectItem value="Nonaktif">{translateUi("Nonaktif")}</SelectItem>
             </SelectContent>
           </Select>
         </div>
       </form>
       <ModalFooter>
-        <Button type="button" variant="outline" onClick={onClose} disabled={saving}>
-          Batal
-        </Button>
+        <Button type="button" variant="outline" onClick={onClose} disabled={saving}>{translateUi("Batal")}</Button>
         <Button type="submit" form="pengguna-form" disabled={saving || !form.level_id}>
-          {saving ? 'Menyimpan...' : 'Simpan'}
+          {saving ? translateUi("Menyimpan...") : translateUi("Simpan")}
         </Button>
       </ModalFooter>
     </Modal>

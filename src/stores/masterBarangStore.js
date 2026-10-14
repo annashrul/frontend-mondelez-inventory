@@ -1,3 +1,4 @@
+import { withSettingsPageSize } from '@/stores/settingsStore';
 import { create } from 'zustand';
 
 export const emptyBarangForm = {
@@ -12,7 +13,7 @@ export const emptyBarangForm = {
   harga: 0,
 };
 
-export const useMasterBarangStore = create((set) => ({
+export const useMasterBarangStore = withSettingsPageSize(create((set) => ({
   search: '',
   page: 1,
   limit: 10,
@@ -34,4 +35,4 @@ export const useMasterBarangStore = create((set) => ({
   openAdd: () => set({ form: emptyBarangForm, editId: null, modalOpen: true }),
   openEdit: (row) => set({ form: row, editId: row.id, modalOpen: true }),
   closeModal: () => set({ modalOpen: false }),
-}));
+})));

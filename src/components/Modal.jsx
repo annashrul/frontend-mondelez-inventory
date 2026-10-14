@@ -1,3 +1,4 @@
+import { useTranslation } from '@/lib/i18n';
 import {
   Dialog,
   DialogContent,
@@ -34,6 +35,7 @@ export default function Modal({
     xl: "sm:max-w-4xl",
   };
 
+  const { t } = useTranslation();
   return (
     <Dialog
       open={isOpen}
@@ -48,8 +50,8 @@ export default function Modal({
         )}
       >
         <DialogHeader className="shrink-0 border-b bg-background px-2 py-4 pr-12 sm:px-6">
-          <DialogTitle>{title}</DialogTitle>
-          {description && <DialogDescription>{description}</DialogDescription>}
+          <DialogTitle>{t(title)}</DialogTitle>
+          {description && <DialogDescription>{t(description)}</DialogDescription>}
         </DialogHeader>
         <div className="min-h-0 flex-1 overflow-y-auto p-5 [&>form>div:last-child]:sticky [&>form>div:last-child]:-bottom-5 [&>form>div:last-child]:z-10 [&>form>div:last-child]:border-t [&>form>div:last-child]:bg-background/95 [&>form>div:last-child]:py-4 [&>form>div:last-child]:backdrop-blur sm:p-6 sm:[&>form>div:last-child]:-bottom-6">
           {children}

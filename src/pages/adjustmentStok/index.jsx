@@ -1,3 +1,4 @@
+import { translate as translateUi, useTranslation as useUiLanguage } from '@/lib/i18n';
 import PageHeader from '@/components/PageHeader';
 import { useCrudPageController } from '@/hooks/useCrudPageController';
 import { createCrudService } from '@/services/crudService';
@@ -9,6 +10,7 @@ const service = createCrudService('adjustment');
 const labels = { singular: 'Adjustment', lower: 'adjustment' };
 
 export default function AdjustmentStok() {
+  useUiLanguage();
   const page = useCrudPageController({
     store: useAdjustmentStore,
     service,
@@ -19,10 +21,10 @@ export default function AdjustmentStok() {
   return (
     <div>
       <PageHeader
-        title="Adjustment Stok"
-        subtitle="Kelola penyesuaian stok barang"
+        title={translateUi("Adjustment Stok")}
+        subtitle={translateUi("Kelola penyesuaian stok barang")}
         onAdd={page.openAdd}
-        addLabel="Buat Adjustment"
+        addLabel={translateUi("Buat Adjustment")}
         searchValue={page.search}
         searchLoading={page.searchLoading}
         onSearchChange={page.setSearch}

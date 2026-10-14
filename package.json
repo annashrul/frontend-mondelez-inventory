@@ -6,8 +6,9 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "lint": "oxlint",
-    "preview": "vite preview"
+    "lint": "oxlint src test",
+    "preview": "vite preview",
+    "test": "node --test"
   },
   "dependencies": {
     "@radix-ui/react-alert-dialog": "^1.1.23",

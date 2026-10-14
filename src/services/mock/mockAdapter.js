@@ -1,3 +1,6 @@
+import { catalogWithIds } from './menuCatalog';
+import { ROLE_ACCESS } from '@/lib/permissions';
+import { defaultSettings, useSettingsStore } from '@/stores/settingsStore';
 import MockAdapter from 'axios-mock-adapter';
 import api from '../api';
 import { db } from './db';
@@ -48,7 +51,7 @@ const notificationRecipients = () => {
 
 const pushPengambilanNotification = ({ transaction, barang, operator, stokAkhir }) => {
   const recipients = notificationRecipients();
-  if (!recipients.length) return;
+  if (!recipients.length || currentNotificationSetting().transaction_enabled === false) return;
   const notification = {
     id: Date.now() + 3,
     type: 'pengambilan_barang',
@@ -120,7 +123,11 @@ const hydrateBarang = (item) => ({
   rak_detail: (() => { const rak = db.rak.find((row) => row.id === Number(item.rak_id)); return rak ? { ...rak, lokasi_detail: db.lokasi.find((row) => row.id === Number(rak.lokasi_id)) || null } : null; })(),
 });
 const hydrateRak = (item) => ({ ...item, lokasi_detail: db.lokasi.find((row) => row.id === Number(item.lokasi_id)) || null });
-const hydrateUser = (item) => ({ ...item, level_detail: db.level_pengguna.find((row) => row.id === Number(item.level_id)) || null });
+const hydrateUser = (item) => {
+  const level = db.level_pengguna.find(row => row.id === Number(item.level_id));
+  return { ...item, level: level?.nama, level_detail: level || null, permissions: ROLE_ACCESS[level?.nama] || [] };
+};
+mock.onGet('/menus').reply(() => [200, catalogWithIds()]);
 const hydrateTransaction = (item, operatorField = 'user_detail') => ({
   ...item,
   ...(item.barang_id ? { barang_detail: hydrateBarang(db.barang.find((row) => row.id === Number(item.barang_id)) || {}) } : {}),
@@ -142,7 +149,7 @@ const setupCrud = (endpoint, table) => {
     if (match && match[1]) {
       const id = parseInt(match[1], 10);
       const item = db[table].find(i => i.id === id && !i.is_deleted);
-      return item ? [200, viewItem(table, item)] : [404, { message: 'Not found' }];
+      return item ? [200, viewItem(table, item)] : [404, { message: 'Data tidak ditemukan' }];
     }
     const rows = softDeleteTables.includes(table) ? db[table].filter((item) => !item.is_deleted) : db[table];
     const search = config.params?.search?.trim().toLowerCase();
@@ -251,7 +258,7 @@ const setupCrud = (endpoint, table) => {
         return [200, viewItem(table, db[table][index])];
       }
     }
-    return [404, { message: 'Not found' }];
+    return [404, { message: 'Data tidak ditemukan' }];
   });
 
   mock.onDelete(path).reply((config) => {
@@ -269,7 +276,7 @@ const setupCrud = (endpoint, table) => {
       if (table !== 'log_activity') pushLog({ aksi: 'Hapus', modul: moduleName(endpoint), detail: `Hapus ${moduleName(endpoint).toLowerCase()}: ${item?.nama || item?.kode || item?.no_ref || item?.shift || id}` });
       return [200, { message: 'Berhasil dihapus' }];
     }
-    return [400, { message: 'Bad request' }];
+    return [400, { message: 'Permintaan tidak valid' }];
   });
 };
 
@@ -367,12 +374,31 @@ mock.onPost('/pengambilan/execute').reply((config) => {
   return [201, { transaction: hydrateTransaction(transaction, 'operator_detail'), stok_akhir: barang.stok }];
 });
 
+mock.onGet('/settings').reply(() => [200, { ...defaultSettings, ...db.app_settings }]);
+mock.onGet('/settings/runtime').reply(() => [200, { ...defaultSettings, ...db.app_settings }]);
+mock.onPut(new RegExp('^/settings/(umum|tampilan|database|keamanan)$')).reply(config => {
+  const data = JSON.parse(config.data);
+  if (data.two_factor || data.auto_backup) return [422, { message: 'OTP email dan backup database hanya tersedia pada backend asli' }];
+  const section = config.url.split('/').at(-1);
+  const fields = { umum: ['nama_perusahaan','alamat','telepon','email'], tampilan: ['tema','bahasa','items_per_page'], database: ['auto_backup'], keamanan: ['session_timeout','two_factor'] }[section];
+  db.app_settings = { ...defaultSettings, ...db.app_settings, ...Object.fromEntries(fields.filter(key => data[key] !== undefined).map(key => [key,data[key]])) };
+  useSettingsStore.getState().apply(db.app_settings);
+  return [200, db.app_settings];
+});
+mock.onGet('/settings/database-status').reply(200, { connected: true, backup_available: false, backup: null });
+mock.onPost('/settings/backup').reply(400, { message: 'Backup database tidak tersedia di mode demo' });
+mock.onPost('/auth/logout').reply(200, { logged_out: true });
+mock.onPost('/auth/session').reply(200, { active: true });
+
 mock.onGet('/notifications/settings').reply(() => [200, currentNotificationSetting()]);
 
 mock.onPut('/notifications/settings').reply((config) => {
   const data = JSON.parse(config.data);
   db.notification_settings ||= {};
   db.notification_settings.pengambilan_barang = {
+    email_enabled: data.email_enabled === true,
+    stock_enabled: data.stock_enabled !== false,
+    transaction_enabled: data.transaction_enabled !== false,
     level_ids: Array.isArray(data.level_ids) ? data.level_ids.map(Number).filter(Boolean) : [],
     user_ids: Array.isArray(data.user_ids) ? data.user_ids.map(Number).filter(Boolean) : [],
   };
@@ -380,16 +406,27 @@ mock.onPut('/notifications/settings').reply((config) => {
   return [200, db.notification_settings.pengambilan_barang];
 });
 
-mock.onGet('/notifications').reply(() => {
+mock.onGet('/notifications').reply((config) => {
   const user = currentUser();
   const recipients = db.notification_recipients || [];
   const rows = recipients
     .filter((item) => Number(item.user_id) === Number(user?.id))
     .map((item) => ({ ...(db.notifications || []).find((notification) => Number(notification.id) === Number(item.notification_id)), read_at: item.read_at }))
     .filter((item) => item.id)
-    .sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
-  return [200, { rows, unread: rows.filter((item) => !item.read_at).length }];
+    .sort((a, b) => Number(b.id) - Number(a.id));
+  const limit = Math.min(100, Math.max(1, Number(config.params?.limit) || 10));
+  const cursor = config.params?.cursor;
+  const older = cursor ? rows.filter((item) => Number(item.id) < Number(cursor)) : rows;
+  const page = older.slice(0, limit);
+  const hasNext = older.length > limit;
+  return [200, {
+    rows: page,
+    unread: rows.filter((item) => !item.read_at).length,
+    pagination: { limit, has_next: hasNext, next_cursor: hasNext ? String(page.at(-1).id) : null },
+  }];
 });
+
+mock.onPost('/notifications/test-email').reply(400, { message: 'Pengiriman email uji tidak tersedia di mode demo' });
 
 mock.onPatch('/notifications/read-all').reply(() => {
   const user = currentUser();
@@ -413,7 +450,7 @@ mock.onPost('/auth/login').reply((config) => {
   if (demoUser && password === username) {
     db.log_activity.unshift({ id: Date.now(), waktu: new Date().toISOString(), user_id: demoUser.id, aksi: 'Login', modul: 'Auth', detail: 'Login berhasil', ip: 'demo-local' });
     return [200, {
-      user: demoUser,
+      user: hydrateUser(demoUser),
       token: `mock-jwt-${demoUser.username}`
     }];
   }

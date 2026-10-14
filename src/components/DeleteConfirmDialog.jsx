@@ -1,3 +1,4 @@
+import { translate as translateUi, useTranslation as useUiLanguage } from '@/lib/i18n';
 import {
   AlertDialog,
   AlertDialogCancel,
@@ -18,13 +19,14 @@ export default function DeleteConfirmDialog({
   loading = false,
   onConfirm,
 }) {
+  useUiLanguage();
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
       <AlertDialogContent className="max-w-md">
         <AlertDialogHeader>
-          <AlertDialogTitle>{title}</AlertDialogTitle>
+          <AlertDialogTitle>{translateUi(title)}</AlertDialogTitle>
           <AlertDialogDescription>
-            {description}
+            {translateUi(description)}
             {itemName && (
               <span className="mt-3 block rounded-md border bg-muted/40 px-3 py-2 font-medium text-foreground">
                 {itemName}
@@ -33,9 +35,9 @@ export default function DeleteConfirmDialog({
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel disabled={loading}>Batal</AlertDialogCancel>
+          <AlertDialogCancel disabled={loading}>{translateUi("Batal")}</AlertDialogCancel>
           <Button type="button" variant="destructive" onClick={onConfirm} disabled={loading}>
-            {loading ? "Menghapus..." : "Hapus"}
+            {loading ? translateUi("Menghapus...") : translateUi("Hapus")}
           </Button>
         </AlertDialogFooter>
       </AlertDialogContent>

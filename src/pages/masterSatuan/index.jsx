@@ -1,3 +1,4 @@
+import { translate as translateUi, useTranslation as useUiLanguage } from '@/lib/i18n';
 import PageHeader from '@/components/PageHeader';
 import { useCrudPageController } from '@/hooks/useCrudPageController';
 import { createCrudService } from '@/services/crudService';
@@ -9,6 +10,7 @@ const service = createCrudService('satuan');
 const labels = { singular: 'Satuan', lower: 'satuan' };
 
 export default function MasterSatuan() {
+  useUiLanguage();
   const page = useCrudPageController({
     store: useSatuanStore,
     service,
@@ -19,10 +21,10 @@ export default function MasterSatuan() {
   return (
     <div>
       <PageHeader
-        title="Master Satuan Barang"
-        subtitle="Kelola satuan/unit barang"
+        title={translateUi("Master Satuan Barang")}
+        subtitle={translateUi("Kelola satuan/unit barang")}
         onAdd={page.openAdd}
-        addLabel="Tambah Satuan"
+        addLabel={translateUi("Tambah Satuan")}
         searchValue={page.search}
         searchLoading={page.searchLoading}
         onSearchChange={page.setSearch}

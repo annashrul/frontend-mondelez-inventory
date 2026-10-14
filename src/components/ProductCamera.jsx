@@ -1,3 +1,4 @@
+import { translate as translateUi, useTranslation as useUiLanguage } from '@/lib/i18n';
 import { useEffect, useRef, useState } from 'react';
 import { Camera, CameraOff, Upload } from 'lucide-react';
 import Modal from '@/components/Modal';
@@ -7,6 +8,7 @@ import { Button } from '@/components/ui/button';
 const GUIDE_INSET = 0.12;
 
 export default function ProductCamera({ open, onClose, onCapture, onUpload }) {
+  useUiLanguage();
   const videoRef = useRef(null);
   const [error, setError] = useState('');
   const [ready, setReady] = useState(false);
@@ -91,17 +93,17 @@ export default function ProductCamera({ open, onClose, onCapture, onUpload }) {
   };
 
   return (
-    <Modal isOpen={open} onClose={onClose} title="Foto Barang" description="Posisikan satu barang di tengah kamera, lalu ambil foto." size="lg">
+    <Modal isOpen={open} onClose={onClose} title={translateUi("Foto Barang")} description={translateUi("Posisikan satu barang di tengah kamera, lalu ambil foto.")} size="lg">
       <div className="space-y-4">
         <div className="relative h-[52dvh] max-h-[560px] min-h-72 overflow-hidden rounded-2xl bg-black sm:aspect-video sm:h-auto sm:min-h-0 sm:rounded-lg">
           <video ref={videoRef} className="h-full w-full object-cover" muted playsInline />
           {!error && <div className="pointer-events-none absolute inset-[12%] rounded-xl border-2 border-white/80" />}
-          {error && <div className="absolute inset-0 grid place-items-center p-6 text-center text-white"><div><CameraOff className="mx-auto mb-3" size={40} /><p className="text-sm">{error}</p></div></div>}
+          {error && <div className="absolute inset-0 grid place-items-center p-6 text-center text-white"><div><CameraOff className="mx-auto mb-3" size={40} /><p className="text-sm">{translateUi(error)}</p></div></div>}
         </div>
         <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:justify-center">
-          <Button type="button" className="col-span-2 h-12 sm:h-9" onClick={takePhoto} disabled={!ready || !!error}><Camera size={16} className="mr-2" />Foto Barang</Button>
-          <Button type="button" className="h-11 sm:h-9" variant="outline" onClick={onUpload}><Upload size={16} className="mr-2" />Pilih File</Button>
-          <Button type="button" className="h-11 sm:h-9" variant="ghost" onClick={onClose}>Tutup</Button>
+          <Button type="button" className="col-span-2 h-12 sm:h-9" onClick={takePhoto} disabled={!ready || !!error}><Camera size={16} className="mr-2" />{translateUi("Foto Barang")}</Button>
+          <Button type="button" className="h-11 sm:h-9" variant="outline" onClick={onUpload}><Upload size={16} className="mr-2" />{translateUi("Pilih File")}</Button>
+          <Button type="button" className="h-11 sm:h-9" variant="ghost" onClick={onClose}>{translateUi("Tutup")}</Button>
         </div>
       </div>
     </Modal>

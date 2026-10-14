@@ -1,3 +1,4 @@
+import { translate as translateUi, useTranslation as useUiLanguage } from '@/lib/i18n';
 import DataTable from '@/components/DataTable';
 import { Button } from '@/components/ui/button';
 import { QrCode } from 'lucide-react';
@@ -27,6 +28,7 @@ const columns = [
 ];
 
 export default function MasterRakList({ onShowQr, ...props }) {
+  useUiLanguage();
   return (
     <DataTable
       columns={columns}
@@ -38,9 +40,7 @@ export default function MasterRakList({ onShowQr, ...props }) {
           className="h-7 gap-1 text-xs"
           onClick={() => onShowQr?.(row)}
         >
-          <QrCode size={13} />
-          QR
-        </Button>
+          <QrCode size={13} />{translateUi("QR")}</Button>
       )}
       {...props}
     />

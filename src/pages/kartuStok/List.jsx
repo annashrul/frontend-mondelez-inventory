@@ -1,3 +1,4 @@
+import { translate as translateUi, translateStockNote, useTranslation as useUiLanguage } from '@/lib/i18n';
 import dayjs from 'dayjs';
 import { ArrowDownCircle, ArrowUpCircle } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
@@ -14,20 +15,21 @@ export default function KartuStokList({
   pageLoadingDirection,
   limitLoading,
 }) {
+  useUiLanguage();
   return (
     <>
       <div className="rounded-lg border bg-card shadow-sm">
         <Table>
           <TableHeader>
             <TableRow className="bg-muted/50">
-              <TableHead>Tanggal</TableHead>
-              <TableHead>Tipe</TableHead>
-              <TableHead>No. Ref</TableHead>
-              <TableHead>Barang</TableHead>
-              <TableHead className="text-right">Masuk</TableHead>
-              <TableHead className="text-right">Keluar</TableHead>
-              <TableHead className="text-right">Saldo</TableHead>
-              <TableHead>Keterangan</TableHead>
+              <TableHead>{translateUi("Tanggal")}</TableHead>
+              <TableHead>{translateUi("Tipe")}</TableHead>
+              <TableHead>{translateUi("No. Ref")}</TableHead>
+              <TableHead>{translateUi("Barang")}</TableHead>
+              <TableHead className="text-right">{translateUi("Masuk")}</TableHead>
+              <TableHead className="text-right">{translateUi("Keluar", { context: 'stock' })}</TableHead>
+              <TableHead className="text-right">{translateUi("Saldo")}</TableHead>
+              <TableHead>{translateUi("Keterangan")}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -46,7 +48,7 @@ export default function KartuStokList({
               ))
             ) : data.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={8} className="h-28 text-center text-muted-foreground">Belum ada data kartu stok</TableCell>
+                <TableCell colSpan={8} className="h-28 text-center text-muted-foreground">{translateUi("Belum ada data kartu stok")}</TableCell>
               </TableRow>
             ) : data.map((row) => (
               <TableRow key={row.id}>
@@ -57,7 +59,7 @@ export default function KartuStokList({
                     className={row.tipe === 'Masuk' ? 'gap-1' : 'gap-1 border-red-200 bg-red-50 text-red-600'}
                   >
                     {row.tipe === 'Masuk' ? <ArrowDownCircle size={12} /> : <ArrowUpCircle size={12} />}
-                    {row.tipe}
+                    {translateUi(row.tipe, { context: "stock" })}
                   </Badge>
                 </TableCell>
                 <TableCell className="font-mono text-xs text-muted-foreground">{row.no_ref}</TableCell>
@@ -65,7 +67,7 @@ export default function KartuStokList({
                 <TableCell className="text-right font-medium text-green-600">{row.tipe === 'Masuk' ? row.qty : '-'}</TableCell>
                 <TableCell className="text-right font-medium text-red-500">{row.tipe === 'Keluar' ? row.qty : '-'}</TableCell>
                 <TableCell className="text-right font-semibold">{row.saldo}</TableCell>
-                <TableCell className="text-xs text-muted-foreground">{row.keterangan}</TableCell>
+                <TableCell className="text-xs text-muted-foreground">{translateStockNote(row)}</TableCell>
               </TableRow>
             ))}
           </TableBody>

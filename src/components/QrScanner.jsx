@@ -1,3 +1,4 @@
+import { translate as translateUi, useTranslation as useUiLanguage } from '@/lib/i18n';
 import { useEffect, useRef, useState } from 'react';
 import { BrowserQRCodeReader } from '@zxing/browser';
 import { Camera, CameraOff, LoaderCircle } from 'lucide-react';
@@ -5,6 +6,7 @@ import Modal from '@/components/Modal';
 import { Button } from '@/components/ui/button';
 
 export default function QrScanner({ open, onClose, onScan }) {
+  useUiLanguage();
   const onScanRef = useRef(onScan);
   const [videoElement, setVideoElement] = useState(null);
   const [error, setError] = useState('');
@@ -116,14 +118,14 @@ export default function QrScanner({ open, onClose, onScan }) {
     <Modal
       isOpen={open}
       onClose={close}
-      title="Scan QR Rak"
-      description="Arahkan kamera ke QR yang tertempel pada rak."
+      title={translateUi("Scan QR Rak")}
+      description={translateUi("Arahkan kamera ke QR yang tertempel pada rak.")}
       size="md"
     >
       <div className="space-y-3">
         <div className="relative h-[58dvh] min-h-80 w-full overflow-hidden rounded-2xl bg-black sm:aspect-square sm:h-auto sm:max-h-[58dvh] sm:rounded-xl">
           <video ref={setVideoElement} className="h-full w-full object-cover" autoPlay muted playsInline />
-          {!ready && !error && <div className="absolute inset-0 z-10 grid place-items-center bg-black text-white"><div className="text-center"><LoaderCircle className="mx-auto mb-3 animate-spin opacity-80" size={30} /><p className="text-[13px] font-medium">{status}</p></div></div>}
+          {!ready && !error && <div className="absolute inset-0 z-10 grid place-items-center bg-black text-white"><div className="text-center"><LoaderCircle className="mx-auto mb-3 animate-spin opacity-80" size={30} /><p className="text-[13px] font-medium">{translateUi(status)}</p></div></div>}
           {ready && !error && (
             <div className="pointer-events-none absolute left-[12%] right-[12%] top-1/2 aspect-square -translate-y-1/2 rounded-2xl border border-white/50 shadow-[0_0_0_999px_rgba(0,0,0,0.42)]">
               <span className="absolute -top-0.5 -left-0.5 h-8 w-8 border-t-4 border-l-4 border-green-400 rounded-tl-lg" />
@@ -134,14 +136,14 @@ export default function QrScanner({ open, onClose, onScan }) {
           )}
           {error && (
             <div className="absolute inset-0 grid place-items-center p-6 text-center text-white">
-              <div><CameraOff className="mx-auto mb-3" size={40} /><p className="text-sm">{error}</p></div>
+              <div><CameraOff className="mx-auto mb-3" size={40} /><p className="text-sm">{translateUi(error)}</p></div>
             </div>
           )}
         </div>
         <p className="flex min-h-8 items-center justify-center gap-2 px-2 text-center text-xs leading-5 text-muted-foreground">
-          <Camera size={14} /> {error ? 'Anda tetap dapat mengetik nilai QR secara manual.' : status}
+          <Camera size={14} /> {error ? translateUi("Anda tetap dapat mengetik nilai QR secara manual.") : translateUi(status)}
         </p>
-        <Button type="button" className="h-12 w-full rounded-xl sm:h-10 sm:w-auto sm:justify-self-end" variant="outline" onClick={close}>Tutup Scanner</Button>
+        <Button type="button" className="h-12 w-full rounded-xl sm:h-10 sm:w-auto sm:justify-self-end" variant="outline" onClick={close}>{translateUi("Tutup Scanner")}</Button>
       </div>
     </Modal>
   );

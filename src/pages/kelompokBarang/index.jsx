@@ -1,3 +1,4 @@
+import { translate as translateUi, useTranslation as useUiLanguage } from '@/lib/i18n';
 import PageHeader from '@/components/PageHeader';
 import { useCrudPageController } from '@/hooks/useCrudPageController';
 import { createCrudService } from '@/services/crudService';
@@ -9,6 +10,7 @@ const service = createCrudService('kelompok-barang');
 const labels = { singular: 'Kelompok', lower: 'kelompok' };
 
 export default function KelompokBarang() {
+  useUiLanguage();
   const page = useCrudPageController({
     store: useKelompokBarangStore,
     service,
@@ -19,10 +21,10 @@ export default function KelompokBarang() {
   return (
     <div>
       <PageHeader
-        title="Kelompok Barang"
-        subtitle="Kelola kategori/kelompok barang"
+        title={translateUi("Kelompok Barang")}
+        subtitle={translateUi("Kelola kategori/kelompok barang")}
         onAdd={page.openAdd}
-        addLabel="Tambah Kelompok"
+        addLabel={translateUi("Tambah Kelompok")}
         searchValue={page.search}
         searchLoading={page.searchLoading}
         onSearchChange={page.setSearch}

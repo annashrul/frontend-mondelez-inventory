@@ -1,6 +1,7 @@
+import { translate as translateUi, useTranslation as useUiLanguage } from '@/lib/i18n';
 import { useEffect } from 'react';
 import { Check, Filter } from 'lucide-react';
-import { toast } from 'sonner';
+import { toast } from '@/lib/toast';
 import PageHeader from '@/components/PageHeader';
 import { useListResourceData } from '@/hooks/useListResourceData';
 import useDebounce from '@/hooks/useDebounce';
@@ -14,6 +15,7 @@ const service = createCrudService('kartu-stok');
 const stockTypes = ['Semua', 'Masuk', 'Keluar'];
 
 export default function KartuStok() {
+  useUiLanguage();
   const store = useKartuStokStore();
   const debouncedSearch = useDebounce(store.search);
   const resource = useListResourceData({
@@ -42,15 +44,15 @@ export default function KartuStok() {
   return (
     <div>
       <PageHeader
-        title="Kartu Stok"
-        subtitle="Riwayat keluar masuk barang"
+        title={translateUi("Kartu Stok")}
+        subtitle={translateUi("Riwayat keluar masuk barang")}
         searchValue={store.search}
         searchLoading={resource.searchLoading}
         onSearchChange={store.setSearch}
         searchActions={(
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="icon" className="relative min-h-10 shrink-0 sm:min-h-9" title="Filter tipe stok">
+              <Button variant="outline" size="icon" className="relative min-h-10 shrink-0 sm:min-h-9" title={translateUi("Filter tipe stok")}>
                 <Filter size={16} />
                 {store.tipe !== 'Semua' && (
                   <span className="absolute -right-1 -top-1 h-2.5 w-2.5 rounded-full bg-destructive ring-2 ring-background" />
@@ -58,10 +60,10 @@ export default function KartuStok() {
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-44">
-              <DropdownMenuLabel>Tipe stok</DropdownMenuLabel>
+              <DropdownMenuLabel>{translateUi("Tipe stok")}</DropdownMenuLabel>
               {stockTypes.map((type) => (
                 <DropdownMenuItem key={type} onSelect={() => store.setTipe(type)} className="justify-between">
-                  <span>{type}</span>
+                  <span>{translateUi(type, { context: "stock" })}</span>
                   {store.tipe === type && <Check className="size-4 text-primary" />}
                 </DropdownMenuItem>
               ))}

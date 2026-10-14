@@ -1,7 +1,9 @@
+import { useTranslation } from '@/lib/i18n'
 import * as React from "react"
 import { cn } from "@/lib/utils"
 
 function Input({ className, type, ...props }) {
+  const { t } = useTranslation()
   return (
     <input
       type={type}
@@ -13,6 +15,7 @@ function Input({ className, type, ...props }) {
         className
       )}
       {...props}
+      placeholder={t(props.placeholder)}
     />
   )
 }

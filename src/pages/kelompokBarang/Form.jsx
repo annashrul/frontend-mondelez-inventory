@@ -1,3 +1,4 @@
+import { translate as translateUi, useTranslation as useUiLanguage } from '@/lib/i18n';
 import Modal from '@/components/Modal';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -6,30 +7,29 @@ import { Textarea } from '@/components/ui/textarea';
 import { LoaderCircle, Wand2 } from 'lucide-react';
 
 export default function KelompokBarangForm({ open, editId, form, saving, generatingCode, onClose, onSubmit, onFieldChange, onGenerateCode }) {
+  useUiLanguage();
   return (
-    <Modal isOpen={open} onClose={onClose} title={editId ? 'Edit Kelompok' : 'Tambah Kelompok'}>
+    <Modal isOpen={open} onClose={onClose} title={editId ? translateUi("Edit Kelompok") : translateUi("Tambah Kelompok")}>
       <form onSubmit={onSubmit} className="space-y-4">
         <div className="space-y-1.5">
-          <Label htmlFor="kelompok-kode">Kode</Label>
+          <Label htmlFor="kelompok-kode">{translateUi("Kode")}</Label>
           <div className="flex gap-2">
             <Input id="kelompok-kode" value={form.kode} onChange={(event) => onFieldChange('kode', event.target.value)} required disabled={saving} />
             <Button type="button" variant="outline" className="shrink-0 gap-2" onClick={onGenerateCode} disabled={saving || generatingCode}>
-              {generatingCode ? <LoaderCircle className="size-4 animate-spin" /> : <Wand2 size={16} />}
-              Generate
-            </Button>
+              {generatingCode ? <LoaderCircle className="size-4 animate-spin" /> : <Wand2 size={16} />}{translateUi("Buat Kode")}</Button>
           </div>
         </div>
         <div className="space-y-1.5">
-          <Label htmlFor="kelompok-nama">Nama Kelompok</Label>
+          <Label htmlFor="kelompok-nama">{translateUi("Nama Kelompok")}</Label>
           <Input id="kelompok-nama" value={form.nama} onChange={(event) => onFieldChange('nama', event.target.value)} required disabled={saving} />
         </div>
         <div className="space-y-1.5">
-          <Label htmlFor="kelompok-deskripsi">Deskripsi</Label>
+          <Label htmlFor="kelompok-deskripsi">{translateUi("Deskripsi")}</Label>
           <Textarea id="kelompok-deskripsi" value={form.deskripsi || ''} onChange={(event) => onFieldChange('deskripsi', event.target.value)} disabled={saving} />
         </div>
         <div className="flex justify-end gap-2 pt-2">
-          <Button type="button" variant="outline" onClick={onClose} disabled={saving}>Batal</Button>
-          <Button type="submit" disabled={saving}>{saving ? 'Menyimpan...' : 'Simpan'}</Button>
+          <Button type="button" variant="outline" onClick={onClose} disabled={saving}>{translateUi("Batal")}</Button>
+          <Button type="submit" disabled={saving}>{saving ? translateUi("Menyimpan...") : translateUi("Simpan")}</Button>
         </div>
       </form>
     </Modal>

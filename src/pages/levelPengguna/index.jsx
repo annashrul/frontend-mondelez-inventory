@@ -1,3 +1,4 @@
+import { translate as translateUi, useTranslation as useUiLanguage } from '@/lib/i18n';
 import PageHeader from '@/components/PageHeader';
 import { useCrudPageController } from '@/hooks/useCrudPageController';
 import { levelPenggunaService } from '@/services/levelPenggunaService';
@@ -9,6 +10,7 @@ import LevelPenggunaList from './List';
 const labels = { singular: 'Level Pengguna', lower: 'level pengguna' };
 
 export default function LevelPengguna() {
+  useUiLanguage();
   const page = useCrudPageController({
     store: useLevelPenggunaStore,
     service: levelPenggunaService,
@@ -32,10 +34,10 @@ export default function LevelPengguna() {
   return (
     <div>
       <PageHeader
-        title="Level Pengguna"
-        subtitle="Kelola hak akses dan level pengguna"
+        title={translateUi("Level Pengguna")}
+        subtitle={translateUi("Kelola hak akses dan level pengguna")}
         onAdd={page.openAdd}
-        addLabel="Tambah Level"
+        addLabel={translateUi("Tambah Level")}
         searchValue={page.search}
         searchLoading={page.searchLoading}
         onSearchChange={page.setSearch}

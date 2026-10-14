@@ -1,3 +1,4 @@
+import { useTranslation } from '@/lib/i18n'
 import * as React from "react"
 import { format, parse, isValid } from "date-fns"
 import { CalendarIcon } from "lucide-react"
@@ -15,6 +16,7 @@ function DatePicker({
   className,
   id,
 }) {
+  const { t } = useTranslation()
   const [open, setOpen] = React.useState(false)
 
   const selected = value ? parse(value, "yyyy-MM-dd", new Date()) : undefined
@@ -36,7 +38,7 @@ function DatePicker({
           )}
         >
           <CalendarIcon className="size-4" />
-          {isValidDate ? format(selected, "dd/MM/yyyy") : placeholder}
+          {isValidDate ? format(selected, "dd/MM/yyyy") : t(placeholder)}
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-auto p-0" align="start">
