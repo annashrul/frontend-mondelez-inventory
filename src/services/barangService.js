@@ -56,6 +56,7 @@ export async function getBarangStockOptions(search) {
     label: `${item.kode} - ${item.nama} (Stok: ${item.stok} ${item.satuan_detail?.nama || ''})`,
     localizedLabel: {
       key: '{value0} - {value1} (Stok: {value2} {value3})',
+      numberParams: ['value2'],
       params: { value0: item.kode, value1: item.nama, value2: item.stok, value3: item.satuan_detail?.nama || '' },
     },
   }));

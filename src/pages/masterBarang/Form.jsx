@@ -17,6 +17,8 @@ function FormField({ field, label, type = 'text', value, onChange }) {
       <Input
         id={field}
         type={type}
+        min={type === 'number' ? 0 : undefined}
+        step={field === 'harga' ? '0.01' : undefined}
         value={value ?? ''}
         onChange={(event) => onChange(field, type === 'number' ? parseNumberInput(event.target.value) : event.target.value)}
         required

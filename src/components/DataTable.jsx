@@ -1,3 +1,4 @@
+import { formatNumber, formatTableValue } from '@/lib/numberFormat';
 import { translate as translateUi } from '@/lib/i18n';
 import { useTranslation } from '@/lib/i18n';
 import { useState } from 'react';
@@ -96,10 +97,10 @@ export default function DataTable({ columns, data, loading = false, onEdit, onDe
           ) : (
             data.map((row, index) => (
               <TableRow key={row.id || index}>
-                <TableCell className={cn('text-muted-foreground', fixedColumnClass('left'))}>{rowOffset + index + 1}</TableCell>
+                <TableCell className={cn('text-muted-foreground', fixedColumnClass('left'))}>{formatNumber(rowOffset + index + 1)}</TableCell>
                 {columns.map((col) => (
                   <TableCell key={col.key} className={fixedColumnClass(col.fixed)}>
-                    {col.render ? col.render(row[col.key], row) : row[col.key]}
+                    {col.render ? col.render(row[col.key], row) : formatTableValue(col.key, row[col.key])}
                   </TableCell>
                 ))}
                 {(onEdit || onDelete || actions) && (
@@ -130,7 +131,7 @@ export default function DataTable({ columns, data, loading = false, onEdit, onDe
             ))}
           </div>
         </article>
-      )) : data.length === 0 ? <div className="flex min-h-40 flex-col items-center justify-center gap-2 rounded-2xl border bg-card text-muted-foreground"><Inbox className="h-10 w-10" /><p className="text-sm">{t("Belum ada data")}</p></div> : data.map((row, index) => <article key={row.id || index} className="rounded-2xl border bg-card p-4 shadow-sm"><div className="mb-3 flex items-center justify-between"><span className="rounded-full bg-primary/10 px-2.5 py-1 text-xs font-semibold text-primary">#{rowOffset + index + 1}</span></div><dl className="space-y-2.5">{columns.map((col, colIndex) => <div key={col.key} className={colIndex === 0 ? 'pb-1' : 'grid grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)] gap-3'}>{colIndex !== 0 && <dt className="text-xs text-muted-foreground">{t(col.label)}</dt>}<dd className={colIndex === 0 ? 'text-base font-semibold' : 'min-w-0 text-right text-sm font-medium break-words'}>{col.render ? col.render(row[col.key], row) : row[col.key]}</dd></div>)}</dl>{renderActions(row, true)}</article>)}
+      )) : data.length === 0 ? <div className="flex min-h-40 flex-col items-center justify-center gap-2 rounded-2xl border bg-card text-muted-foreground"><Inbox className="h-10 w-10" /><p className="text-sm">{t("Belum ada data")}</p></div> : data.map((row, index) => <article key={row.id || index} className="rounded-2xl border bg-card p-4 shadow-sm"><div className="mb-3 flex items-center justify-between"><span className="rounded-full bg-primary/10 px-2.5 py-1 text-xs font-semibold text-primary">#{formatNumber(rowOffset + index + 1)}</span></div><dl className="space-y-2.5">{columns.map((col, colIndex) => <div key={col.key} className={colIndex === 0 ? 'pb-1' : 'grid grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)] gap-3'}>{colIndex !== 0 && <dt className="text-xs text-muted-foreground">{t(col.label)}</dt>}<dd className={colIndex === 0 ? 'text-base font-semibold' : 'min-w-0 text-right text-sm font-medium break-words'}>{col.render ? col.render(row[col.key], row) : formatTableValue(col.key, row[col.key])}</dd></div>)}</dl>{renderActions(row, true)}</article>)}
     </div>
     {pagination && !infiniteScroll && (
       <div className="mt-4">

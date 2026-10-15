@@ -1,3 +1,4 @@
+import { formatNumber } from '@/lib/numberFormat';
 import { pageSizeOptions } from '@/lib/pageSizeOptions';
 import { useTranslation } from '@/lib/i18n';
 import { ChevronLeft, ChevronRight, LoaderCircle } from 'lucide-react';
@@ -23,8 +24,8 @@ export default function Pagination({ pagination = emptyPagination, onPageChange,
   return (
     <div className="flex items-center justify-between gap-2 rounded-lg border bg-card px-2 py-2 text-sm text-muted-foreground sm:flex-row sm:px-3 sm:py-3">
       <div className="hidden sm:block">
-        {t("Menampilkan")} <span className="font-medium text-foreground">{from}-{to}</span> {t("dari")}{' '}
-        <span className="font-medium text-foreground">{total}</span> {t("data")}
+        {t("Menampilkan")} <span className="font-medium text-foreground">{formatNumber(from)}-{formatNumber(to)}</span> {t("dari")}{' '}
+        <span className="font-medium text-foreground">{formatNumber(total)}</span> {t("data")}
       </div>
       <div className="flex w-full items-center justify-between gap-2 sm:w-auto sm:justify-end">
         {onLimitChange && (
@@ -36,7 +37,7 @@ export default function Pagination({ pagination = emptyPagination, onPageChange,
             <SelectContent>
               {[...new Set([limit, ...pageSizeOptions])].sort((a, b) => a-b).map((value) => (
                 <SelectItem key={value} value={String(value)}>
-                  {value} / {t("hal")}
+                  {formatNumber(value)} / {t("hal")}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -54,7 +55,7 @@ export default function Pagination({ pagination = emptyPagination, onPageChange,
           {pageLoadingDirection === 'prev' ? <LoaderCircle className="size-4 animate-spin" /> : <ChevronLeft className="size-4" />}
         </Button>
         <span className="min-w-0 flex-1 text-center text-xs font-medium text-foreground sm:min-w-24 sm:flex-none sm:text-sm">
-          {page} / {totalPages}
+          {formatNumber(page)} / {formatNumber(totalPages)}
         </span>
         <Button
           type="button"

@@ -1,3 +1,4 @@
+import { formatNumber } from '@/lib/numberFormat';
 import { translate as translateUi, useTranslation as useUiLanguage } from '@/lib/i18n';
 import DataTable from '@/components/DataTable';
 import { Badge } from '@/components/ui/badge';
@@ -9,12 +10,12 @@ const columns = [
   {
     key: 'permissions',
     label: 'Hak Akses',
-    render: (v) => <Badge variant="outline">{(v || []).length}{translateUi(" permission")}</Badge>,
+    render: (v) => <Badge variant="outline">{formatNumber((v || []).length)}{translateUi(" permission")}</Badge>,
   },
   {
     key: 'jumlah_user',
     label: 'Jumlah User',
-    render: (v) => <Badge variant="secondary">{v}{translateUi(" user")}</Badge>,
+    render: (v) => <Badge variant="secondary">{formatNumber(v)}{translateUi(" user")}</Badge>,
   },
 ];
 

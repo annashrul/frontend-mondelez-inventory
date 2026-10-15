@@ -1,3 +1,4 @@
+import { formatNumber } from '@/lib/numberFormat';
 import { translate as translateUi, useTranslation as useUiLanguage } from '@/lib/i18n';
 import DataTable from '@/components/DataTable';
 import { Button } from '@/components/ui/button';
@@ -18,9 +19,9 @@ const columns = [
       return (
         <div className="flex items-center gap-2">
           <div className="h-2 w-20 overflow-hidden rounded-full bg-muted">
-            <div className={`h-full rounded-full ${color}`} style={{ width: `${pct}%` }} />
+            <div className={`h-full rounded-full ${color}`} style={{ width: `${formatNumber(pct)}%` }} />
           </div>
-          <span className="text-xs text-muted-foreground">{pct}%</span>
+          <span className="text-xs text-muted-foreground">{formatNumber(pct)}%</span>
         </div>
       );
     },

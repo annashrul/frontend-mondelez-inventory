@@ -1,3 +1,4 @@
+import { formatNumber } from '@/lib/numberFormat';
 import PageHeader from '@/components/PageHeader';
 import usePageState from '@/hooks/usePageState';
 import { useTranslation } from '@/lib/i18n';
@@ -71,7 +72,7 @@ export default function CetakBarcode() {
         </Card>
         <Card className="qr-preview-card lg:col-span-2">
           <CardHeader className="flex flex-row items-center justify-between no-print">
-            <CardTitle className="text-base">{t('Preview Label (')}{selected.length})</CardTitle>
+            <CardTitle className="text-base">{t('Preview Label (')}{formatNumber(selected.length)})</CardTitle>
             <Button onClick={() => window.print()} disabled={!printReady}><Printer size={16} />{t('Cetak QR Rak')}</Button>
           </CardHeader>
           <CardContent className="qr-preview-content">

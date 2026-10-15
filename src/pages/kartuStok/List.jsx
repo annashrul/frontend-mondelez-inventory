@@ -1,3 +1,4 @@
+import { formatNumber } from '@/lib/numberFormat';
 import { translate as translateUi, translateStockNote, useTranslation as useUiLanguage } from '@/lib/i18n';
 import dayjs from 'dayjs';
 import { ArrowDownCircle, ArrowUpCircle } from 'lucide-react';
@@ -66,9 +67,9 @@ export default function KartuStokList({
                 </TableCell>
                 <TableCell className="font-mono text-xs text-muted-foreground">{row.no_ref}</TableCell>
                 <TableCell className="font-medium">{row.barang_detail?.nama || '-'}</TableCell>
-                <TableCell className="text-right font-medium text-green-600">{row.tipe === 'Masuk' ? row.qty : '-'}</TableCell>
-                <TableCell className="text-right font-medium text-red-500">{row.tipe === 'Keluar' ? row.qty : '-'}</TableCell>
-                <TableCell className="text-right font-semibold">{row.saldo}</TableCell>
+                <TableCell className="text-right font-medium text-green-600">{row.tipe === 'Masuk' ? formatNumber(row.qty) : '-'}</TableCell>
+                <TableCell className="text-right font-medium text-red-500">{row.tipe === 'Keluar' ? formatNumber(row.qty) : '-'}</TableCell>
+                <TableCell className="text-right font-semibold">{formatNumber(row.saldo)}</TableCell>
                 <TableCell className="text-xs text-muted-foreground">{translateStockNote(row)}</TableCell>
               </TableRow>
             ))}
@@ -102,9 +103,9 @@ export default function KartuStokList({
               <p className="break-all font-mono text-xs text-muted-foreground">{row.no_ref}</p>
             </div>
             <dl className="grid grid-cols-3 gap-2 rounded-xl bg-muted/50 p-3 text-center">
-              <div><dt className="text-xs text-muted-foreground">{translateUi('Masuk')}</dt><dd className="mt-1 break-words text-sm font-semibold text-green-600">{row.tipe === 'Masuk' ? row.qty : '-'}</dd></div>
-              <div><dt className="text-xs text-muted-foreground">{translateUi('Keluar', { context: 'stock' })}</dt><dd className="mt-1 break-words text-sm font-semibold text-red-500">{row.tipe === 'Keluar' ? row.qty : '-'}</dd></div>
-              <div><dt className="text-xs text-muted-foreground">{translateUi('Saldo')}</dt><dd className="mt-1 break-words text-sm font-semibold">{row.saldo}</dd></div>
+              <div><dt className="text-xs text-muted-foreground">{translateUi('Masuk')}</dt><dd className="mt-1 break-words text-sm font-semibold text-green-600">{row.tipe === 'Masuk' ? formatNumber(row.qty) : '-'}</dd></div>
+              <div><dt className="text-xs text-muted-foreground">{translateUi('Keluar', { context: 'stock' })}</dt><dd className="mt-1 break-words text-sm font-semibold text-red-500">{row.tipe === 'Keluar' ? formatNumber(row.qty) : '-'}</dd></div>
+              <div><dt className="text-xs text-muted-foreground">{translateUi('Saldo')}</dt><dd className="mt-1 break-words text-sm font-semibold">{formatNumber(row.saldo)}</dd></div>
             </dl>
             <dl className="space-y-1 border-t pt-3"><dt className="text-xs text-muted-foreground">{translateUi('Keterangan')}</dt><dd className="break-words text-sm">{translateStockNote(row) || '-'}</dd></dl>
           </article>

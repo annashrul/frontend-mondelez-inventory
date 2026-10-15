@@ -1,5 +1,5 @@
+import { formatNumber, formatCurrency } from '@/lib/numberFormat';
 import { translate as translateUi, useTranslation as useUiLanguage } from '@/lib/i18n';
-import { getAppLocale } from '@/lib/i18n';
 import DataTable from '@/components/DataTable';
 import { Badge } from '@/components/ui/badge';
 
@@ -23,13 +23,13 @@ const columns = [
     key: 'stok',
     label: 'Stok',
     render: (val, row) => (
-      <span className={`font-semibold ${val <= row.stok_min ? 'text-red-600' : 'text-green-600'}`}>{val}</span>
+      <span className={`font-semibold ${val <= row.stok_min ? 'text-red-600' : 'text-green-600'}`}>{formatNumber(val)}</span>
     ),
   },
   {
     key: 'harga',
     label: 'Harga',
-    render: (val) => `Rp ${val?.toLocaleString(getAppLocale())}`,
+    render: (val) => formatCurrency(val),
   },
   {
     key: 'has_embedding',

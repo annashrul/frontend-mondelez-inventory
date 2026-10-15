@@ -1,3 +1,4 @@
+import { formatNumber, formatCurrency } from '@/lib/numberFormat';
 import usePageState from '@/hooks/usePageState';
 import DashboardCharts from '@/components/DashboardCharts';
 import { Button } from '@/components/ui/button';
@@ -31,10 +32,10 @@ export default function Dashboard() {
   );
 
   const statCards = [
-    { label: 'Total Barang', value: (stats?.totalBarang || 0).toLocaleString(locale), icon: Package, color: 'text-blue-600 bg-blue-100' },
-    { label: 'Transaksi Hari Ini', value: (stats?.totalTransaksi || 0).toLocaleString(locale), icon: ShoppingCart, color: 'text-green-600 bg-green-100' },
-    { label: 'Stok Menipis', value: (stats?.stokMenipis || 0).toLocaleString(locale), icon: AlertTriangle, color: 'text-amber-600 bg-amber-100' },
-    { label: 'Nilai Inventory', value: `Rp ${(stats?.nilaiInventory || 0).toLocaleString(locale)}`, icon: TrendingUp, color: 'text-purple-600 bg-purple-100' },
+    { label: 'Total Barang', value: formatNumber(stats?.totalBarang || 0, locale), icon: Package, color: 'text-blue-600 bg-blue-100' },
+    { label: 'Transaksi Hari Ini', value: formatNumber(stats?.totalTransaksi || 0, locale), icon: ShoppingCart, color: 'text-green-600 bg-green-100' },
+    { label: 'Stok Menipis', value: formatNumber(stats?.stokMenipis || 0, locale), icon: AlertTriangle, color: 'text-amber-600 bg-amber-100' },
+    { label: 'Nilai Inventory', value: formatCurrency(stats?.nilaiInventory || 0, locale), icon: TrendingUp, color: 'text-purple-600 bg-purple-100' },
   ];
 
   return (
@@ -98,7 +99,7 @@ export default function Dashboard() {
                     <p className="text-xs text-muted-foreground">{translateStockNote(act)}{translateUi(" oleh ")}{act.user} • {new Intl.DateTimeFormat(locale, { day: 'numeric', month: 'short', timeZone: 'Asia/Jakarta' }).format(new Date(act.tanggal))}</p>
                   </div>
                   <span className={`text-sm font-semibold ${act.tipe === 'Masuk' ? 'text-green-600' : 'text-red-500'}`}>
-                    {act.tipe === 'Masuk' ? '+' : '-'}{act.qty}
+                    {act.tipe === 'Masuk' ? '+' : '-'}{formatNumber(act.qty)}
                   </span>
                 </div>
               ))}
@@ -120,9 +121,9 @@ export default function Dashboard() {
                 <div key={item.id} className="py-3 flex items-center justify-between first:pt-0 last:pb-0">
                   <div>
                     <p className="text-sm font-medium">{item.nama}</p>
-                    <p className="text-xs text-muted-foreground">{translateUi("Min: ")}{item.stok_min} {item.satuan_detail?.nama}</p>
+                    <p className="text-xs text-muted-foreground">{translateUi("Min: ")}{formatNumber(item.stok_min)} {item.satuan_detail?.nama}</p>
                   </div>
-                  <Badge variant="destructive">{translateUi("Sisa: ")}{item.stok} {item.satuan_detail?.nama}
+                  <Badge variant="destructive">{translateUi("Sisa: ")}{formatNumber(item.stok)} {item.satuan_detail?.nama}
                   </Badge>
                 </div>
               ))}

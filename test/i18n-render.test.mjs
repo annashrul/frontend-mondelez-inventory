@@ -282,3 +282,23 @@ test('PWA notices distinguish install, manual update and offline use in both lan
     pwaStore.setState(saved, true);
   }
 });
+
+test('quantity cells, mobile stock cards, and pagination use localized grouping', () => {
+  setLanguage('id');
+  const table = render(DataTable, {
+    columns: [{ key: 'kode', label: 'Kode' }, { key: 'qty', label: 'Jumlah' }],
+    data: [{ id: 1, kode: '001234567', qty: '12345' }],
+    pagination: { page: 1, limit: 10, total: 12345, total_pages: 1235 },
+  });
+  assert.match(table, /001234567/);
+  assert.match(table, /12\.345/);
+  assert.match(table, /1\.235/);
+  const cards = render(KartuStokList, {
+    data: [{ id: 1, tipe: 'Masuk', qty: '12345', saldo: '67890', tanggal: '2026-10-15', barang_detail: { nama: 'Item' } }],
+  });
+  assert.match(cards, /12\.345/);
+  assert.match(cards, /67\.890/);
+  setLanguage('en');
+  assert.match(render(DataTable, { columns: [{ key: 'qty', label: 'Jumlah' }], data: [{ id: 1, qty: '12345' }] }), /12,345/);
+  setLanguage('id');
+});

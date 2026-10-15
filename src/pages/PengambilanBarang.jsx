@@ -1,3 +1,4 @@
+import { formatNumber } from '@/lib/numberFormat';
 import { prepareProductImage } from '@/lib/productImage';
 import { useQueryClient } from '@tanstack/react-query';
 import { refreshWithdrawalHistory } from '@/services/withdrawalHistoryService';
@@ -296,7 +297,7 @@ export default function PengambilanBarang() {
         ...form,
       }, { timeout: withdrawalTimeout });
       toast.success(
-        `${response.transaction.no_ref} tersimpan. Stok akhir: ${response.stok_akhir}`,
+        `${response.transaction.no_ref} tersimpan. Stok akhir: ${formatNumber(response.stok_akhir)}`,
       );
       sessionStorage.removeItem(transactionDraftKey);
       reset();
@@ -425,7 +426,7 @@ export default function PengambilanBarang() {
                   <div className="min-w-0">
                     <h3 className="text-sm font-semibold">{flow === "rack" ? translateUi("Pilih barang di rak ini") : translateUi("Pilih barang yang sesuai")}</h3>
                     <p className="mt-1 text-xs leading-5 text-muted-foreground">
-                      {flow === "rack" ? translateUi("{value0} berisi {value1} barang.", { value0: verifiedRack?.nama || translateUi("Rak"), value1: results.length }) : translateUi("Ketuk salah satu hasil identifikasi.")}
+                      {flow === "rack" ? translateUi("{value0} berisi {value1} barang.", { value0: verifiedRack?.nama || translateUi("Rak"), value1: formatNumber(results.length) }) : translateUi("Ketuk salah satu hasil identifikasi.")}
                     </p>
                   </div>
                 </div>
@@ -461,7 +462,7 @@ export default function PengambilanBarang() {
                           {item.nama}
                         </p>
                         <p className="mt-1 truncate text-xs text-muted-foreground">
-                          {item.kode} · {item.rak_detail?.nama} · {item.stok}{" "}
+                          {item.kode} · {item.rak_detail?.nama} · {formatNumber(item.stok)}{" "}
                           {item.satuan_detail?.nama}
                         </p>
                       </div>
@@ -470,13 +471,13 @@ export default function PengambilanBarang() {
                           variant={confidence >= 0.8 ? "success" : "warning"}
                           className="shrink-0"
                         >
-                          {Math.round(confidence * 100)}%
+                          {formatNumber(Math.round(confidence * 100))}%
                         </Badge>
                       ) : (
                         <Badge
                           variant={Number(item.stok) > 0 ? "secondary" : "destructive"}
                           className="shrink-0"
-                        >{translateUi("Stok ")}{item.stok}
+                        >{translateUi("Stok ")}{formatNumber(item.stok)}
                         </Badge>
                       )}
                     </button>
@@ -614,7 +615,7 @@ export default function PengambilanBarang() {
                   <div className="space-y-2">
                     <div className="flex items-center justify-between">
                       <Label htmlFor="qty" className="text-xs font-semibold">{translateUi("Jumlah diambil")}</Label>
-                      <span className="text-[11px] text-muted-foreground">{translateUi("Stok ")}{selected.stok} {selected.satuan_detail?.nama}
+                      <span className="text-[11px] text-muted-foreground">{translateUi("Stok ")}{formatNumber(selected.stok)} {selected.satuan_detail?.nama}
                       </span>
                     </div>
                     <Input

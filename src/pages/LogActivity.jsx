@@ -1,3 +1,4 @@
+import { formatNumber } from '@/lib/numberFormat';
 import usePageState from '@/hooks/usePageState';
 import { translate as translateUi, useTranslation as useUiLanguage } from '@/lib/i18n';
 import { useLogActivityData } from '@/hooks/useLogActivityData';
@@ -114,7 +115,7 @@ export default function LogActivity() {
             </span>
             <div>
               <p className="text-xs text-muted-foreground">{translateUi("Total ditemukan")}</p>
-              <div className="text-2xl font-semibold tracking-tight">{loading ? <Skeleton className="mt-1 h-7 w-16" /> : pagination.total || 0}</div>
+              <div className="text-2xl font-semibold tracking-tight">{loading ? <Skeleton className="mt-1 h-7 w-16" /> : formatNumber(pagination.total || 0)}</div>
             </div>
           </CardContent>
         </Card>
@@ -125,7 +126,7 @@ export default function LogActivity() {
             </span>
             <div>
               <p className="text-xs text-muted-foreground">{translateUi("Modul di halaman ini")}</p>
-              <div className="text-2xl font-semibold tracking-tight">{loading ? <Skeleton className="mt-1 h-7 w-16" /> : summary.modules}</div>
+              <div className="text-2xl font-semibold tracking-tight">{loading ? <Skeleton className="mt-1 h-7 w-16" /> : formatNumber(summary.modules)}</div>
             </div>
           </CardContent>
         </Card>
@@ -136,7 +137,7 @@ export default function LogActivity() {
             </span>
             <div>
               <p className="text-xs text-muted-foreground">{translateUi("Perlu perhatian")}</p>
-              <div className="text-2xl font-semibold tracking-tight">{loading ? <Skeleton className="mt-1 h-7 w-16" /> : summary.failed + summary.destructive}</div>
+              <div className="text-2xl font-semibold tracking-tight">{loading ? <Skeleton className="mt-1 h-7 w-16" /> : formatNumber(summary.failed + summary.destructive)}</div>
             </div>
           </CardContent>
         </Card>
@@ -148,7 +149,7 @@ export default function LogActivity() {
             <h2 className="text-sm font-semibold">{translateUi("Riwayat Aktivitas")}</h2>
             <p className="text-xs text-muted-foreground">{translateUi("Urutan terbaru berada paling atas")}</p>
           </div>
-          <Badge variant="outline" className="shrink-0">{pagination.total || logs.length}{translateUi(" aktivitas")}</Badge>
+          <Badge variant="outline" className="shrink-0">{formatNumber(pagination.total || logs.length)}{translateUi(" aktivitas")}</Badge>
         </div>
 
         {query.isError && <div role="alert" className="flex items-center justify-between gap-3 border-b p-4"><p className="text-sm text-muted-foreground">{translateUi(query.isFetchNextPageError ? 'Gagal memuat log berikutnya' : 'Gagal memuat log aktivitas')}</p><Button variant="outline" size="sm" disabled={query.isFetching} onClick={() => (query.isFetchNextPageError ? loadMore() : query.refetch()).catch(() => {})}>{translateUi('Coba lagi')}</Button></div>}

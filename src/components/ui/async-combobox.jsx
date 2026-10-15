@@ -1,3 +1,4 @@
+import { formatNumber } from '@/lib/numberFormat';
 import { useTranslation } from '@/lib/i18n'
 import * as React from "react"
 import { CheckIcon, ChevronsUpDown } from "lucide-react"
@@ -93,9 +94,14 @@ export function AsyncCombobox({
     return () => window.clearTimeout(timeout)
   }, [open, search, debounceMs])
 
-  const optionLabel = option => option.localizedLabel
-    ? t(option.localizedLabel.key, option.localizedLabel.params)
-    : option.label
+  const optionLabel = option => {
+    if (!option.localizedLabel) return option.label
+    const { key, params = {}, numberParams = [] } = option.localizedLabel
+    const localizedParams = Object.fromEntries(Object.entries(params).map(([name, value]) => [
+      name, numberParams.includes(name) ? formatNumber(value) : value,
+    ]))
+    return t(key, localizedParams)
+  }
   const selectedLabel = selectedOption?.value === value && selectedOption.label
     ? optionLabel(selectedOption)
     : value

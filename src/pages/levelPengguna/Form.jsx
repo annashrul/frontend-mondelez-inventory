@@ -1,3 +1,4 @@
+import { formatNumber } from '@/lib/numberFormat';
 import usePageState from '@/hooks/usePageState';
 import { translate as translateUi, useTranslation as useUiLanguage } from '@/lib/i18n';
 import { useEffect } from 'react';
@@ -84,7 +85,7 @@ export default function LevelPenggunaForm({
                 <div className="flex items-center gap-2 text-sm font-semibold">
                   <ShieldCheck className="size-4 text-primary" />{translateUi(" Hak Akses")}</div>
                 <div className="flex items-center gap-3 text-sm">
-                  <span className="text-muted-foreground">{selected.length}{translateUi(" dipilih")}</span>
+                  <span className="text-muted-foreground">{formatNumber(selected.length)}{translateUi(" dipilih")}</span>
                   <Button
                     type="button" variant="secondary" size="sm" className="h-7 text-xs"
                     disabled={saving || allIds.length === 0}

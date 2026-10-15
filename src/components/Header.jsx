@@ -1,3 +1,4 @@
+import { formatNumber } from '@/lib/numberFormat';
 import { Skeleton } from '@/components/ui/skeleton';
 import { translate as translateUi } from '@/lib/i18n';
 import { useTranslation } from '@/lib/i18n';
@@ -77,7 +78,7 @@ export default function Header() {
               <Bell size={18} />
               {unread > 0 && (
                 <span className="absolute -right-1 -top-1 z-10 grid h-5 min-w-5 place-items-center rounded-full bg-destructive px-1 text-[11px] font-bold leading-none text-white ring-2 ring-background">
-                  {unread > 99 ? '99+' : unread}
+                  {unread > 99 ? '99+' : formatNumber(unread)}
                 </span>
               )}
             </Button>
@@ -86,7 +87,7 @@ export default function Header() {
             <div className="flex items-center justify-between border-b px-4 py-3">
               <div>
                 <p className="text-sm font-semibold">{t("Notifikasi")}</p>
-                <p className="text-xs text-muted-foreground">{t('{value0} belum dibaca', { value0: unread })}</p>
+                <p className="text-xs text-muted-foreground">{t('{value0} belum dibaca', { value0: formatNumber(unread) })}</p>
               </div>
               <Button type="button" variant="ghost" size="sm" className="h-8 gap-2" onClick={() => markAllRead().catch(() => {})} disabled={!unread}>
                 <CheckCheck size={15} />{translateUi("Tandai")}</Button>
