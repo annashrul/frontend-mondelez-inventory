@@ -222,3 +222,19 @@
   .qr-sheet:last-child { break-after: auto; }
   .qr-sheet-code { width: 80mm; height: 80mm; }
 }
+
+
+@media screen and (max-width: 767px) {
+  .mobile-sticky-toolbar {
+    position: sticky;
+    top: calc(3.75rem + env(safe-area-inset-top));
+    z-index: 30;
+    background: var(--background);
+    padding-block: 0.75rem;
+    box-shadow: 0 8px 12px -12px rgb(0 0 0 / 0.3);
+  }
+
+  .mobile-sticky-toolbar > .page-header-row {
+    margin-bottom: 0;
+  }
+}

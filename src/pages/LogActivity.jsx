@@ -170,7 +170,7 @@ export default function LogActivity() {
           <div className="space-y-1 p-2 sm:p-3">
             {groupedLogs.map((group) => (
               <section key={group.key} className="space-y-2">
-                <div className="sticky top-[calc(3.75rem+env(safe-area-inset-top))] z-30 -mx-2 flex items-center gap-3 bg-card px-4 py-2 sm:-mx-3 lg:top-16">
+                <div className="relative z-20 md:sticky md:top-[calc(3.75rem+env(safe-area-inset-top))] -mx-2 flex items-center gap-3 bg-card px-4 py-2 sm:-mx-3 lg:top-16">
                   <span className="h-px flex-1 bg-border" />
                   <span className="rounded-full border bg-muted/60 px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
                     {translateUi(group.label)}

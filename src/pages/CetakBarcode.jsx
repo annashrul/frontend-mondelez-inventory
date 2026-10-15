@@ -1,15 +1,15 @@
+import PageHeader from '@/components/PageHeader';
 import usePageState from '@/hooks/usePageState';
 import { useTranslation } from '@/lib/i18n';
 import { useSettingsStore } from '@/stores/settingsStore';
 import { useState } from 'react';
-import { Printer, QrCode, Search, LoaderCircle } from 'lucide-react';
+import { Printer, QrCode, LoaderCircle } from 'lucide-react';
 import { useQrRackData } from '@/hooks/useQrRackData';
 import { useAuth } from '@/context/AuthContext';
 import { Skeleton } from '@/components/ui/skeleton';
 import QrImage from '@/components/QrImage';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 
@@ -33,15 +33,17 @@ export default function CetakBarcode() {
 
   return (
     <div className="qr-print-view">
-      <div className="mb-6 no-print">
-        <h1 className="text-2xl font-bold tracking-tight">{t('Cetak QR Rak')}</h1>
-        <p className="mt-1 text-sm text-muted-foreground">{t('Satu QR per halaman, diletakkan di tengah kertas A4.')}</p>
-      </div>
+      <PageHeader
+        title={t('Cetak QR Rak')}
+        subtitle={t('Satu QR per halaman, diletakkan di tengah kertas A4.')}
+        searchValue={search}
+        onSearchChange={setSearch}
+        className="no-print"
+      />
       <div className="qr-print-layout grid gap-6 lg:grid-cols-3">
         <Card className="h-fit no-print">
           <CardHeader className="flex flex-row items-center justify-between"><CardTitle className="text-base">{t('Pilih Rak')}</CardTitle>{query.isFetching && !loading && <LoaderCircle role="status" aria-label={t('Memuat daftar rak...')} className="size-4 animate-spin text-muted-foreground" />}</CardHeader>
           <CardContent className="space-y-4">
-            <div className="relative"><Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={16} /><Input className="pl-9" value={search} onChange={event => setSearch(event.target.value)} placeholder={t('Cari rak atau lokasi...')} /></div>
             {query.isError && <div role="alert" className="space-y-2"><p className="text-sm text-muted-foreground">{t('Gagal memuat daftar rak')}</p><Button variant="outline" size="sm" disabled={query.isFetching} onClick={() => query.refetch()}>{t('Coba lagi')}</Button></div>}
             <ScrollArea className="h-80 rounded-md border p-2">
               <div className="space-y-1">

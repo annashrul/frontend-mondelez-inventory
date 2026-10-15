@@ -687,7 +687,7 @@ export default function PengambilanBarang() {
         </TabsContent>
         <TabsContent value="riwayat">
           <Card className="gap-4 border-border/70 shadow-sm">
-            <CardHeader className="gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <CardHeader className="mobile-sticky-toolbar gap-4 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <CardTitle className="text-base tracking-tight">{translateUi("Riwayat Pengambilan")}</CardTitle>
                 <p className="text-xs text-muted-foreground">{translateUi("Transaksi stok keluar terbaru")}</p>
