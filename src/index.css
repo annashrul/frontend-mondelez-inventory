@@ -247,3 +247,28 @@
     margin-bottom: 0;
   }
 }
+
+
+@media screen and (max-width: 767px) {
+  .viewport-dialog {
+    max-height: min(92dvh, calc(var(--dialog-viewport-height, 100dvh) - 1rem));
+    transition-property: opacity, transform;
+  }
+
+  [data-modal-scroll] {
+    overscroll-behavior-y: contain;
+    scroll-padding-block: 1rem;
+  }
+}
+
+@media screen and (max-width: 639px) {
+  .viewport-dialog {
+    bottom: var(--dialog-viewport-bottom, 0px);
+  }
+}
+
+@media screen and (min-width: 640px) and (max-width: 767px) {
+  .viewport-dialog {
+    top: calc(var(--dialog-viewport-top, 0px) + var(--dialog-viewport-height, 100dvh) / 2);
+  }
+}
