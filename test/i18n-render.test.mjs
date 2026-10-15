@@ -13,6 +13,7 @@ let settings;
 let Calendar;
 let AsyncCombobox;
 let DataTable;
+let KartuStokList;
 let SettingsSkeleton;
 let Pengaturan;
 let LogActivity;
@@ -35,6 +36,7 @@ before(async () => {
   Calendar = (await server.ssrLoadModule('/src/components/ui/calendar.jsx')).Calendar;
   AsyncCombobox = (await server.ssrLoadModule('/src/components/ui/async-combobox.jsx')).AsyncCombobox;
   DataTable = (await server.ssrLoadModule('/src/components/DataTable.jsx')).default;
+  KartuStokList = (await server.ssrLoadModule('/src/pages/kartuStok/List.jsx')).default;
   SettingsSkeleton = (await server.ssrLoadModule('/src/components/SettingsSkeleton.jsx')).default;
   Pengaturan = (await server.ssrLoadModule('/src/pages/Pengaturan.jsx')).default;
   LogActivity = (await server.ssrLoadModule('/src/pages/LogActivity.jsx')).default;
@@ -214,4 +216,32 @@ test('infinite lists keep cumulative numbering and replace page controls with lo
   assert.match(failed, /Coba lagi/);
   const complete = render(DataTable, { ...props, infiniteScroll: { query, hasNext: false } });
   assert.match(complete, /Semua data sudah ditampilkan/);
+});
+
+
+test('stock cards have a mobile card layout, desktop table and working infinite scroll states', () => {
+  setLanguage('id');
+  const props = {
+    data: [{ id: 1, tanggal: '2026-10-15T08:00:00Z', tipe: 'Masuk', no_ref: 'ADJ-001', barang_detail: { nama: 'Oreo' }, qty: 12, saldo: 25, keterangan: 'Restock' }],
+    pagination: { page: 1, limit: 10, total: 1, total_pages: 1 },
+    infiniteScroll: { query: { isFetching: false, isError: false }, hasNext: true },
+  };
+  const html = render(KartuStokList, props);
+  assert.match(html, /hidden rounded-lg border bg-card shadow-sm md:block/);
+  assert.match(html, /space-y-3 md:hidden/);
+  assert.match(html, /<article/);
+  assert.match(html, /<h3[^>]*>Oreo<\/h3>/);
+  assert.match(html, /Restock/);
+  assert.match(html, /Muat lebih banyak/);
+  assert.doesNotMatch(html, /Halaman berikutnya/);
+  const desktop = render(KartuStokList, { ...props, infiniteScroll: undefined });
+  assert.match(desktop, /Halaman berikutnya/);
+  const empty = render(KartuStokList, { ...props, data: [] });
+  assert.match(empty, /Belum ada data kartu stok/);
+  const loading = render(KartuStokList, { ...props, loading: true });
+  assert.match(loading, /role="status"/);
+  setLanguage('en');
+  const english = render(KartuStokList, props);
+  assert.match(english, /Incoming/);
+  assert.match(english, /Load more/);
 });
