@@ -1,3 +1,4 @@
+import { recordUiActivity } from '@/services/activityEvents';
 import { formatNumber, formatCurrency } from '@/lib/numberFormat';
 import usePageState from '@/hooks/usePageState';
 import DashboardCharts from '@/components/DashboardCharts';
@@ -72,7 +73,7 @@ export default function Dashboard() {
           <div><h2 className="text-lg font-semibold">{t('Analisis Inventory')}</h2><p className="mt-1 text-xs text-muted-foreground">{t('Tren transaksi berdasarkan tanggal WIB')}</p></div>
           <div className="flex items-center gap-2">
             {query.isFetching && <LoaderCircle role="status" aria-label={t('Memuat grafik...')} className="size-4 animate-spin text-muted-foreground" />}
-            <Select value={String(days)} onValueChange={value => setDays(Number(value))}>
+            <Select value={String(days)} onValueChange={value => { setDays(Number(value)); void recordUiActivity({ type: 'filter', name: 'periode', value: Number(value) }); }}>
               <SelectTrigger className="w-40" aria-label={t('Periode grafik')}><SelectValue>{t('{value0} hari terakhir', { value0: days })}</SelectValue></SelectTrigger>
               <SelectContent>{[7, 30, 90].map(value => <SelectItem key={value} value={String(value)}>{t('{value0} hari terakhir', { value0: value })}</SelectItem>)}</SelectContent>
             </Select>

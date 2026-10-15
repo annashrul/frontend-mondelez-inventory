@@ -1,3 +1,4 @@
+import { recordUiActivity } from '@/services/activityEvents';
 import { formatNumber } from '@/lib/numberFormat';
 import { pageSizeOptions } from '@/lib/pageSizeOptions';
 import { useTranslation } from '@/lib/i18n';
@@ -29,7 +30,7 @@ export default function Pagination({ pagination = emptyPagination, onPageChange,
       </div>
       <div className="flex w-full items-center justify-between gap-2 sm:w-auto sm:justify-end">
         {onLimitChange && (
-          <Select value={String(limit)} onValueChange={(value) => onLimitChange(Number(value))} disabled={limitLoading}>
+          <Select value={String(limit)} onValueChange={(value) => { onLimitChange(Number(value)); void recordUiActivity({ type: 'pagination', page: 1, limit: Number(value) }); }} disabled={limitLoading}>
             <SelectTrigger className="hidden h-9 w-[118px] sm:flex">
               <SelectValue />
               {limitLoading && <LoaderCircle className="ml-1 size-3.5 animate-spin text-muted-foreground" />}
@@ -48,7 +49,7 @@ export default function Pagination({ pagination = emptyPagination, onPageChange,
           variant="outline"
           size="icon"
           className="size-8 sm:size-9"
-          onClick={() => onPageChange?.(page - 1)}
+          onClick={() => { onPageChange?.(page - 1); void recordUiActivity({ type: 'pagination', page: page - 1, limit }); }}
           disabled={!pagination.has_prev || pageLoadingDirection === 'prev'}
           aria-label={t('Halaman sebelumnya')}
         >
@@ -62,7 +63,7 @@ export default function Pagination({ pagination = emptyPagination, onPageChange,
           variant="outline"
           size="icon"
           className="size-8 sm:size-9"
-          onClick={() => onPageChange?.(page + 1)}
+          onClick={() => { onPageChange?.(page + 1); void recordUiActivity({ type: 'pagination', page: page + 1, limit }); }}
           disabled={!pagination.has_next || pageLoadingDirection === 'next'}
           aria-label={t('Halaman berikutnya')}
         >

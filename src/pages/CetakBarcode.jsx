@@ -1,3 +1,4 @@
+import { recordUiActivity } from '@/services/activityEvents';
 import { PermissionAction } from '@/components/PermissionAccess';
 import { formatNumber } from '@/lib/numberFormat';
 import PageHeader from '@/components/PageHeader';
@@ -74,7 +75,7 @@ export default function CetakBarcode() {
         <Card className="qr-preview-card lg:col-span-2">
           <CardHeader className="flex flex-row items-center justify-between no-print">
             <CardTitle className="text-base">{t('Preview Label (')}{formatNumber(selected.length)})</CardTitle>
-            <PermissionAction permission="barcode.print"><Button onClick={() => window.print()} disabled={!printReady}><Printer size={16} />{t('Cetak QR Rak')}</Button></PermissionAction>
+            <PermissionAction permission="barcode.print"><Button onClick={() => { void recordUiActivity({ type: 'print', rack_ids: selected.map(rack => rack.id) }); window.print(); }} disabled={!printReady}><Printer size={16} />{t('Cetak QR Rak')}</Button></PermissionAction>
           </CardHeader>
           <CardContent className="qr-preview-content">
             {loading ? <div role="status" aria-label={t('Memuat daftar rak...')} className="grid gap-6 sm:grid-cols-2 no-print">{[1, 2].map(item => <Skeleton key={item} className="aspect-[210/297] w-full" />)}</div> : !selected.length ? (

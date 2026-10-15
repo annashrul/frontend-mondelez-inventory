@@ -316,7 +316,7 @@ export default function Pengaturan() {
         <Card className="lg:col-span-3">
           <CardHeader className="flex flex-row items-center justify-between pb-6">
             <div className="flex items-center gap-2"><CardTitle>{t(tabs.find(tab => tab.id === activeTab)?.label)}</CardTitle>{(backgroundFetching || (activeTab === 'database' && databaseQuery.isFetching && databaseStatus)) && <LoaderCircle role="status" aria-label={t('Memuat pengaturan...')} className="size-4 animate-spin text-muted-foreground" />}</div>
-            <AccessTooltip denied={!canSave}><Button onClick={handleSave} size="sm" disabled={saving || !loaded || !canSave}>
+            <AccessTooltip permission="pengaturan.update" denied={!canSave}><Button onClick={handleSave} size="sm" disabled={saving || !loaded || !canSave}>
               <Save size={16} className="mr-2" />{t(saving ? 'Menyimpan...' : 'Simpan')}
             </Button></AccessTooltip>
           </CardHeader>
@@ -324,7 +324,7 @@ export default function Pengaturan() {
             {refreshError && <div role="alert" className="mb-4 flex items-center justify-between gap-3 rounded-lg border p-3"><p className="text-sm text-muted-foreground">{t('Gagal memperbarui pengaturan. Data sebelumnya tetap ditampilkan.')}</p><Button variant="outline" size="sm" onClick={retry}>{t('Coba lagi')}</Button></div>}
             {loadError ? <div role="alert" className="space-y-3"><p className="text-sm text-muted-foreground">{t('Gagal memuat pengaturan')}</p><Button variant="outline" onClick={retry}>{t('Coba lagi')}</Button></div>
               : loading ? <SettingsSkeleton tab={activeTab} />
-                : <AccessTooltip denied={!canSave} block><fieldset disabled={!canSave || saving} className="min-w-0">{renderTab()}</fieldset></AccessTooltip>}
+                : <AccessTooltip permission="pengaturan.update" denied={!canSave} block><fieldset disabled={!canSave || saving} className="min-w-0">{renderTab()}</fieldset></AccessTooltip>}
           </CardContent>
         </Card>
       </div>

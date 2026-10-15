@@ -1,3 +1,4 @@
+import { recordUiActivity } from '@/services/activityEvents';
 import { translate as translateUi, useTranslation as useUiLanguage } from '@/lib/i18n';
 import { useEffect } from 'react';
 import { Check, Filter } from 'lucide-react';
@@ -65,7 +66,7 @@ export default function KartuStok() {
             <DropdownMenuContent align="end" className="w-44">
               <DropdownMenuLabel>{translateUi("Tipe stok")}</DropdownMenuLabel>
               {stockTypes.map((type) => (
-                <DropdownMenuItem key={type} onSelect={() => store.setTipe(type)} className="justify-between">
+                <DropdownMenuItem key={type} onSelect={() => { store.setTipe(type); void recordUiActivity({ type: 'filter', name: 'tipe', value: type }); }} className="justify-between">
                   <span>{translateUi(type, { context: "stock" })}</span>
                   {store.tipe === type && <Check className="size-4 text-primary" />}
                 </DropdownMenuItem>

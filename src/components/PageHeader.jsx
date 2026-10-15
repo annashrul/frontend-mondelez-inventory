@@ -1,3 +1,4 @@
+import { recordSearchActivity } from '@/services/activityEvents';
 import { PermissionAction } from '@/components/PermissionAccess';
 import { cn } from '@/lib/utils';
 import { translate as translateUi } from '@/lib/i18n';
@@ -36,7 +37,7 @@ export default function PageHeader({
                 placeholder={t('Cari data...')}
                 aria-label={t('Cari data...')}
                 value={searchValue}
-                onChange={(e) => onSearchChange(e.target.value)}
+                onChange={(e) => { onSearchChange(e.target.value); recordSearchActivity(e.target.value); }}
                 className="h-11 rounded-xl bg-card pl-9 pr-9 sm:h-9 sm:rounded-md"
               />
               {searchLoading && (

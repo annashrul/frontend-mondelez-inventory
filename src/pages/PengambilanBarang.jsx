@@ -1,3 +1,4 @@
+import { recordSearchActivity } from '@/services/activityEvents';
 import { PermissionAction } from '@/components/PermissionAccess';
 import { usePengambilanHistoryStore } from '@/stores/listPageStores';
 import { formatNumber } from '@/lib/numberFormat';
@@ -193,6 +194,7 @@ export default function PengambilanBarang() {
     if (history.query.error) toast.error(history.query.error.message || 'Gagal memuat riwayat');
   }, [history.query.error]);
   const handleHistorySearchChange = (value) => {
+    recordSearchActivity(value);
     setHistoryLoadingSource({ type: "search" });
     setSearch(value);
     if (linkedSearch !== null) {

@@ -1,3 +1,4 @@
+import { recordUiActivity } from '@/services/activityEvents';
 import { useEffect, useId, useRef, useState } from 'react';
 import { ChevronDown, Languages, LogOut, Moon } from 'lucide-react';
 import { useTranslation } from '@/lib/i18n';
@@ -12,6 +13,11 @@ export default function ProfilePreferences({ user, onLogout }) {
   const theme = useSettingsStore(state => state.settings.tema);
   const language = useSettingsStore(state => state.settings.bahasa);
   const setPreferences = useSettingsStore(state => state.setAppearancePreferences);
+  const changePreferences = next => {
+    const before = { tema: theme, bahasa: language };
+    setPreferences(next);
+    void recordUiActivity({ type: 'preference', before, after: { ...before, ...next } });
+  };
   const [open, setOpen] = useState(false);
   const closeTimer = useRef();
   const openedByHover = useRef(false);
@@ -59,14 +65,14 @@ export default function ProfilePreferences({ user, onLogout }) {
             <Languages className="size-4 text-muted-foreground" />
             <span><span className="block text-sm font-medium">{t('Bahasa')}</span><span className="block text-xs text-muted-foreground">{t(language === 'en' ? 'Bahasa Inggris' : 'Bahasa Indonesia')}</span></span>
           </label>
-          <Switch id={`${id}-language`} checked={language === 'en'} onCheckedChange={checked => setPreferences({ bahasa: checked ? 'en' : 'id' })} />
+          <Switch id={`${id}-language`} checked={language === 'en'} onCheckedChange={checked => changePreferences({ bahasa: checked ? 'en' : 'id' })} />
         </div>
         <div className="flex items-center justify-between gap-4">
           <label htmlFor={`${id}-theme`} className="flex cursor-pointer items-center gap-3">
             <Moon className="size-4 text-muted-foreground" />
             <span><span className="block text-sm font-medium">{t('Tema')}</span><span className="block text-xs text-muted-foreground">{t(theme === 'dark' ? 'Gelap' : 'Terang')}</span></span>
           </label>
-          <Switch id={`${id}-theme`} checked={theme === 'dark'} onCheckedChange={checked => setPreferences({ tema: checked ? 'dark' : 'light' })} />
+          <Switch id={`${id}-theme`} checked={theme === 'dark'} onCheckedChange={checked => changePreferences({ tema: checked ? 'dark' : 'light' })} />
         </div>
         <div className="border-t pt-3">
           <Button type="button" variant="ghost" className="w-full justify-start gap-3 text-destructive hover:text-destructive" onClick={() => {

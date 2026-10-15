@@ -1,3 +1,4 @@
+import { recordUiActivity } from '@/services/activityEvents';
 import { useState } from 'react';
 import { Download, RefreshCw, WifiOff, X } from 'lucide-react';
 import { usePwaStore } from '@/stores/pwaStore';
@@ -18,18 +19,20 @@ export default function PwaControls() {
     setBusy(true);
     setFailed(false);
     try {
+      void recordUiActivity({ type: 'application', action: 'install_prompt' });
       await installPrompt.prompt();
-      await installPrompt.userChoice;
+      const choice = await installPrompt.userChoice;
+      void recordUiActivity({ type: 'application', action: choice?.outcome === 'accepted' ? 'install_accepted' : 'install_dismissed' });
       usePwaStore.setState({ installPrompt: null, installDismissed: true });
-    } catch { setFailed(true); }
+    } catch { setFailed(true); void recordUiActivity({ type: 'application', action: 'install_failed' }); }
     finally { setBusy(false); }
   };
   const update = async () => {
     if (!applyUpdate || busy) return;
     setBusy(true);
     setFailed(false);
-    try { await applyUpdate(); }
-    catch { setFailed(true); setBusy(false); }
+    try { await recordUiActivity({ type: 'application', action: 'update_request' }); await applyUpdate(); }
+    catch { setFailed(true); setBusy(false); void recordUiActivity({ type: 'application', action: 'update_failed' }); }
   };
   const Icon = offline ? WifiOff : showUpdate ? RefreshCw : Download;
   return (

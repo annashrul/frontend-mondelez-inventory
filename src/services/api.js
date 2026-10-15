@@ -1,5 +1,5 @@
 import { queryClient } from '@/lib/queryClient';
-import { invalidateListCache } from '@/lib/listCache';
+import { invalidateActivityCache, invalidateListCache } from '@/lib/listCache';
 import axios from 'axios';
 import { isDashboardMutation } from '@/lib/dashboardRealtime';
 import { toast } from '@/lib/toast';
@@ -65,6 +65,7 @@ api.interceptors.response.use(
     return response.data;
   },
   (error) => {
+    if (error.response) invalidateActivityCache(queryClient, error.config?.url);
     if (error.code === 'ECONNABORTED' || error.code === 'ETIMEDOUT') {
       return Promise.reject(
         new Error('Server tidak merespons dalam batas waktu. Silakan coba lagi.')

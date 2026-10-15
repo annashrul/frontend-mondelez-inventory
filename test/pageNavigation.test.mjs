@@ -135,3 +135,20 @@ test('route scroll positions restore independently when returning to a page', ()
     assert.equal(browser.scrollY, 1250);
   } finally { cleanup(); pageMemory.clear(); }
 });
+
+
+test('settings, notification settings, and read actions invalidate the audit cache without refetch loops', () => {
+  const key = ['log-activity', { search: '', limit: 5 }];
+  try {
+    for (const [url, method] of [['/settings/tampilan', 'put'], ['/notifications/settings', 'put'], ['/notifications/test-email', 'post'], ['/barang', 'get'], ['/rak/scan', 'post']]) {
+      queryClient.setQueryData(key, []);
+      invalidateListCache(queryClient, url, method);
+      assert.equal(queryClient.getQueryState(key).isInvalidated, true, url);
+    }
+    for (const url of ['/log-activity', '/log-activity/events', '/auth/session', '/settings/runtime']) {
+      queryClient.setQueryData(key, []);
+      invalidateListCache(queryClient, url, 'get');
+      assert.equal(queryClient.getQueryState(key).isInvalidated, false, url);
+    }
+  } finally { queryClient.clear(); }
+});

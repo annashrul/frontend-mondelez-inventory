@@ -42,3 +42,8 @@ dengan `Cache-Control: no-cache`, manifest sebagai `application/manifest+json`,
 dan arahkan rute halaman aplikasi ke `index.html`. Hindari fallback SPA untuk
 `/api` dan `/socket.io`. Ikon berasal dari logo proyek; sumber layout ada di
 `scripts/pwa-icon.svg`.
+
+
+## Aktivitas aplikasi
+
+Aksi di server dicatat oleh audit backend. Untuk aksi yang terjadi di browser atau memakai cache, gunakan `recordUiActivity` dari `src/services/activityEvents.js`: navigasi/tab, preferensi pribadi, cetak QR, pencarian/pagination/filter, percobaan aksi tanpa hak akses, dan permintaan instalasi/pembaruan PWA. Catat hanya metadata yang diperlukan, jangan kirim password, OTP, token, gambar, atau seluruh state form. Perubahan data baru harus menandai cache `log-activity` untuk diperbarui agar hasilnya terlihat saat pengguna membuka riwayat.

@@ -1,3 +1,4 @@
+import ActivityTracker from '@/components/ActivityTracker';
 import { PermissionScope } from '@/components/PermissionAccess';
 import { loginDestination } from '@/lib/loginDestination';
 import PwaControls from './components/PwaControls';
@@ -60,6 +61,7 @@ export default function App() {
   return (
     <AuthProvider>
       <BrowserRouter>
+        <ActivityTracker />
         <Routes>
           <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
           <Route path="/" element={<ProtectedRoute><MainLayout /></ProtectedRoute>}>
