@@ -1,3 +1,4 @@
+import { resetPageSession } from '@/lib/resetPageSession';
 import { useSettingsStore } from '@/stores/settingsStore';
 import { useNotificationStore } from '@/stores/notificationStore';
 import { createContext, useContext, useState, useEffect, useCallback } from 'react';
@@ -66,6 +67,7 @@ export function AuthProvider({ children }) {
     if (token) api.post('/auth/logout', {}, { headers: { Authorization: `Bearer ${token}` } }).catch(() => {});
     useNotificationStore.getState().disconnect();
     menuCatalogPromise = null;
+    resetPageSession();
     localStorage.removeItem('user');
     localStorage.removeItem('token');
     setUser(null);

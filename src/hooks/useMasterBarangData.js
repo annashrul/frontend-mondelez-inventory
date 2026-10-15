@@ -96,7 +96,7 @@ export function useMasterBarangData({
     hasNext: Boolean(infiniteQuery.hasNextPage),
     loadingMore: infiniteQuery.isFetchingNextPage,
     loadMore: () => infiniteQuery.fetchNextPage({ cancelRefetch: false }),
-    searchLoading: mobile ? searchDebouncing || (query.isFetching && !query.isFetchingNextPage) : hasLoadedOnce && (searchDebouncing || (backgroundFetching && loadingSource?.type === 'search')),
+    searchLoading: mobile ? searchDebouncing || (query.isFetching && query.isPending) : hasLoadedOnce && (searchDebouncing || (backgroundFetching && loadingSource?.type === 'search')),
     pageLoadingDirection: backgroundFetching && loadingSource?.type === 'page' ? loadingSource.direction : null,
     limitLoading: backgroundFetching && loadingSource?.type === 'limit',
     saveMutation,

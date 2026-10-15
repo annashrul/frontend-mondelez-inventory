@@ -55,7 +55,7 @@ export function useListResourceData({
       loadingMore: infiniteQuery.isFetchingNextPage,
       searchDebouncing: Boolean(searchDebouncing),
     } : undefined,
-    searchLoading: mobile ? searchDebouncing || (query.isFetching && !query.isFetchingNextPage) : hasLoadedOnce && (params?.searchDebouncing || (backgroundFetching && loadingSource?.type === 'search')),
+    searchLoading: mobile ? searchDebouncing || (query.isFetching && query.isPending) : hasLoadedOnce && (params?.searchDebouncing || (backgroundFetching && loadingSource?.type === 'search')),
     pageLoadingDirection: backgroundFetching && loadingSource?.type === 'page' ? loadingSource.direction : null,
     limitLoading: backgroundFetching && loadingSource?.type === 'limit',
     setSuccessResponse,

@@ -1,3 +1,4 @@
+import usePageState from '@/hooks/usePageState';
 import { translate as translateUi } from '@/lib/i18n';
 import { settingsTab, settingsTabParams } from '@/lib/settingsTabs';
 import { appearancePayload } from '@/lib/appearanceSettings';
@@ -7,7 +8,7 @@ import SettingsSkeleton from '@/components/SettingsSkeleton';
 import { defaultSettings, useSettingsStore } from '@/stores/settingsStore';
 import { useAuth } from '@/context/AuthContext';
 import { canAccess } from '@/lib/permissions';
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Save, LoaderCircle, Building2, Bell, Palette, Database, Shield } from 'lucide-react';
 import { toast } from '@/lib/toast';
@@ -60,23 +61,27 @@ export default function Pengaturan() {
   const { t, locale } = useTranslation();
   const [searchParams, setSearchParams] = useSearchParams();
   const selectedTab = searchParams.get('tab');
-  const activeTab = settingsTab(searchParams);
+  const [savedTab, setSavedTab] = usePageState('Pengaturan:tab', 'umum');
+  const activeTab = selectedTab ? settingsTab(searchParams) : savedTab;
   const setActiveTab = tab => setSearchParams(current => settingsTabParams(current, tab));
   useEffect(() => {
-    if (tabs.some(tab => tab.id === selectedTab)) return;
+    if (tabs.some(tab => tab.id === selectedTab)) {
+      setSavedTab(selectedTab);
+      return;
+    }
     setSearchParams(current => {
-      return settingsTabParams(current, 'umum');
+      return settingsTabParams(current, activeTab);
     }, { replace: true });
-  }, [selectedTab, setSearchParams]);
+  }, [selectedTab, activeTab, setSavedTab, setSearchParams]);
   const { user } = useAuth();
   const {
     settingsQuery, notificationQuery, recipientsQuery, databaseQuery,
     loading, loadError, refreshError, backgroundFetching, retry,
     saveMutation, backupMutation, testEmailMutation,
   } = useSettingsPageData(activeTab, user?.id);
-  const [settingsDraft, setS] = useState(null);
-  const [notificationDraft, setNotificationSetting] = useState(null);
-  const [testEmail, setTestEmail] = useState('');
+  const [settingsDraft, setS] = usePageState('Pengaturan.jsx:settingsDraft', null);
+  const [notificationDraft, setNotificationSetting] = usePageState('Pengaturan.jsx:notificationDraft', null);
+  const [testEmail, setTestEmail] = usePageState('Pengaturan.jsx:testEmail', '');
   const s = settingsDraft || settingsQuery.data || defaultSettings;
   const notificationSetting = notificationDraft || notificationQuery.data || {
     level_ids: [], user_ids: [], email_enabled: false, stock_enabled: true, transaction_enabled: true,

@@ -1,5 +1,6 @@
+import usePageState from '@/hooks/usePageState';
 import { translate as translateUi, useTranslation as useUiLanguage } from '@/lib/i18n';
-import { useState, useEffect } from 'react';
+import { useEffect } from 'react';
 import Modal, { ModalFooter } from '@/components/Modal';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -21,14 +22,14 @@ export default function LevelPenggunaForm({
   menus,
 }) {
   useUiLanguage();
-  const [permissionSearch, setPermissionSearch] = useState('');
+  const [permissionSearch, setPermissionSearch] = usePageState('levelPengguna/Form.jsx:permissionSearch', '');
 
-  // Reset search when modal opens
+  // Clear on close; reopening a route with an open draft keeps its search.
   useEffect(() => {
-    if (open) {
+    if (!open) {
       setPermissionSearch('');
     }
-  }, [open]);
+  }, [open, setPermissionSearch]);
 
   const allIds = menus.flatMap((m) => m.actions.map((a) => String(a.id)));
   const selected = (form.action_ids || []).map(String);

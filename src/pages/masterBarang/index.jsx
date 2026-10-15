@@ -1,5 +1,6 @@
+import usePageState from '@/hooks/usePageState';
 import { translate as translateUi, useTranslation as useUiLanguage } from '@/lib/i18n';
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import PageHeader from '@/components/PageHeader';
 import { toast } from '@/lib/toast';
@@ -34,8 +35,8 @@ export default function MasterBarang() {
   } = useMasterBarangStore();
   const mobile = useIsMobile();
   const debouncedSearch = useDebounce(search);
-  const [imageFile, setImageFile] = useState(null);
-  const [preview, setPreview] = useState('');
+  const [imageFile, setImageFile] = usePageState('masterBarang/index.jsx:imageFile', null);
+  const [preview, setPreview] = usePageState('masterBarang/index.jsx:preview', '');
   const generateCodeMutation = useMutation({
     mutationFn: generateBarangCode,
     onSuccess: (response) => updateField('kode', response.kode),

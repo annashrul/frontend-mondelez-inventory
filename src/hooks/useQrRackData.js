@@ -5,7 +5,6 @@ export function useQrRackData(userId) {
   const query = useQuery({
     queryKey: ['rak', 'qr-print', userId],
     queryFn: getQrRacks,
-    gcTime: 300000,
   });
   return { query, racks: query.data || [], loading: query.isPending };
 }

@@ -1,13 +1,17 @@
+import usePageState from '@/hooks/usePageState';
 import { translate as translateUi, useTranslation as useUiLanguage } from '@/lib/i18n';
-import { useState, useEffect } from 'react';
-import PageHeader from '@/components/PageHeader';
+import { useEffect } from 'react';
+import { useListResourceData } from '@/hooks/useListResourceData';
+import { createCrudService } from '@/services/crudService';
 import DataTable from '@/components/DataTable';
 import Modal from '@/components/Modal';
 import { toast } from '@/lib/toast';
 import dayjs from 'dayjs';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import api, { emptyPagination, getList, getPagination } from '@/services/api';
+import api from '@/services/api';
+
+const service = createCrudService('shift');
 
 const columns = [
   { key: 'tanggal', label: 'Tanggal', render: (v) => dayjs(v).format('DD/MM/YYYY') },
@@ -20,34 +24,26 @@ const columns = [
 
 export default function Closing() {
   useUiLanguage();
-  const [data, setData] = useState([]);
-  const [search, setSearch] = useState('');
-  const [modalOpen, setModalOpen] = useState(false);
-  const [page, setPage] = useState(1);
-  const [limit, setLimit] = useState(10);
-  const [pagination, setPagination] = useState(emptyPagination);
-  const [loading, setLoading] = useState(true);
-
+  const [modalOpen, setModalOpen] = usePageState('Closing.jsx:modalOpen', false);
+  const [page, setPage] = usePageState('Closing.jsx:page', 1);
+  const [limit, setLimit] = usePageState('Closing.jsx:limit', 10);
+  const { data, pagination, loading, query } = useListResourceData({
+    queryKey: 'shift', params: { page, limit }, listFn: service.list,
+  });
   useEffect(() => {
-    setLoading(true);
-    api.get('/shift', { params: { page, limit } }).then((res) => {
-      setData(getList(res));
-      setPagination(getPagination(res));
-    }).catch(() => toast.error('Gagal load data')).finally(() => setLoading(false));
-  }, [page, limit]);
-
-  const filtered = data.filter((d) => d.shift.toLowerCase().includes(search.toLowerCase()) || d.status.toLowerCase().includes(search.toLowerCase()));
+    if (query.error) toast.error('Gagal load data');
+  }, [query.error]);
 
   const handleClosing = async () => {
     const active = data.find(d => d.status === 'Aktif');
     if (!active) return toast.error('Tidak ada shift aktif');
 
     try {
-      const res = await api.put(`/shift/${active.id}`, { ...active, status: 'Selesai', waktu_selesai: new Date().toISOString() });
-      setData(data.map(d => d.id === active.id ? res : d));
+      await api.put(`/shift/${active.id}`, { ...active, status: 'Selesai', waktu_selesai: new Date().toISOString() });
+      await query.refetch();
       toast.success('Closing shift berhasil');
       setModalOpen(false);
-    } catch (e) {
+    } catch {
       toast.error('Gagal closing shift');
     }
   };
@@ -62,7 +58,7 @@ export default function Closing() {
         <Button onClick={() => setModalOpen(true)}>{translateUi("Closing Shift Saat Ini")}</Button>
       </div>
 
-      <DataTable columns={columns} data={filtered} loading={loading} pagination={pagination} onPageChange={setPage} onLimitChange={(value) => { setLimit(value); setPage(1); }} />
+      <DataTable columns={columns} data={data} loading={loading} pagination={pagination} onPageChange={setPage} onLimitChange={(value) => { setLimit(value); setPage(1); }} />
 
       <Modal isOpen={modalOpen} onClose={() => setModalOpen(false)} title={translateUi("Konfirmasi Closing Shift")}>
         <div className="space-y-4">

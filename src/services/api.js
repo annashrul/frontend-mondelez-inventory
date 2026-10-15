@@ -1,3 +1,5 @@
+import { queryClient } from '@/lib/queryClient';
+import { invalidateListCache } from '@/lib/listCache';
 import axios from 'axios';
 import { isDashboardMutation } from '@/lib/dashboardRealtime';
 import { toast } from '@/lib/toast';
@@ -52,6 +54,7 @@ api.interceptors.request.use(
 
 api.interceptors.response.use(
   (response) => {
+    invalidateListCache(queryClient, response.config?.url, response.config?.method);
     if (isDashboardMutation(response.config?.url, response.config?.method)) {
       window.dispatchEvent(new Event('inventory-dashboard-updated'));
     }

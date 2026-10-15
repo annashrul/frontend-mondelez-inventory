@@ -1,3 +1,4 @@
+import usePageState from '@/hooks/usePageState';
 import { useTranslation } from '@/lib/i18n';
 import { useSettingsStore } from '@/stores/settingsStore';
 import { useState } from 'react';
@@ -21,9 +22,9 @@ export default function CetakBarcode() {
   const company = useSettingsStore(state => state.settings);
   const { user } = useAuth();
   const { query, racks, loading } = useQrRackData(user?.id);
-  const [selectedIds, setSelectedIds] = useState([]);
+  const [selectedIds, setSelectedIds] = usePageState('CetakBarcode.jsx:selectedIds', []);
   const selected = selectedIds.map(id => racks.find(rack => String(rack.id) === id)).filter(Boolean);
-  const [search, setSearch] = useState('');
+  const [search, setSearch] = usePageState('CetakBarcode.jsx:search', '');
   const [loadedCodes, setLoadedCodes] = useState(new Set());
   const filtered = racks.filter(rack => `${rack.kode} ${rack.nama} ${rackLocation(rack)}`.toLowerCase().includes(search.toLowerCase()));
   const toggle = rack => setSelectedIds(current => current.includes(String(rack.id))

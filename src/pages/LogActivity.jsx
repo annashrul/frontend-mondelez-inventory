@@ -1,10 +1,11 @@
+import usePageState from '@/hooks/usePageState';
 import { translate as translateUi, useTranslation as useUiLanguage } from '@/lib/i18n';
 import { useLogActivityData } from '@/hooks/useLogActivityData';
 import { useAuth } from '@/context/AuthContext';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import { useSettingsStore } from '@/stores/settingsStore';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import dayjs from 'dayjs';
 import { Activity, AlertTriangle, CheckCircle2, Clock3, FileSearch, LogIn, Pencil, Plus, ScanLine, Search, Trash2, UserRound } from 'lucide-react';
 import PageHeader from '@/components/PageHeader';
@@ -57,7 +58,7 @@ export default function LogActivity() {
   const { locale } = useUiLanguage();
   const pageLimit = useSettingsStore(state => state.settings.items_per_page);
   const { user } = useAuth();
-  const [search, setSearch] = useState('');
+  const [search, setSearch] = usePageState('LogActivity.jsx:search', '');
   const debouncedSearch = useDebounce(search);
   const { query, logs, pagination, loading, loadingMore, hasNext, searchLoading, loadMore } = useLogActivityData({
     search: debouncedSearch, limit: pageLimit, userId: user?.id, searchDebouncing: search !== debouncedSearch,

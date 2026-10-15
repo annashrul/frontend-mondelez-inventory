@@ -1,5 +1,5 @@
+import usePageState from '@/hooks/usePageState';
 import { translate as translateUi, useTranslation as useUiLanguage } from '@/lib/i18n';
-import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import PageHeader from '@/components/PageHeader';
 import Modal from '@/components/Modal';
@@ -16,7 +16,7 @@ const labels = { singular: 'Rak', lower: 'rak' };
 
 export default function MasterRak() {
   useUiLanguage();
-  const [qrTarget, setQrTarget] = useState(null);
+  const [qrTarget, setQrTarget] = usePageState('masterRak/index.jsx:qrTarget', null);
   const page = useCrudPageController({
     store: useRakStore,
     service,

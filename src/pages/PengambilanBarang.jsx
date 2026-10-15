@@ -1,3 +1,4 @@
+import usePageState from '@/hooks/usePageState';
 import { translate as translateUi, useTranslation as useUiLanguage } from '@/lib/i18n';
 import { useEffect, useRef, useState } from "react";
 import dayjs from "dayjs";
@@ -90,7 +91,7 @@ export default function PengambilanBarang() {
   const inputRef = useRef(null);
   const draft = readTransactionDraft();
   const mobile = useIsMobile();
-  const [search, setSearch] = useState("");
+  const [search, setSearch] = usePageState('PengambilanBarang.jsx:search', "");
   const debouncedSearch = useDebounce(search);
   const [image, setImage] = useState(draft?.image || "");
   const [results, setResults] = useState(draft?.results || []);
@@ -108,8 +109,8 @@ export default function PengambilanBarang() {
     if (Number.isInteger(value) && value >= 1 && value <= steps.length) return value;
     return Number.isInteger(draft?.step) && draft.step >= 1 && draft.step <= steps.length ? draft.step : 1;
   });
-  const [page, setPage] = useState(1);
-  const [limit, setLimit] = useState(10);
+  const [page, setPage] = usePageState('PengambilanBarang.jsx:page', 1);
+  const [limit, setLimit] = usePageState('PengambilanBarang.jsx:limit', 10);
   const history = useListResourceData({
     queryKey: 'pengambilan-history',
     mobile,
@@ -123,7 +124,7 @@ export default function PengambilanBarang() {
   const historyPageLoadingDirection = history.pageLoadingDirection;
   const historyLimitLoading = history.limitLoading;
   const canCreate = canAccess(user, "pengambilan.create");
-  const [activeTab, setActiveTabState] = useState(() => {
+  const [activeTab, setActiveTabState] = usePageState('PengambilanBarang.jsx:activeTab', () => {
     const value = searchParams.get("tab");
     if (!canCreate) return "riwayat";
     return value === "riwayat" ? "riwayat" : "transaksi";

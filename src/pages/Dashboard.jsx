@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import usePageState from '@/hooks/usePageState';
 import DashboardCharts from '@/components/DashboardCharts';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -12,7 +12,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 
 export default function Dashboard() {
   const { t, locale } = useTranslation();
-  const [days, setDays] = useState(30);
+  const [days, setDays] = usePageState('Dashboard.jsx:days', 30);
   const { stats, loading, query } = useDashboardData(days);
 
   if (loading) return (

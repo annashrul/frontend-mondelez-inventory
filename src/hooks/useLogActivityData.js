@@ -13,7 +13,6 @@ export function useLogActivityData({ search, limit, userId, searchDebouncing = f
       return pagination.has_next ? pagination.page + 1 : undefined;
     },
     placeholderData: keepPreviousData,
-    gcTime: 300000,
   });
   const logs = useMemo(() => {
     const seen = new Set();
@@ -29,7 +28,7 @@ export function useLogActivityData({ search, limit, userId, searchDebouncing = f
     loading: query.isPending,
     loadingMore: query.isFetchingNextPage,
     hasNext: Boolean(query.hasNextPage && !query.isPlaceholderData),
-    searchLoading: searchDebouncing || (query.isFetching && !query.isFetchingNextPage),
+    searchLoading: searchDebouncing || (query.isFetching && (query.isPending || query.isPlaceholderData)),
     loadMore: () => query.fetchNextPage({ cancelRefetch: false }),
   };
 }

@@ -5,7 +5,7 @@ import { notificationService } from '@/services/notificationService';
 import { useSettingsStore } from '@/stores/settingsStore';
 
 // Keep successful responses available when returning to the page.
-const cacheOptions = { gcTime: 300000 };
+const cacheOptions = { gcTime: Infinity };
 
 function normalizeNotifications(value) {
   return {
