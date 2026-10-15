@@ -34,7 +34,7 @@ import { useListResourceData } from '@/hooks/useListResourceData';
 import { createCrudService } from '@/services/crudService';
 import useDebounce from "@/hooks/useDebounce";
 import { parseNumberInput } from "@/lib/utils";
-import api, { aiSearchTimeout } from "@/services/api";
+import api, { aiSearchTimeout, withdrawalTimeout } from "@/services/api";
 
 const historyService = createCrudService('pengambilan');
 
@@ -276,6 +276,7 @@ export default function PengambilanBarang() {
   };
   const submit = async (event) => {
     event.preventDefault();
+    if (loading) return;
     setLoading(true);
     try {
       const response = await api.post("/pengambilan/execute", {
@@ -283,7 +284,7 @@ export default function PengambilanBarang() {
         rak_id: verifiedRack.id,
         qr_code: verifiedRack.qr_code || qrCode.trim(),
         ...form,
-      });
+      }, { timeout: withdrawalTimeout });
       toast.success(
         `${response.transaction.no_ref} tersimpan. Stok akhir: ${response.stok_akhir}`,
       );

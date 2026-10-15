@@ -10,6 +10,10 @@ export const apiBaseUrl = import.meta.env.VITE_API_URL || '/api/v1';
 // Timeout request biasa
 const apiTimeout = Number(import.meta.env.VITE_API_TIMEOUT) || 10000;
 
+// Submit pengambilan includes stock and audit writes; allow more time than CRUD.
+export const withdrawalTimeout =
+  Number(import.meta.env.VITE_WITHDRAWAL_TIMEOUT) || 120000;
+
 // Endpoint AI (embedding gambar) jauh lebih lama dari request CRUD biasa,
 // prosesnya bisa 30-60 detik sehingga memakai timeout terpisah.
 export const aiSearchTimeout =
