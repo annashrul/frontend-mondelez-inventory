@@ -1,3 +1,4 @@
+import { pageSizeOptions } from '@/lib/pageSizeOptions';
 import { useTranslation } from '@/lib/i18n';
 import { ChevronLeft, ChevronRight, LoaderCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -33,7 +34,7 @@ export default function Pagination({ pagination = emptyPagination, onPageChange,
               {limitLoading && <LoaderCircle className="ml-1 size-3.5 animate-spin text-muted-foreground" />}
             </SelectTrigger>
             <SelectContent>
-              {[...new Set([limit, 5, 10, 25, 50, 100])].sort((a, b) => a-b).map((value) => (
+              {[...new Set([limit, ...pageSizeOptions])].sort((a, b) => a-b).map((value) => (
                 <SelectItem key={value} value={String(value)}>
                   {value} / {t("hal")}
                 </SelectItem>

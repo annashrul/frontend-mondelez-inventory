@@ -1,3 +1,4 @@
+import { pageSizeOptions } from '@/lib/pageSizeOptions';
 import usePageState from '@/hooks/usePageState';
 import { translate as translateUi } from '@/lib/i18n';
 import { settingsTab, settingsTabParams } from '@/lib/settingsTabs';
@@ -246,8 +247,15 @@ export default function Pengaturan() {
                 </SelectContent>
               </Select>
             </div>
-            <FormInput label={translateUi("Item Per Halaman")} value={s.items_per_page} onChange={(event) => u('items_per_page', event.target.value)} type="number" min={5} max={100} step={1} />
-            <p className="text-xs text-muted-foreground">{t('Masukkan 5–100 item per halaman.')}</p>
+            <div className="space-y-1.5">
+              <Label htmlFor="items-per-page">{t('Item Per Halaman')}</Label>
+              <Select value={String(s.items_per_page)} onValueChange={value => u('items_per_page', Number(value))}>
+                <SelectTrigger id="items-per-page"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {pageSizeOptions.map(value => <SelectItem key={value} value={String(value)}>{value}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
         );
       case 'database':
