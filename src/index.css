@@ -132,19 +132,40 @@
   input, select, textarea { font-size: 16px !important; }
 }
 
-::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+:root {
+  --scrollbar-thumb: color-mix(in srgb, var(--muted-foreground) 30%, transparent);
+  --scrollbar-thumb-hover: color-mix(in srgb, var(--muted-foreground) 50%, transparent);
 }
-::-webkit-scrollbar-track {
-  background: var(--muted);
+
+::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+::-webkit-scrollbar-track,
+::-webkit-scrollbar-corner {
+  background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: var(--muted-foreground);
-  border-radius: 3px;
+  background: var(--scrollbar-thumb);
+  border-radius: 999px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--foreground);
+  background: var(--scrollbar-thumb-hover);
+}
+
+@supports not selector(::-webkit-scrollbar) {
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--scrollbar-thumb) transparent;
+  }
+}
+
+[data-slot="scroll-area-thumb"] {
+  background: var(--scrollbar-thumb);
+  transition: background-color 150ms ease;
+}
+[data-slot="scroll-area-scrollbar"]:hover [data-slot="scroll-area-thumb"] {
+  background: var(--scrollbar-thumb-hover);
 }
 
 @media print {
