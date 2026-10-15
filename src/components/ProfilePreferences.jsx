@@ -1,5 +1,5 @@
 import { useEffect, useId, useRef, useState } from 'react';
-import { ChevronDown, Languages, Moon } from 'lucide-react';
+import { ChevronDown, Languages, LogOut, Moon } from 'lucide-react';
 import { useTranslation } from '@/lib/i18n';
 import { useSettingsStore } from '@/stores/settingsStore';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 
-export default function ProfilePreferences({ user }) {
+export default function ProfilePreferences({ user, onLogout }) {
   const { t } = useTranslation();
   const theme = useSettingsStore(state => state.settings.tema);
   const language = useSettingsStore(state => state.settings.bahasa);
@@ -67,6 +67,15 @@ export default function ProfilePreferences({ user }) {
             <span><span className="block text-sm font-medium">{t('Tema')}</span><span className="block text-xs text-muted-foreground">{t(theme === 'dark' ? 'Gelap' : 'Terang')}</span></span>
           </label>
           <Switch id={`${id}-theme`} checked={theme === 'dark'} onCheckedChange={checked => setPreferences({ tema: checked ? 'dark' : 'light' })} />
+        </div>
+        <div className="border-t pt-3">
+          <Button type="button" variant="ghost" className="w-full justify-start gap-3 text-destructive hover:text-destructive" onClick={() => {
+            cancelClose();
+            setOpen(false);
+            onLogout?.();
+          }}>
+            <LogOut className="size-4" />{t('Logout')}
+          </Button>
         </div>
       </PopoverContent>
     </Popover>

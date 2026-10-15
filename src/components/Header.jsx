@@ -17,7 +17,7 @@ import { useThemeLogo } from '@/hooks/useThemeLogo';
 export default function Header() {
   const logoUrl = useThemeLogo();
   const { t, locale } = useTranslation();
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
   const { items, unread, loading, loadingMore, hasMore, error, load, loadMore, connect, disconnect, markAllRead, markRead } = useNotificationStore();
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [listElement, setListElement] = useState(null);
@@ -143,7 +143,7 @@ export default function Header() {
           </DropdownMenuContent>
         </DropdownMenu>
         <Separator orientation="vertical" className="h-6 hidden sm:block" />
-        <ProfilePreferences user={user} />
+        <ProfilePreferences user={user} onLogout={logout} />
       </div>
     </header>
   );
