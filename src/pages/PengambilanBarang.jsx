@@ -1,3 +1,4 @@
+import { prepareProductImage } from '@/lib/productImage';
 import { useQueryClient } from '@tanstack/react-query';
 import { refreshWithdrawalHistory } from '@/services/withdrawalHistoryService';
 import usePageState from '@/hooks/usePageState';
@@ -233,21 +234,28 @@ export default function PengambilanBarang() {
       setLoading(false);
     }
   };
-  const processPhoto = (photo) => {
-    setImage(photo);
+  const processPhoto = async (source) => {
     setCameraOpen(false);
-    searchImage(photo);
+    setLoading(true);
+    try {
+      const photo = await prepareProductImage(source);
+      setImage(photo);
+      await searchImage(photo);
+    } catch (error) {
+      toast.error(error.message || 'Gagal memproses gambar');
+    } finally {
+      setLoading(false);
+    }
   };
   const handlePhoto = (event) => {
     const file = event.target.files?.[0];
+    event.target.value = '';
     if (!file) return;
     if (!file.type.startsWith("image/"))
       return toast.error("File harus berupa gambar");
     if (file.size > 5 * 1024 * 1024)
       return toast.error("Ukuran foto maksimal 5 MB");
-    const reader = new FileReader();
-    reader.onload = () => processPhoto(String(reader.result));
-    reader.readAsDataURL(file);
+    void processPhoto(file);
   };
   const scanRackItems = async (value = qrCode) => {
     const code = value.trim();

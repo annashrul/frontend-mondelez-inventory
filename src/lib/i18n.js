@@ -1,6 +1,9 @@
 import { useSettingsStore } from '@/stores/settingsStore';
 
 export const english = {
+  "Gagal membaca gambar. Gunakan JPEG, PNG, atau WebP.": "Unable to read the image. Use JPEG, PNG, or WebP.",
+  "Gagal memproses gambar": "Unable to process the image",
+  "Gambar masih terlalu besar. Gunakan foto dengan resolusi lebih rendah.": "The image is still too large. Use a lower-resolution photo.",
   "Anda sedang offline": "You are offline",
   "Versi baru tersedia": "A new version is available",
   "Instal Mondelez Inventory": "Install Mondelez Inventory",
