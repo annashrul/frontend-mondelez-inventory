@@ -293,3 +293,27 @@
     top: calc(var(--dialog-viewport-top, 0px) + var(--dialog-viewport-height, 100dvh) / 2);
   }
 }
+
+
+@media screen {
+  .qr-rack-picker {
+    position: sticky;
+    top: calc(3.75rem + env(safe-area-inset-top) + 0.75rem);
+  }
+}
+
+@media screen and (max-width: 767px) {
+  .qr-rack-picker {
+    top: calc(3.75rem + env(safe-area-inset-top) + var(--qr-toolbar-height, 0px) + 0.5rem);
+  }
+
+  .qr-rack-options {
+    height: min(20rem, max(5rem, calc(100dvh - var(--qr-toolbar-height, 0px) - 22rem - env(safe-area-inset-top) - env(safe-area-inset-bottom))));
+  }
+}
+
+@media screen and (min-width: 1024px) {
+  .qr-rack-picker {
+    top: 5rem;
+  }
+}

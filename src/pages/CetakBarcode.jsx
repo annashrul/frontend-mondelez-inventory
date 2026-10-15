@@ -2,7 +2,7 @@ import PageHeader from '@/components/PageHeader';
 import usePageState from '@/hooks/usePageState';
 import { useTranslation } from '@/lib/i18n';
 import { useSettingsStore } from '@/stores/settingsStore';
-import { useState } from 'react';
+import { useLayoutEffect, useRef, useState } from 'react';
 import { Printer, QrCode, LoaderCircle } from 'lucide-react';
 import { useQrRackData } from '@/hooks/useQrRackData';
 import { useAuth } from '@/context/AuthContext';
@@ -19,6 +19,18 @@ function rackLocation(rack) {
 
 export default function CetakBarcode() {
   const { t } = useTranslation();
+  const pageRef = useRef(null);
+  useLayoutEffect(() => {
+    const page = pageRef.current;
+    const toolbar = page?.querySelector('.mobile-sticky-toolbar');
+    if (!toolbar) return;
+    const measure = () => page.style.setProperty('--qr-toolbar-height', `${toolbar.getBoundingClientRect().height}px`);
+    measure();
+    const observer = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(measure) : null;
+    observer?.observe(toolbar);
+    window.addEventListener('resize', measure);
+    return () => { observer?.disconnect(); window.removeEventListener('resize', measure); };
+  }, []);
   const company = useSettingsStore(state => state.settings);
   const { user } = useAuth();
   const { query, racks, loading } = useQrRackData(user?.id);
@@ -32,7 +44,7 @@ export default function CetakBarcode() {
   const printReady = selected.length > 0 && selected.every(rack => loadedCodes.has(rack.qr_code));
 
   return (
-    <div className="qr-print-view">
+    <div ref={pageRef} className="qr-print-view">
       <PageHeader
         title={t('Cetak QR Rak')}
         subtitle={t('Satu QR per halaman, diletakkan di tengah kertas A4.')}
@@ -40,12 +52,12 @@ export default function CetakBarcode() {
         onSearchChange={setSearch}
         className="no-print"
       />
-      <div className="qr-print-layout grid gap-6 lg:grid-cols-3">
-        <Card className="h-fit no-print">
+      <div className="qr-print-layout space-y-6 lg:grid lg:grid-cols-3 lg:gap-6 lg:space-y-0">
+        <Card className="qr-rack-picker z-20 h-fit self-start no-print">
           <CardHeader className="flex flex-row items-center justify-between"><CardTitle className="text-base">{t('Pilih Rak')}</CardTitle>{query.isFetching && !loading && <LoaderCircle role="status" aria-label={t('Memuat daftar rak...')} className="size-4 animate-spin text-muted-foreground" />}</CardHeader>
           <CardContent className="space-y-4">
             {query.isError && <div role="alert" className="space-y-2"><p className="text-sm text-muted-foreground">{t('Gagal memuat daftar rak')}</p><Button variant="outline" size="sm" disabled={query.isFetching} onClick={() => query.refetch()}>{t('Coba lagi')}</Button></div>}
-            <ScrollArea className="h-80 rounded-md border p-2">
+            <ScrollArea className="qr-rack-options h-80 rounded-md border p-2">
               <div className="space-y-1">
                 {loading ? <div role="status" aria-label={t('Memuat daftar rak...')} className="space-y-3 p-2">{Array.from({ length: 5 }, (_, index) => <div key={index} className="flex items-center gap-3"><Skeleton className="size-4 shrink-0" /><div className="flex-1 space-y-2"><Skeleton className="h-4 w-3/4" /><Skeleton className="h-3 w-1/2" /></div></div>)}</div> : !filtered.length && !query.isError ? <p className="p-4 text-center text-sm text-muted-foreground">{t('Tidak ada rak yang cocok')}</p> : filtered.map(rack => (
                   <label key={rack.id} className="flex cursor-pointer items-center gap-3 rounded-md p-2 hover:bg-muted">
