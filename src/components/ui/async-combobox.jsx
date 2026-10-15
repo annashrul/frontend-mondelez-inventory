@@ -100,8 +100,10 @@ export function AsyncCombobox({
     ? optionLabel(selectedOption)
     : value
 
+  // A modal popover owns its portalled scroll area, so a parent Dialog's
+  // scroll lock permits wheel/touch scrolling inside the option list.
   return (
-    <Popover open={open} onOpenChange={setOpen}>
+    <Popover modal open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
         <Button
           type="button"
@@ -115,14 +117,14 @@ export function AsyncCombobox({
           <ChevronsUpDown className="ml-2 size-4 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+      <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0" align="start">
         <Command shouldFilter={false}>
           <CommandInput
             value={search}
             onValueChange={setSearch}
             placeholder={t(searchPlaceholder)}
           />
-          <CommandList>
+          <CommandList className="overscroll-y-contain touch-pan-y">
             {loading ? (
               <div className="space-y-2 p-2" aria-label={t(loadingText)}>
                 {["w-4/5", "w-3/5", "w-11/12"].map((width) => (
