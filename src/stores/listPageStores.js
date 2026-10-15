@@ -28,3 +28,5 @@ export const useKartuStokStore = createListPageStore({
 }));
 
 export const useLogActivityStore = createListPageStore();
+
+export const usePengambilanHistoryStore = createListPageStore();

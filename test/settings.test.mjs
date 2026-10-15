@@ -103,3 +103,29 @@ test('local preference storage only accepts supported theme and language values'
   assert.equal(settings.getState().settings.two_factor, false);
   assert.equal(setup('invalid JSON').useSettingsStore.getState().settings.tema, 'light');
 });
+
+
+test('withdrawal history follows runtime page size, retains manual choices, and resets page on settings changes', async () => {
+  const { useSettingsStore: settings, withSettingsPageSize } = setup();
+  const source = readFileSync(new URL('../src/stores/listPageStores.js', import.meta.url), 'utf8')
+    .replace(/^import .*;\n/gm, '').replaceAll('export ', '');
+  const history = new Function('create', 'withSettingsPageSize', source + '\nreturn usePengambilanHistoryStore;')(create, withSettingsPageSize);
+  assert.equal(history.getState().limit, 10);
+  await settings.getState().loadRuntime();
+  assert.equal(history.getState().limit, 25);
+  history.getState().setLimit(100);
+  history.getState().setPage(3);
+  // Returning to the page reuses the store; unrelated settings keep manual choices.
+  settings.getState().apply({ tema: 'light' });
+  assert.equal(history.getState().limit, 100);
+  assert.equal(history.getState().page, 3);
+  settings.getState().apply({ items_per_page: 50 });
+  assert.equal(history.getState().limit, 50);
+  assert.equal(history.getState().page, 1);
+  // The same subscription runs while the history page is unmounted.
+  settings.getState().apply({ items_per_page: 5 });
+  assert.equal(history.getState().limit, 5);
+  settings.getState().apply({ items_per_page: 100 });
+  const loaded = new Function('create', 'withSettingsPageSize', source + '\nreturn usePengambilanHistoryStore;')(create, withSettingsPageSize);
+  assert.equal(loaded.getState().limit, 100);
+});

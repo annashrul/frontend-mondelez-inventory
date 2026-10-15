@@ -1,3 +1,4 @@
+import { usePengambilanHistoryStore } from '@/stores/listPageStores';
 import { formatNumber } from '@/lib/numberFormat';
 import { prepareProductImage } from '@/lib/productImage';
 import { useQueryClient } from '@tanstack/react-query';
@@ -114,8 +115,7 @@ export default function PengambilanBarang() {
     if (Number.isInteger(value) && value >= 1 && value <= steps.length) return value;
     return Number.isInteger(draft?.step) && draft.step >= 1 && draft.step <= steps.length ? draft.step : 1;
   });
-  const [page, setPage] = usePageState('PengambilanBarang.jsx:page', 1);
-  const [limit, setLimit] = usePageState('PengambilanBarang.jsx:limit', 10);
+  const { page, limit, setPage, setLimit } = usePengambilanHistoryStore();
   const history = useListResourceData({
     queryKey: 'pengambilan-history',
     mobile,
