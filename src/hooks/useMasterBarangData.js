@@ -61,7 +61,7 @@ export function useMasterBarangData({
       return true;
     })
     : getList(displayResponse);
-  const pagination = getPagination(displayResponse) || emptyPagination;
+  const pagination = { ...(getPagination(displayResponse) || emptyPagination), limit: limit || emptyPagination.limit };
   const loading = mobile ? infiniteQuery.isPending : query.isPending && !hasLoadedOnce;
   const backgroundFetching = hasLoadedOnce && query.isFetching;
 

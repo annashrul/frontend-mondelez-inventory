@@ -45,7 +45,7 @@ export default function MasterBarangForm({
 }) {
   useUiLanguage();
   return (
-    <Modal isOpen={open} onClose={onClose} title={editId ? translateUi("Edit Barang") : translateUi("Tambah Barang")} size="xl">
+    <Modal permission={editId ? 'update' : 'create'} isOpen={open} onClose={onClose} title={editId ? translateUi("Edit Barang") : translateUi("Tambah Barang")} size="xl">
       <form id="barang-form" onSubmit={onSubmit} className="grid gap-4 sm:grid-cols-2">
         <div className="space-y-1.5">
           <Label htmlFor="kode">{translateUi("Kode Barang")}</Label>

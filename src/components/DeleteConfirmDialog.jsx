@@ -1,3 +1,4 @@
+import { PermissionAction } from '@/components/PermissionAccess';
 import { translate as translateUi, useTranslation as useUiLanguage } from '@/lib/i18n';
 import {
   AlertDialog,
@@ -36,9 +37,9 @@ export default function DeleteConfirmDialog({
         </AlertDialogHeader>
         <AlertDialogFooter>
           <AlertDialogCancel disabled={loading}>{translateUi("Batal")}</AlertDialogCancel>
-          <Button type="button" variant="destructive" onClick={onConfirm} disabled={loading}>
+          <PermissionAction permission="delete"><Button type="button" variant="destructive" onClick={onConfirm} disabled={loading}>
             {loading ? translateUi("Menghapus...") : translateUi("Hapus")}
-          </Button>
+          </Button></PermissionAction>
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>

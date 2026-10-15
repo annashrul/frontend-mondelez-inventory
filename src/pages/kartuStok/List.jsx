@@ -1,3 +1,4 @@
+import useSkeletonCount from '@/hooks/useSkeletonCount';
 import { formatNumber } from '@/lib/numberFormat';
 import { translate as translateUi, translateStockNote, useTranslation as useUiLanguage } from '@/lib/i18n';
 import dayjs from 'dayjs';
@@ -19,6 +20,7 @@ export default function KartuStokList({
   limitLoading,
 }) {
   useUiLanguage();
+  const skeletonRows = useSkeletonCount(pagination?.limit);
   return (
     <>
       <div className="hidden rounded-lg border bg-card shadow-sm md:block">
@@ -37,7 +39,7 @@ export default function KartuStokList({
           </TableHeader>
           <TableBody>
             {loading ? (
-              Array.from({ length: Math.min(Math.max(pagination?.limit || 5, 3), 8) }).map((_, index) => (
+              Array.from({ length: skeletonRows }).map((_, index) => (
                 <TableRow key={`kartu-skeleton-${index}`} className="hover:bg-transparent">
                   <TableCell><Skeleton className="h-4 w-24" /></TableCell>
                   <TableCell><Skeleton className="h-6 w-20 rounded-full" /></TableCell>
@@ -79,7 +81,7 @@ export default function KartuStokList({
       <div className="space-y-3 md:hidden">
         {loading ? (
           <div role="status" aria-label={translateUi('Memuat data berikutnya...')} className="space-y-3">
-            {Array.from({ length: 3 }, (_, index) => (
+            {Array.from({ length: skeletonRows }, (_, index) => (
               <article key={index} className="space-y-4 rounded-2xl border bg-card p-4 shadow-sm">
                 <div className="flex justify-between"><Skeleton className="h-6 w-20" /><Skeleton className="h-4 w-28" /></div>
                 <Skeleton className="h-5 w-2/3" /><Skeleton className="h-4 w-32" />
@@ -111,7 +113,7 @@ export default function KartuStokList({
           </article>
         ))}
       </div>
-      {infiniteScroll && !loading && <InfiniteScrollFooter {...infiniteScroll} count={data.length} />}
+      {infiniteScroll && !loading && <InfiniteScrollFooter {...infiniteScroll} limit={pagination?.limit} count={data.length} />}
       {!infiniteScroll && <div className="mt-4">
         <Pagination
           pagination={pagination}

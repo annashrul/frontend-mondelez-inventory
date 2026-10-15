@@ -1,3 +1,4 @@
+import { PermissionAction } from '@/components/PermissionAccess';
 import { usePengambilanHistoryStore } from '@/stores/listPageStores';
 import { formatNumber } from '@/lib/numberFormat';
 import { prepareProductImage } from '@/lib/productImage';
@@ -340,7 +341,7 @@ export default function PengambilanBarang() {
       />
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="grid h-11 w-full max-w-md grid-cols-2 rounded-xl bg-muted/70 p-1">
-          <TabsTrigger value="transaksi" className="rounded-lg">{translateUi("Transaksi")}</TabsTrigger>
+          <PermissionAction permission="pengambilan.create" className="w-full"><TabsTrigger value="transaksi" className="w-full rounded-lg">{translateUi("Transaksi")}</TabsTrigger></PermissionAction>
           <TabsTrigger value="riwayat" className="rounded-lg">{translateUi("Riwayat")}</TabsTrigger>
         </TabsList>
         <TabsContent value="transaksi">

@@ -10,7 +10,7 @@ import { parseNumberInput } from '@/lib/utils';
 export default function MasterRakForm({ open, editId, form, saving, generatingCode, lokasiOptions, onClose, onSubmit, onFieldChange, onGenerateCode }) {
   useUiLanguage();
   return (
-    <Modal isOpen={open} onClose={onClose} title={editId ? translateUi("Edit Rak") : translateUi("Tambah Rak")}>
+    <Modal permission={editId ? 'update' : 'create'} isOpen={open} onClose={onClose} title={editId ? translateUi("Edit Rak") : translateUi("Tambah Rak")}>
       <form onSubmit={onSubmit} className="space-y-4">
         <div className="space-y-1.5">
           <Label htmlFor="rak-kode">{translateUi("Kode Rak")}</Label>

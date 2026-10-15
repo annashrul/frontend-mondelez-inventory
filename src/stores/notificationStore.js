@@ -8,7 +8,6 @@ let socket = null;
 let mockListener = null;
 let pendingLoad = null;
 
-const pageLimit = 10;
 let changeVersion = 0;
 
 function uniqueItems(items) {
@@ -35,7 +34,7 @@ export const useNotificationStore = create((set, get) => {
       try {
         const response = await notificationService.list({
           signal: controller.signal,
-          params: { limit: pageLimit, ...(append ? { cursor: get().nextCursor } : {}) },
+          params: { limit: useSettingsStore.getState().settings?.items_per_page || 10, ...(append ? { cursor: get().nextCursor } : {}) },
         });
         if (controller.signal.aborted) return;
         set((state) => {

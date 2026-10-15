@@ -1,6 +1,6 @@
 export const ROLE_ACCESS = {
   Admin: ['*'],
-  Operator: ['dashboard', 'barang.read', 'rak.read', 'pengambilan.read', 'pengambilan.create', 'kartu.read', 'barcode.read', 'closing.read', 'closing.create'],
+  Operator: ['dashboard', 'barang.read', 'rak.read', 'pengambilan.read', 'pengambilan.create', 'kartu.read', 'barcode.read', 'barcode.print', 'closing.read', 'closing.close'],
   Owner: ['dashboard', 'barang.read', 'rak.read', 'pengguna.read', 'level.read', 'adjustment.read', 'kartu.read', 'pengambilan.read', 'barcode.read', 'log.read', 'closing.read', 'pengaturan.read'],
 };
 

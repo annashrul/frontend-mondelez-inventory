@@ -1,3 +1,4 @@
+import useSkeletonCount from '@/hooks/useSkeletonCount';
 import { formatNumber } from '@/lib/numberFormat';
 import { Skeleton } from '@/components/ui/skeleton';
 import { translate as translateUi } from '@/lib/i18n';
@@ -16,6 +17,7 @@ import { useNotificationStore } from '@/stores/notificationStore';
 import { useThemeLogo } from '@/hooks/useThemeLogo';
 
 export default function Header() {
+  const skeletonRows = useSkeletonCount();
   const logoUrl = useThemeLogo();
   const { t, locale } = useTranslation();
   const { user, logout } = useAuth();
@@ -117,7 +119,7 @@ export default function Header() {
               )}
               {(loading || loadingMore) && (
                 <div role="status" aria-label={t('Memuat notifikasi...')}>
-                  {Array.from({ length: loading ? 3 : 2 }, (_, index) => (
+                  {Array.from({ length: skeletonRows }, (_, index) => (
                     <div key={index} aria-hidden="true" className="flex gap-3 border-b px-4 py-3 last:border-b-0">
                       <Skeleton className="mt-1 size-2 shrink-0 rounded-full" />
                       <div className="min-w-0 flex-1 space-y-2">

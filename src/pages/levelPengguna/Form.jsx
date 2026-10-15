@@ -57,7 +57,7 @@ export default function LevelPenggunaForm({
   };
 
   return (
-    <Modal isOpen={open} onClose={onClose} title={editId ? translateUi("Edit Level") : translateUi("Tambah Level")} size="xl">
+    <Modal permission={editId ? 'update' : 'create'} isOpen={open} onClose={onClose} title={editId ? translateUi("Edit Level") : translateUi("Tambah Level")} size="xl">
       <form id="level-form" onSubmit={onSubmit} className="flex flex-col gap-6 lg:flex-row">
         <section className="flex-[2] space-y-4">
           <div className="space-y-1.5">

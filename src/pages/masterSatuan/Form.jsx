@@ -9,7 +9,7 @@ import { RefreshCw } from 'lucide-react';
 export default function MasterSatuanForm({ open, editId, form, saving, generatingCode, onClose, onSubmit, onFieldChange, onGenerateCode }) {
   useUiLanguage();
   return (
-    <Modal isOpen={open} onClose={onClose} title={editId ? translateUi("Edit Satuan") : translateUi("Tambah Satuan")}>
+    <Modal permission={editId ? 'update' : 'create'} isOpen={open} onClose={onClose} title={editId ? translateUi("Edit Satuan") : translateUi("Tambah Satuan")}>
       <form onSubmit={onSubmit} className="space-y-4">
         <div className="space-y-1.5">
           <Label htmlFor="satuan-kode">{translateUi("Kode")}</Label>

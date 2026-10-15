@@ -155,7 +155,7 @@ export default function LogActivity() {
         {query.isError && <div role="alert" className="flex items-center justify-between gap-3 border-b p-4"><p className="text-sm text-muted-foreground">{translateUi(query.isFetchNextPageError ? 'Gagal memuat log berikutnya' : 'Gagal memuat log aktivitas')}</p><Button variant="outline" size="sm" disabled={query.isFetching} onClick={() => (query.isFetchNextPageError ? loadMore() : query.refetch()).catch(() => {})}>{translateUi('Coba lagi')}</Button></div>}
         {loading ? (
           <div role="status" aria-label={translateUi("Memuat log aktivitas...")} className="space-y-3 p-4">
-            {Array.from({ length: 5 }).map((_, index) => (
+            {Array.from({ length: pageLimit }).map((_, index) => (
               <div key={index} className="space-y-3 rounded-xl border p-4"><Skeleton className="h-4 w-40" /><Skeleton className="h-5 w-3/4" /><Skeleton className="h-3 w-1/2" /></div>
             ))}
           </div>
@@ -228,7 +228,7 @@ export default function LogActivity() {
         )}
         {logs.length > 0 && (
           <div ref={loadMoreRef} className="flex min-h-12 items-center justify-center border-t px-4 py-3 text-xs text-muted-foreground">
-            {loadingMore ? <div role="status" aria-label={translateUi("Memuat aktivitas berikutnya...")} className="w-full space-y-2"><Skeleton className="h-4 w-1/3" /><Skeleton className="h-5 w-3/4" /></div> : query.isError ? null : hasNext ? translateUi("Gulir untuk memuat lebih banyak") : translateUi("Semua aktivitas sudah ditampilkan")}
+            {loadingMore ? <div role="status" aria-label={translateUi("Memuat aktivitas berikutnya...")} className="w-full space-y-2">{Array.from({ length: pageLimit }, (_, index) => <div key={index} className="space-y-2 rounded-xl border p-4"><Skeleton className="h-4 w-1/3" /><Skeleton className="h-5 w-3/4" /></div>)}</div> : query.isError ? null : hasNext ? translateUi("Gulir untuk memuat lebih banyak") : translateUi("Semua aktivitas sudah ditampilkan")}
           </div>
         )}
       </div>

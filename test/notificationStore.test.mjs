@@ -8,7 +8,7 @@ const source = readFileSync(new URL('../src/stores/notificationStore.js', import
   .replaceAll('import.meta.env', '{}')
   .replace('export const useNotificationStore', 'const useNotificationStore');
 
-function setup() {
+function setup(itemsPerPage = 10) {
   const calls = [];
   const sockets = [];
   const service = {
@@ -30,7 +30,7 @@ function setup() {
     return socket;
   };
   const store = new Function('create', 'toast', 'io', 'notificationService', 'notificationSocketUrl', 'localStorage', 'useSettingsStore', source + '\nreturn useNotificationStore;')(
-    create, { info() {} }, io, service, () => 'http://local', { getItem: () => 'token' }, { getState: () => ({ apply() {} }) },
+    create, { info() {} }, io, service, () => 'http://local', { getItem: () => 'token' }, { getState: () => ({ apply() {}, settings: { items_per_page: itemsPerPage } }) },
   );
   return { state: () => store.getState(), calls, sockets };
 }
@@ -128,4 +128,13 @@ test('socket failure triggers no REST polling', async () => {
   sockets[0].emit('connect_error');
   sockets[0].emit('disconnect');
   assert.equal(calls.length, 0);
+});
+
+
+test('notification fetches use the configured page size', async () => {
+  const { state, calls } = setup(5);
+  const pending = state().load();
+  assert.equal(calls[0].config.params.limit, 5);
+  calls[0].resolve(page([5, 4, 3, 2, 1]));
+  await pending;
 });

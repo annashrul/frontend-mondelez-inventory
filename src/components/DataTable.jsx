@@ -1,3 +1,5 @@
+import useSkeletonCount from '@/hooks/useSkeletonCount';
+import { PermissionAction } from '@/components/PermissionAccess';
 import { formatNumber, formatTableValue } from '@/lib/numberFormat';
 import { translate as translateUi } from '@/lib/i18n';
 import { useTranslation } from '@/lib/i18n';
@@ -39,13 +41,13 @@ export default function DataTable({ columns, data, loading = false, onEdit, onDe
   const renderActions = (row, mobile = false) => (onEdit || onDelete || actions) && (
     <div className={mobile ? 'flex items-center gap-2 border-t pt-3' : 'flex items-center justify-center gap-1'}>
       {actions && actions(row)}
-      {onEdit && <Button variant="outline" size="sm" className={mobile ? 'h-9 flex-1' : 'h-7 text-xs'} onClick={() => onEdit(row)}>{translateUi("Edit")}</Button>}
-      {onDelete && <Button variant="outline" size="sm" className={mobile ? 'h-9 flex-1 text-destructive hover:text-destructive' : 'h-7 text-xs text-destructive hover:text-destructive'} onClick={() => setDeleteTarget(row)}>{translateUi("Hapus")}</Button>}
+      {onEdit && <PermissionAction permission="update" className={mobile ? 'flex-1' : undefined}><Button variant="outline" size="sm" className={mobile ? 'h-9 flex-1' : 'h-7 text-xs'} onClick={() => onEdit(row)}>{translateUi("Edit")}</Button></PermissionAction>}
+      {onDelete && <PermissionAction permission="delete" className={mobile ? 'flex-1' : undefined}><Button variant="outline" size="sm" className={mobile ? 'h-9 flex-1 text-destructive hover:text-destructive' : 'h-7 text-xs text-destructive hover:text-destructive'} onClick={() => setDeleteTarget(row)}>{translateUi("Hapus")}</Button></PermissionAction>}
     </div>
   );
   const hasActions = Boolean(onEdit || onDelete || actions);
   const totalColumns = columns.length + 1 + (hasActions ? 1 : 0);
-  const skeletonRows = Math.min(Math.max(pagination?.limit || 5, 3), 8);
+  const skeletonRows = useSkeletonCount(pagination?.limit);
 
   const { t } = useTranslation();
   return (
@@ -115,7 +117,7 @@ export default function DataTable({ columns, data, loading = false, onEdit, onDe
       </Table>
     </div>
     <div className="space-y-3 md:hidden">
-      {loading ? Array.from({ length: Math.min(skeletonRows, 5) }).map((_, index) => (
+      {loading ? Array.from({ length: skeletonRows }).map((_, index) => (
         <article key={`mobile-skeleton-${index}`} className="rounded-2xl border bg-card p-4 shadow-sm">
           <div className="mb-4 flex items-center justify-between">
             <Skeleton className="h-6 w-12 rounded-full" />
@@ -138,7 +140,7 @@ export default function DataTable({ columns, data, loading = false, onEdit, onDe
         <Pagination pagination={pagination} onPageChange={onPageChange} onLimitChange={onLimitChange} pageLoadingDirection={pageLoadingDirection} limitLoading={limitLoading} />
       </div>
     )}
-    {infiniteScroll && !loading && <InfiniteScrollFooter {...infiniteScroll} count={data.length} />}
+    {infiniteScroll && !loading && <InfiniteScrollFooter {...infiniteScroll} limit={pagination?.limit} count={data.length} />}
     <DeleteConfirmDialog
       open={Boolean(deleteTarget)}
       onOpenChange={(open) => {

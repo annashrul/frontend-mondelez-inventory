@@ -1,3 +1,4 @@
+import { PermissionForm } from '@/components/PermissionAccess';
 import { useTranslation } from '@/lib/i18n';
 import {
   Dialog,
@@ -26,6 +27,7 @@ export default function Modal({
   onClose,
   title,
   description,
+  permission,
   children,
   size = "md",
 }) {
@@ -55,7 +57,7 @@ export default function Modal({
           {description && <DialogDescription>{t(description)}</DialogDescription>}
         </DialogHeader>
         <div data-modal-scroll="" className="min-h-0 flex-1 overflow-y-auto p-5 [&>form>div:last-child]:sticky [&>form>div:last-child]:-bottom-5 [&>form>div:last-child]:z-10 [&>form>div:last-child]:border-t [&>form>div:last-child]:bg-background/95 [&>form>div:last-child]:py-4 [&>form>div:last-child]:backdrop-blur sm:p-6 sm:[&>form>div:last-child]:-bottom-6">
-          {children}
+          <PermissionForm permission={permission}>{children}</PermissionForm>
         </div>
       </DialogContent>
     </Dialog>

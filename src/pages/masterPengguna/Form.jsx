@@ -16,7 +16,7 @@ import { getLevelPenggunaOptions } from '@/services/penggunaService';
 export default function MasterPenggunaForm({ open, editId, form, saving, onClose, onSubmit, onFieldChange }) {
   useUiLanguage();
   return (
-    <Modal isOpen={open} onClose={onClose} title={editId ? translateUi("Edit Pengguna") : translateUi("Tambah Pengguna")}>
+    <Modal permission={editId ? 'update' : 'create'} isOpen={open} onClose={onClose} title={editId ? translateUi("Edit Pengguna") : translateUi("Tambah Pengguna")}>
       <form id="pengguna-form" onSubmit={onSubmit} className="space-y-4">
         <div className="space-y-1.5">
           <Label htmlFor="pengguna-username">{translateUi("Username")}</Label>

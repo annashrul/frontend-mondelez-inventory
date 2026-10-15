@@ -1,3 +1,4 @@
+import { PermissionScope } from '@/components/PermissionAccess';
 import { loginDestination } from '@/lib/loginDestination';
 import PwaControls from './components/PwaControls';
 import { translate as translateUi, useTranslation as useUiLanguage } from '@/lib/i18n';
@@ -42,7 +43,7 @@ function ProtectedRoute({ children }) {
 function AuthorizedRoute({ permission, children }) {
   useUiLanguage();
   const { user } = useAuth();
-  return canAccess(user, permission) ? children : <Navigate to="/" replace />;
+  return canAccess(user, permission) ? <PermissionScope user={user} permission={permission}>{children}</PermissionScope> : <Navigate to="/" replace />;
 }
 
 function PublicRoute({ children }) {
@@ -64,10 +65,10 @@ export default function App() {
           <Route path="/" element={<ProtectedRoute><MainLayout /></ProtectedRoute>}>
             <Route index element={<Dashboard />} />
             <Route path="master-barang" element={<AuthorizedRoute permission="barang.read"><MasterBarang /></AuthorizedRoute>} />
-            <Route path="kelompok-barang" element={<AuthorizedRoute permission="barang.read"><KelompokBarang /></AuthorizedRoute>} />
+            <Route path="kelompok-barang" element={<AuthorizedRoute permission="kelompok.read"><KelompokBarang /></AuthorizedRoute>} />
             <Route path="master-rak" element={<AuthorizedRoute permission="rak.read"><MasterRak /></AuthorizedRoute>} />
-            <Route path="master-lokasi" element={<AuthorizedRoute permission="rak.read"><MasterLokasi /></AuthorizedRoute>} />
-            <Route path="master-satuan" element={<AuthorizedRoute permission="barang.read"><MasterSatuan /></AuthorizedRoute>} />
+            <Route path="master-lokasi" element={<AuthorizedRoute permission="lokasi.read"><MasterLokasi /></AuthorizedRoute>} />
+            <Route path="master-satuan" element={<AuthorizedRoute permission="satuan.read"><MasterSatuan /></AuthorizedRoute>} />
             <Route path="master-pengguna" element={<AuthorizedRoute permission="pengguna.read"><MasterPengguna /></AuthorizedRoute>} />
             <Route path="level-pengguna" element={<AuthorizedRoute permission="level.read"><LevelPengguna /></AuthorizedRoute>} />
             <Route path="adjustment-stok" element={<AuthorizedRoute permission="adjustment.read"><AdjustmentStok /></AuthorizedRoute>} />

@@ -1,10 +1,12 @@
+import useSkeletonCount from '@/hooks/useSkeletonCount';
 import { useEffect, useRef } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { translate as translateUi } from '@/lib/i18n';
 import { Button } from '@/components/ui/button';
 
-export default function InfiniteScrollFooter({ query, hasNext, loadingMore, searchDebouncing, count }) {
+export default function InfiniteScrollFooter({ query, hasNext, loadingMore, searchDebouncing, count, limit }) {
   const sentinel = useRef(null);
+  const skeletonRows = useSkeletonCount(limit);
   const { fetchNextPage, isFetching, isError } = query;
   useEffect(() => {
     if (!sentinel.current || !hasNext || isFetching || isError || searchDebouncing) return;
@@ -21,7 +23,7 @@ export default function InfiniteScrollFooter({ query, hasNext, loadingMore, sear
     <div ref={sentinel} className="mt-4 flex min-h-12 items-center justify-center gap-2 text-sm text-muted-foreground" aria-live="polite">
       {isError ? <><span>{translateUi('Gagal memuat data')}</span><Button variant="outline" size="sm" disabled={isFetching || searchDebouncing} onClick={() => query.isFetchNextPageError ? loadMore() : query.refetch().catch(() => {})}>{translateUi('Coba lagi')}</Button></>
         : loadingMore ? <div role="status" aria-label={translateUi('Memuat data berikutnya...')} className="w-full space-y-3">
-            {[0, 1].map(index => (
+            {Array.from({ length: skeletonRows }, (_, index) => (
               <div key={index} aria-hidden="true" className="space-y-3 rounded-2xl border bg-card p-4 shadow-sm">
                 <div className="flex items-center justify-between"><Skeleton className="h-6 w-16 rounded-full" /><Skeleton className="h-4 w-24" /></div>
                 <Skeleton className="h-5 w-2/3" />

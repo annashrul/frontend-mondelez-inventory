@@ -1,6 +1,7 @@
 import { useSettingsStore } from '@/stores/settingsStore';
 
 export const english = {
+  "Anda tidak mempunyai akses": "You do not have permission",
   "Gagal membaca gambar. Gunakan JPEG, PNG, atau WebP.": "Unable to read the image. Use JPEG, PNG, or WebP.",
   "Gagal memproses gambar": "Unable to process the image",
   "Gambar masih terlalu besar. Gunakan foto dengan resolusi lebih rendah.": "The image is still too large. Use a lower-resolution photo.",

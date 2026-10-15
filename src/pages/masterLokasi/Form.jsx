@@ -9,7 +9,7 @@ import { RefreshCw } from 'lucide-react';
 export default function MasterLokasiForm({ open, editId, form, saving, generatingCode, onClose, onSubmit, onFieldChange, onGenerateCode }) {
   useUiLanguage();
   return (
-    <Modal isOpen={open} onClose={onClose} title={editId ? translateUi("Edit Lokasi") : translateUi("Tambah Lokasi")}>
+    <Modal permission={editId ? 'update' : 'create'} isOpen={open} onClose={onClose} title={editId ? translateUi("Edit Lokasi") : translateUi("Tambah Lokasi")}>
       <form onSubmit={onSubmit} className="space-y-4">
         <div className="space-y-1.5">
           <Label htmlFor="lokasi-kode">{translateUi("Kode")}</Label>

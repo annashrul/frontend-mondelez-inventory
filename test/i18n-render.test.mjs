@@ -23,6 +23,10 @@ let CetakBarcode;
 let AuthProvider;
 let DashboardCharts;
 let Dashboard;
+let PermissionScope;
+let PermissionAction;
+let PermissionForm;
+let PageHeader;
 before(async () => {
   server = await createServer({
     configFile: false,
@@ -34,6 +38,8 @@ before(async () => {
     appType: 'custom',
     optimizeDeps: { noDiscovery: true, include: [] },
   });
+  ({ PermissionScope, PermissionAction, PermissionForm } = await server.ssrLoadModule('/src/components/PermissionAccess.jsx'));
+  PageHeader = (await server.ssrLoadModule('/src/components/PageHeader.jsx')).default;
   settings = (await server.ssrLoadModule('/src/stores/settingsStore.js')).useSettingsStore;
   PwaControls = (await server.ssrLoadModule('/src/components/PwaControls.jsx')).default;
   pwaStore = (await server.ssrLoadModule('/src/stores/pwaStore.js')).usePwaStore;
@@ -301,4 +307,62 @@ test('quantity cells, mobile stock cards, and pagination use localized grouping'
   setLanguage('en');
   assert.match(render(DataTable, { columns: [{ key: 'qty', label: 'Jumlah' }], data: [{ id: 1, qty: '12345' }] }), /12,345/);
   setLanguage('id');
+});
+
+
+test('permission controls disable denied CRUD actions and expose a keyboard tooltip target', () => {
+  setLanguage('id');
+  const restricted = children => React.createElement(PermissionScope, { user: { permissions: ['barang.read', 'barang.create'] }, permission: 'barang.read' }, children);
+  const denied = renderToStaticMarkup(restricted(React.createElement(PermissionAction, { permission: 'delete' }, React.createElement('button', { onClick() {} }, 'Hapus'))));
+  assert.match(denied, /data-permission-denied/);
+  assert.match(denied, /tabindex="0"/);
+  assert.match(denied, /Hapus: Anda tidak mempunyai akses/);
+  assert.match(denied, /disabled=""/);
+  assert.match(denied, /inert=""/);
+  const allowed = renderToStaticMarkup(restricted(React.createElement(PageHeader, { title: 'Barang', onAdd() {} })));
+  assert.doesNotMatch(allowed, /data-permission-denied/);
+  const table = renderToStaticMarkup(restricted(React.createElement(DataTable, {
+    columns: [{ key: 'nama', label: 'Nama' }], data: [{ id: 1, nama: 'Oreo' }], onEdit() {}, onDelete() {},
+  })));
+  assert.equal((table.match(/data-permission-denied/g) || []).length, 4);
+  setLanguage('en');
+  const form = renderToStaticMarkup(restricted(React.createElement(PermissionForm, { permission: 'update' }, React.createElement('input', { defaultValue: 'Read only' }))));
+  assert.match(form, /You do not have permission/);
+  assert.match(form, /inert=""/);
+  setLanguage('id');
+});
+
+
+test('access checks respect separate menu permissions and print or close actions', () => {
+  setLanguage('id');
+  const action = (permission, userPermissions, resource) => renderToStaticMarkup(React.createElement(PermissionScope, {
+    user: { permissions: userPermissions }, permission: `${resource}.read`,
+  }, React.createElement(PermissionAction, { permission }, React.createElement('button', null, 'Action'))));
+  assert.match(action('create', ['kelompok.read', 'barang.create'], 'kelompok'), /data-permission-denied/);
+  assert.doesNotMatch(action('create', ['kelompok.create'], 'kelompok'), /data-permission-denied/);
+  assert.match(action('barcode.print', ['barcode.read'], 'barcode'), /data-permission-denied/);
+  assert.doesNotMatch(action('barcode.print', ['barcode.print'], 'barcode'), /data-permission-denied/);
+  assert.match(action('closing.close', ['closing.read'], 'closing'), /data-permission-denied/);
+  assert.doesNotMatch(action('closing.close', ['closing.close'], 'closing'), /data-permission-denied/);
+  assert.doesNotMatch(action('delete', ['*'], 'barang'), /data-permission-denied/);
+});
+
+test('initial and infinite-scroll skeleton counts follow configured and selected page sizes', async () => {
+  const Footer = (await server.ssrLoadModule('/src/components/InfiniteScrollFooter.jsx')).default;
+  const previous = settings.getState().settings.items_per_page;
+  try {
+    for (const count of [5, 25, 100]) {
+      settings.getInitialState().settings.items_per_page = count;
+      settings.getState().apply({ items_per_page: count });
+      const props = { columns: [{ key: 'nama', label: 'Nama' }], data: [], loading: true };
+      assert.equal((render(DataTable, props).match(/<article/g) || []).length, count);
+      assert.equal((render(KartuStokList, props).match(/<article/g) || []).length, count);
+      const footer = render(Footer, { loadingMore: true, query: { fetchNextPage() {} } });
+      assert.equal((footer.match(/aria-hidden="true"/g) || []).length, count);
+    }
+    assert.equal((render(DataTable, { columns: [], data: [], loading: true, pagination: { limit: 5 } }).match(/<article/g) || []).length, 5);
+  } finally {
+    settings.getInitialState().settings.items_per_page = previous;
+    settings.getState().apply({ items_per_page: previous });
+  }
 });

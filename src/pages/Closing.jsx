@@ -1,3 +1,6 @@
+import { useClosingStore } from '@/stores/listPageStores';
+import { PermissionAction } from '@/components/PermissionAccess';
+import { usePermission } from '@/hooks/usePermission';
 import usePageState from '@/hooks/usePageState';
 import { translate as translateUi, useTranslation as useUiLanguage } from '@/lib/i18n';
 import { useEffect } from 'react';
@@ -24,9 +27,9 @@ const columns = [
 
 export default function Closing() {
   useUiLanguage();
+  const canClose = usePermission('closing.close');
   const [modalOpen, setModalOpen] = usePageState('Closing.jsx:modalOpen', false);
-  const [page, setPage] = usePageState('Closing.jsx:page', 1);
-  const [limit, setLimit] = usePageState('Closing.jsx:limit', 10);
+  const { page, limit, setPage, setLimit } = useClosingStore();
   const { data, pagination, loading, query } = useListResourceData({
     queryKey: 'shift', params: { page, limit }, listFn: service.list,
   });
@@ -35,6 +38,7 @@ export default function Closing() {
   }, [query.error]);
 
   const handleClosing = async () => {
+    if (!canClose) return;
     const active = data.find(d => d.status === 'Aktif');
     if (!active) return toast.error('Tidak ada shift aktif');
 
@@ -55,12 +59,12 @@ export default function Closing() {
           <h1 className="text-2xl font-bold tracking-tight">{translateUi("Closing Shift")}</h1>
           <p className="text-sm text-muted-foreground mt-1">{translateUi("Rekapitulasi akhir shift kerja")}</p>
         </div>
-        <Button onClick={() => setModalOpen(true)}>{translateUi("Closing Shift Saat Ini")}</Button>
+        <PermissionAction permission="closing.close"><Button onClick={() => setModalOpen(true)}>{translateUi("Closing Shift Saat Ini")}</Button></PermissionAction>
       </div>
 
       <DataTable columns={columns} data={data} loading={loading} pagination={pagination} onPageChange={setPage} onLimitChange={(value) => { setLimit(value); setPage(1); }} />
 
-      <Modal isOpen={modalOpen} onClose={() => setModalOpen(false)} title={translateUi("Konfirmasi Closing Shift")}>
+      <Modal permission="closing.close" isOpen={modalOpen} onClose={() => setModalOpen(false)} title={translateUi("Konfirmasi Closing Shift")}>
         <div className="space-y-4">
           <p className="text-sm text-muted-foreground">{translateUi("Apakah Anda yakin ingin melakukan closing pada shift yang sedang aktif? Tindakan ini tidak dapat dibatalkan.")}</p>
           <div className="flex justify-end gap-2 pt-2">

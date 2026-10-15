@@ -37,7 +37,7 @@ export function useListResourceData({
     seen.add(row.id);
     return true;
   }) : getList(displayResponse);
-  const pagination = getPagination(displayResponse) || emptyPagination;
+  const pagination = { ...(getPagination(displayResponse) || emptyPagination), limit: filters.limit || emptyPagination.limit };
   const loading = mobile ? query.isPending : query.isPending && !hasLoadedOnce;
   const backgroundFetching = hasLoadedOnce && query.isFetching;
   const setSuccessResponse = useCallback(() => {

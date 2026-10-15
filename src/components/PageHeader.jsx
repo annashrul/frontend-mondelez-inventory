@@ -1,3 +1,4 @@
+import { PermissionAction } from '@/components/PermissionAccess';
 import { cn } from '@/lib/utils';
 import { translate as translateUi } from '@/lib/i18n';
 import { useTranslation } from '@/lib/i18n';
@@ -50,10 +51,10 @@ export default function PageHeader({
             </Button>
           )}
           {onAdd && (
-            <Button onClick={onAdd} aria-label={t(addLabel)} className="size-10 shrink-0 px-0 sm:size-auto sm:min-h-9 sm:px-4">
+            <PermissionAction permission="create"><Button onClick={onAdd} aria-label={t(addLabel)} className="size-10 shrink-0 px-0 sm:size-auto sm:min-h-9 sm:px-4">
               <Plus size={16} />
               <span className="hidden sm:inline">{t(addLabel)}</span>
-            </Button>
+            </Button></PermissionAction>
           )}
         </div>
       </div>

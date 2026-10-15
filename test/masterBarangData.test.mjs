@@ -72,3 +72,10 @@ test('desktop items retain the selected numbered page', async () => {
     assert.equal(env.render({ mobile: false }).pagination.page, 4);
   } finally { env.cleanup(); }
 });
+
+test('pending item lists keep the requested page size for loading skeletons', () => {
+  const env = setup(async () => response(1, [], false));
+  try {
+    for (const mobile of [false, true]) assert.equal(env.render({ mobile, limit: 5 }).pagination.limit, 5);
+  } finally { env.cleanup(); }
+});

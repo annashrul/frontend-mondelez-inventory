@@ -13,7 +13,7 @@ import { getBarangStockOptions } from '@/services/barangService';
 export default function AdjustmentStokForm({ open, form, saving, onClose, onSubmit, onFieldChange }) {
   useUiLanguage();
   return (
-    <Modal isOpen={open} onClose={onClose} title={translateUi("Buat Adjustment Stok")}>
+    <Modal permission={'create'} isOpen={open} onClose={onClose} title={translateUi("Buat Adjustment Stok")}>
       <form onSubmit={onSubmit} className="space-y-4">
         <div className="space-y-1.5">
           <Label>{translateUi("Tanggal")}</Label>

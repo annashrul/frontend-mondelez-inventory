@@ -124,3 +124,11 @@ test('successful CRUD mutations invalidate both desktop and accumulated mobile p
     }
   } finally { client.clear(); }
 });
+
+test('pending shared lists keep the requested page size before pagination arrives', () => {
+  const env = setup(async () => response(1, [], false));
+  try {
+    for (const mobile of [false, true]) assert.equal(env.render({ mobile, limit: 5 }).pagination.limit, 5);
+    assert.equal(env.render({ limit: 25 }).pagination.limit, 25);
+  } finally { env.cleanup(); }
+});
