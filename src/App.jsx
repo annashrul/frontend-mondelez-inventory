@@ -1,3 +1,4 @@
+import PwaControls from './components/PwaControls';
 import { translate as translateUi, useTranslation as useUiLanguage } from '@/lib/i18n';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'sonner';
@@ -76,6 +77,7 @@ export default function App() {
           </Route>
         </Routes>
       </BrowserRouter>
+      <PwaControls />
       <Toaster theme={theme} position="top-right" richColors closeButton />
     </AuthProvider>
   );

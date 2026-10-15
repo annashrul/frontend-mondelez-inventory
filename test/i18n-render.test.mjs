@@ -12,6 +12,8 @@ let server;
 let settings;
 let Calendar;
 let AsyncCombobox;
+let PwaControls;
+let pwaStore;
 let DataTable;
 let KartuStokList;
 let SettingsSkeleton;
@@ -33,6 +35,8 @@ before(async () => {
     optimizeDeps: { noDiscovery: true, include: [] },
   });
   settings = (await server.ssrLoadModule('/src/stores/settingsStore.js')).useSettingsStore;
+  PwaControls = (await server.ssrLoadModule('/src/components/PwaControls.jsx')).default;
+  pwaStore = (await server.ssrLoadModule('/src/stores/pwaStore.js')).usePwaStore;
   Calendar = (await server.ssrLoadModule('/src/components/ui/calendar.jsx')).Calendar;
   AsyncCombobox = (await server.ssrLoadModule('/src/components/ui/async-combobox.jsx')).AsyncCombobox;
   DataTable = (await server.ssrLoadModule('/src/components/DataTable.jsx')).default;
@@ -246,4 +250,35 @@ test('stock cards have a mobile card layout, desktop table and working infinite 
   const english = render(KartuStokList, props);
   assert.match(english, /Incoming/);
   assert.match(english, /Load more/);
+});
+
+
+test('PWA notices distinguish install, manual update and offline use in both languages', () => {
+  const initial = pwaStore.getInitialState();
+  const saved = { ...initial };
+  const show = state => {
+    Object.assign(initial, { ...saved, offline: false, installPrompt: null, iosInstall: false, updateAvailable: false }, state);
+    pwaStore.setState(initial, true);
+    return render(PwaControls);
+  };
+  try {
+    setLanguage('id');
+    assert.equal(show({}), '');
+    const ios = show({ iosInstall: true });
+    assert.match(ios, /Tambah ke Layar Utama/);
+    const install = show({ installPrompt: {} });
+    assert.match(install, /Instal aplikasi/);
+    const update = show({ updateAvailable: true, applyUpdate: () => {} });
+    assert.match(update, /Selesaikan pekerjaan Anda/);
+    assert.match(update, /Perbarui aplikasi/);
+    const offline = show({ offline: true, updateAvailable: true });
+    assert.match(offline, /Hubungkan internet/);
+    assert.doesNotMatch(offline, /<button/);
+    setLanguage('en');
+    assert.match(show({ installPrompt: {} }), /Install app/);
+    assert.match(show({ offline: true }), /You are offline/);
+  } finally {
+    Object.assign(initial, saved);
+    pwaStore.setState(saved, true);
+  }
 });

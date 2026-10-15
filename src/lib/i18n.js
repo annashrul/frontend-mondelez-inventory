@@ -1,6 +1,16 @@
 import { useSettingsStore } from '@/stores/settingsStore';
 
 export const english = {
+  "Anda sedang offline": "You are offline",
+  "Versi baru tersedia": "A new version is available",
+  "Instal Mondelez Inventory": "Install Mondelez Inventory",
+  "Hubungkan internet untuk memuat data dan menyimpan transaksi.": "Connect to the internet to load data and save transactions.",
+  "Selesaikan pekerjaan Anda, lalu perbarui aplikasi.": "Finish your work, then update the app.",
+  "Di Safari, buka Bagikan lalu pilih Tambah ke Layar Utama.": "In Safari, open Share and choose Add to Home Screen.",
+  "Akses aplikasi langsung dari layar utama perangkat Anda.": "Access the app directly from your device's home screen.",
+  "Gagal memproses. Silakan coba lagi.": "Unable to process. Please try again.",
+  "Perbarui aplikasi": "Update app",
+  "Instal aplikasi": "Install app",
   "Gagal memuat data": "Failed to load data",
   "Memuat data berikutnya...": "Loading more data...",
   "Semua data sudah ditampilkan": "All data has been displayed",
