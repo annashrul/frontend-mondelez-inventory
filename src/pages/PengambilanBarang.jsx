@@ -1,3 +1,5 @@
+import { useQueryClient } from '@tanstack/react-query';
+import { refreshWithdrawalHistory } from '@/services/withdrawalHistoryService';
 import usePageState from '@/hooks/usePageState';
 import { translate as translateUi, useTranslation as useUiLanguage } from '@/lib/i18n';
 import { useEffect, useRef, useState } from "react";
@@ -87,6 +89,7 @@ function readTransactionDraft() {
 export default function PengambilanBarang() {
   useUiLanguage();
   const { user } = useAuth();
+  const queryClient = useQueryClient();
   const [searchParams, setSearchParams] = useSearchParams();
   const inputRef = useRef(null);
   const draft = readTransactionDraft();
@@ -170,7 +173,6 @@ export default function PengambilanBarang() {
     }));
   }, [flow, form, image, qrCode, results, selected, step, verifiedRack]);
 
-  const loadHistory = () => history.query.refetch();
   useEffect(() => {
     if (history.query.error) toast.error(history.query.error.message || 'Gagal memuat riwayat');
   }, [history.query.error]);
@@ -290,7 +292,11 @@ export default function PengambilanBarang() {
       );
       sessionStorage.removeItem(transactionDraftKey);
       reset();
-      loadHistory();
+      setSearch('');
+      setPage(1);
+      setHistoryLoadingSource(null);
+      await refreshWithdrawalHistory(queryClient, { mobile, limit, userId: user?.id })
+        .catch(() => toast.error('Gagal memuat riwayat'));
     } catch (error) {
       toast.error(error.message);
     } finally {
