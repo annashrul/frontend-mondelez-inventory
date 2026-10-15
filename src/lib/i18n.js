@@ -1,6 +1,27 @@
 import { useSettingsStore } from '@/stores/settingsStore';
 
 export const english = {
+  "Cari Barang": "Find Items",
+  "Cari Barang by Suara": "Find Items by Voice",
+  "Izin mikrofon ditolak. Izinkan mikrofon di pengaturan browser lalu coba lagi.": "Microphone permission denied. Allow the microphone in your browser settings and try again.",
+  "Pencarian suara tidak diizinkan oleh browser ini.": "Voice search is not allowed by this browser.",
+  "Mikrofon tidak tersedia. Periksa mikrofon perangkat Anda.": "Microphone unavailable. Check your device microphone.",
+  "Suara belum terdengar. Silakan coba lagi.": "No speech detected. Please try again.",
+  "Koneksi pencarian suara bermasalah. Periksa internet lalu coba lagi.": "Voice search connection failed. Check your internet connection and try again.",
+  "Bahasa pencarian suara tidak didukung oleh browser ini.": "The voice search language is not supported by this browser.",
+  "Browser ini belum mendukung pencarian suara. Ketik nama barang di bawah.": "This browser does not support voice search. Type an item name below.",
+  "Gagal mengenali suara. Silakan coba lagi.": "Unable to recognize speech. Please try again.",
+  "Gagal membuka mikrofon. Silakan coba lagi.": "Unable to open the microphone. Please try again.",
+  "Mendengarkan... Sebutkan nama atau kode barang.": "Listening... Say the item name or code.",
+  "Sebutkan nama barang. Hasil ucapan bisa dikoreksi sebelum mencari ulang.": "Say the item name. You can edit the transcript before searching again.",
+  "Nama atau kode barang": "Item name or code",
+  "Contoh: modular chain": "Example: modular chain",
+  "Berhenti": "Stop",
+  "Ulangi": "Retry",
+  "Barang tidak ditemukan. Coba sebutkan nama lain atau koreksi pencarian.": "No items found. Try another name or edit your search.",
+  "Pilih salah satu alur. Scan rak, cari barang menggunakan gambar, atau sebutkan nama barang.": "Choose a method. Scan a rack, search using an image, or say the item name.",
+  "Hasil pencarian: {value0}": "Search results: {value0}",
+
   "Anda tidak mempunyai akses": "You do not have permission",
   "Gagal membaca gambar. Gunakan JPEG, PNG, atau WebP.": "Unable to read the image. Use JPEG, PNG, or WebP.",
   "Gagal memproses gambar": "Unable to process the image",

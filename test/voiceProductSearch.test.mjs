@@ -1,0 +1,70 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+
+const source = readFileSync(new URL('../src/components/VoiceProductSearch.jsx', import.meta.url), 'utf8')
+  .replace(/^import .*;\n/gm, '').replace('export default function', 'function');
+const logic = source.slice(0, source.indexOf('  return <div')) + 'return { start, cancel }; }\nreturn VoiceProductSearch;';
+function setup({ unsupported = false, startError = false } = {}) {
+  const calls = { queries: [], searches: [], messages: [], listening: [], aborts: 0 };
+  const cleanups = [];
+  const timers = new Map();
+  let recognition;
+  class Recognition {
+    constructor() { recognition = this; }
+    start() { if (startError) throw new Error('denied'); }
+    abort() { calls.aborts++; this.onend?.(); }
+  }
+  let state = 0;
+  const component = new Function('useState', 'useRef', 'useEffect', 'window', 'document', 'getAppLocale', 'setTimeout', 'clearTimeout', logic)(
+    initial => {
+      const index = state++;
+      return [initial, value => { if (index === 1) calls.listening.push(value); if (index === 2) calls.messages.push(value); }];
+    },
+    current => ({ current }), effect => cleanups.push(effect()),
+    unsupported ? {} : { webkitSpeechRecognition: Recognition },
+    { addEventListener() {}, removeEventListener() {} }, () => 'id-ID',
+    callback => { const id = timers.size + 1; timers.set(id, callback); return id; }, id => timers.delete(id),
+  );
+  const controls = component({ value: '', onChange: value => calls.queries.push(value), onSearch: value => calls.searches.push(value), disabled: false, onListeningChange() {} });
+  return { calls, controls, timers, get recognition() { return recognition; }, unmount: () => cleanups.forEach(cleanup => cleanup?.()) };
+}
+const result = (text, final) => ({ results: [Object.assign([{ transcript: text }], { isFinal: final })] });
+
+test('voice search previews interim text and searches the final transcript exactly once', () => {
+  const env = setup();
+  env.controls.start();
+  assert.equal(env.recognition.lang, 'id-ID');
+  env.recognition.onresult(result('modular', false));
+  assert.deepEqual(env.calls.searches, []);
+  env.recognition.onresult(result(' modular chain ', true));
+  env.recognition.onresult(result('modular chain', true));
+  assert.deepEqual(env.calls.searches, ['modular chain']);
+  assert.equal(env.calls.aborts, 1);
+  assert.equal(env.timers.size, 0);
+});
+
+test('permission errors and unsupported browsers preserve manual search without submitting', () => {
+  const denied = setup(); denied.controls.start();
+  denied.recognition.onerror({ error: 'not-allowed' });
+  assert.match(denied.calls.messages.at(-1), /Izin mikrofon ditolak/);
+  denied.recognition.onresult(result('late result', true));
+  assert.deepEqual(denied.calls.searches, []);
+  const unsupported = setup({ unsupported: true }); unsupported.controls.start();
+  assert.match(unsupported.calls.messages.at(-1), /belum mendukung/);
+  const broken = setup({ startError: true }); broken.controls.start();
+  assert.match(broken.calls.messages.at(-1), /Gagal membuka mikrofon/);
+});
+
+test('cancel, timeout, and unmount release the microphone and ignore late results', () => {
+  for (const action of ['cancel', 'timeout', 'unmount']) {
+    const env = setup(); env.controls.start();
+    if (action === 'cancel') env.controls.cancel();
+    if (action === 'timeout') [...env.timers.values()][0]();
+    if (action === 'unmount') env.unmount();
+    env.recognition.onresult(result('late result', true));
+    assert.deepEqual(env.calls.searches, []);
+    assert.equal(env.calls.aborts, 1);
+    assert.equal(env.timers.size, 0);
+  }
+});

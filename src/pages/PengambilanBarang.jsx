@@ -1,3 +1,4 @@
+import VoiceProductSearch from '@/components/VoiceProductSearch';
 import { recordSearchActivity } from '@/services/activityEvents';
 import { PermissionAction } from '@/components/PermissionAccess';
 import { usePengambilanHistoryStore } from '@/stores/listPageStores';
@@ -15,6 +16,7 @@ import {
   ChevronLeft,
   ChevronRight,
   LoaderCircle,
+  Mic,
   PackageCheck,
   QrCode,
   RotateCcw,
@@ -104,6 +106,8 @@ export default function PengambilanBarang() {
   const search = linkedSearch ?? storedSearch;
   const [appliedLinkSearch, setAppliedLinkSearch] = useState(null);
   const debouncedSearch = useDebounce(search);
+  const [voiceListening, setVoiceListening] = useState(false);
+  const [voiceQuery, setVoiceQuery] = useState(draft?.voiceQuery || "");
   const [image, setImage] = useState(draft?.image || "");
   const [results, setResults] = useState(draft?.results || []);
   const [flow, setFlow] = useState(draft?.flow || "");
@@ -170,7 +174,7 @@ export default function PengambilanBarang() {
     }, { replace: true });
   };
   useEffect(() => {
-    const hasDraft = flow || image || results.length > 0 || selected || qrCode || verifiedRack
+    const hasDraft = flow || voiceQuery || image || results.length > 0 || selected || qrCode || verifiedRack
       || form.pemohon || form.keterangan || form.qty !== emptyForm.qty || step !== 1;
 
     if (!hasDraft) {
@@ -180,6 +184,7 @@ export default function PengambilanBarang() {
 
     sessionStorage.setItem(transactionDraftKey, JSON.stringify({
       image,
+      voiceQuery,
       results,
       flow,
       selected,
@@ -188,7 +193,7 @@ export default function PengambilanBarang() {
       form,
       step,
     }));
-  }, [flow, form, image, qrCode, results, selected, step, verifiedRack]);
+  }, [flow, form, image, qrCode, results, selected, step, verifiedRack, voiceQuery]);
 
   useEffect(() => {
     if (history.query.error) toast.error(history.query.error.message || 'Gagal memuat riwayat');
@@ -217,6 +222,7 @@ export default function PengambilanBarang() {
   };
   const reset = () => {
     sessionStorage.removeItem(transactionDraftKey);
+    setVoiceQuery("");
     setImage("");
     setResults([]);
     setFlow("");
@@ -254,6 +260,28 @@ export default function PengambilanBarang() {
       }
     } catch (error) {
       toast.error(error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+  const searchVoice = async (value) => {
+    const query = value.trim().slice(0, 200);
+    if (!query || loading) return;
+    setVoiceQuery(query);
+    setFlow("voice");
+    setLoading(true);
+    setResults([]);
+    setSelected(null);
+    setVerifiedRack(null);
+    recordSearchActivity(query);
+    try {
+      const response = await api.get('/barang', { params: { search: query, limit: 100 } });
+      const matches = response.data || [];
+      setResults(matches);
+      if (!matches.length) toast.warning('Barang tidak ditemukan. Coba sebutkan nama lain atau koreksi pencarian.');
+      else setStep(2);
+    } catch (error) {
+      toast.error(error.message || 'Gagal memuat data barang');
     } finally {
       setLoading(false);
     }
@@ -386,7 +414,7 @@ export default function PengambilanBarang() {
                 <p className="mx-auto mt-2 max-w-sm text-[13px] leading-5 text-muted-foreground">
                   {loading && flow === "image"
                     ? translateUi("Sedang menganalisis gambar, proses ini bisa memakan waktu sampai 1 menit. Mohon tunggu.")
-                    : translateUi("Pilih salah satu alur. Scan rak untuk melihat semua barang di rak, atau cari barang menggunakan gambar.")}
+                    : translateUi("Pilih salah satu alur. Scan rak, cari barang menggunakan gambar, atau sebutkan nama barang.")}
                 </p>
                 <input
                   ref={inputRef}
@@ -403,7 +431,7 @@ export default function PengambilanBarang() {
                       setFlow("rack");
                       setScannerOpen(true);
                     }}
-                    disabled={loading}
+                    disabled={loading || voiceListening}
                   >
                     <QrCode />{translateUi("Scan Rak")}</Button>
                   <Button
@@ -414,9 +442,10 @@ export default function PengambilanBarang() {
                       setFlow("image");
                       setCameraOpen(true);
                     }}
-                    disabled={loading}
+                    disabled={loading || voiceListening}
                   >
                     <Camera />{translateUi("Cari Barang by Gambar")}</Button>
+                  <VoiceProductSearch value={voiceQuery} onChange={setVoiceQuery} onSearch={searchVoice} onListeningChange={setVoiceListening} disabled={loading} />
                   <Button
                     type="button"
                     className="h-12 rounded-xl text-sm"
@@ -425,7 +454,7 @@ export default function PengambilanBarang() {
                       setFlow("image");
                       inputRef.current?.click();
                     }}
-                    disabled={loading}
+                    disabled={loading || voiceListening}
                   >
                     <Upload />{translateUi("Pilih dari Galeri")}</Button>
                 </div>
@@ -443,13 +472,13 @@ export default function PengambilanBarang() {
                     />
                   ) : (
                     <span className="grid size-16 shrink-0 place-items-center rounded-2xl border bg-primary/10 text-primary">
-                      <QrCode size={28} />
+                      {flow === "voice" ? <Mic size={28} /> : <QrCode size={28} />}
                     </span>
                   )}
                   <div className="min-w-0">
                     <h3 className="text-sm font-semibold">{flow === "rack" ? translateUi("Pilih barang di rak ini") : translateUi("Pilih barang yang sesuai")}</h3>
                     <p className="mt-1 text-xs leading-5 text-muted-foreground">
-                      {flow === "rack" ? translateUi("{value0} berisi {value1} barang.", { value0: verifiedRack?.nama || translateUi("Rak"), value1: formatNumber(results.length) }) : translateUi("Ketuk salah satu hasil identifikasi.")}
+                      {flow === "rack" ? translateUi("{value0} berisi {value1} barang.", { value0: verifiedRack?.nama || translateUi("Rak"), value1: formatNumber(results.length) }) : flow === "voice" ? translateUi("Hasil pencarian: {value0}", { value0: voiceQuery }) : translateUi("Ketuk salah satu hasil identifikasi.")}
                     </p>
                   </div>
                 </div>
@@ -519,7 +548,7 @@ export default function PengambilanBarang() {
                     type="button"
                     className="h-12 flex-[2] rounded-xl sm:flex-none"
                     onClick={() => {
-                      if (flow === "image") setVerifiedRack(selected?.rak_detail || null);
+                      if (flow === "image" || flow === "voice") setVerifiedRack(selected?.rak_detail || null);
                       setStep(4);
                     }}
                     disabled={!selected}
@@ -576,7 +605,7 @@ export default function PengambilanBarang() {
                     type="button"
                     className="h-12 rounded-xl"
                     onClick={() => setScannerOpen(true)}
-                    disabled={loading}
+                    disabled={loading || voiceListening}
                   >
                     <Camera />{translateUi("Scan dengan Kamera")}</Button>
                   <Button
@@ -697,7 +726,7 @@ export default function PengambilanBarang() {
                   <Button
                     type="submit"
                     className="h-12 rounded-xl sm:justify-self-end"
-                    disabled={loading}
+                    disabled={loading || voiceListening}
                   >
                     <PackageCheck />
                     {loading ? translateUi("Menyimpan...") : translateUi("Konfirmasi Pengambilan")}
