@@ -1,6 +1,7 @@
+import { loginDestination } from '@/lib/loginDestination';
 import PwaControls from './components/PwaControls';
 import { translate as translateUi, useTranslation as useUiLanguage } from '@/lib/i18n';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { Toaster } from 'sonner';
 import { useSettingsStore } from './stores/settingsStore';
 import { AuthProvider, useAuth } from './context/AuthContext';
@@ -24,6 +25,7 @@ import { canAccess } from './lib/permissions';
 import MasterPengguna from './pages/masterPengguna';
 
 function ProtectedRoute({ children }) {
+  const location = useLocation();
   useUiLanguage();
   const { user, loading } = useAuth();
   if (loading) return (
@@ -34,7 +36,7 @@ function ProtectedRoute({ children }) {
       </div>
     </div>
   );
-  return user ? children : <Navigate to="/login" />;
+  return user ? children : <Navigate to="/login" state={{ from: location }} replace />;
 }
 
 function AuthorizedRoute({ permission, children }) {
@@ -44,10 +46,11 @@ function AuthorizedRoute({ permission, children }) {
 }
 
 function PublicRoute({ children }) {
+  const location = useLocation();
   useUiLanguage();
   const { user, loading } = useAuth();
   if (loading) return null;
-  return user ? <Navigate to="/" /> : children;
+  return user ? <Navigate to={loginDestination(location.state?.from)} replace /> : children;
 }
 
 export default function App() {

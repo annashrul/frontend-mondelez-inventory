@@ -97,7 +97,10 @@ export default function PengambilanBarang() {
   const inputRef = useRef(null);
   const draft = readTransactionDraft();
   const mobile = useIsMobile();
-  const [search, setSearch] = usePageState('PengambilanBarang.jsx:search', "");
+  const [storedSearch, setSearch] = usePageState('PengambilanBarang.jsx:search', "");
+  const linkedSearch = searchParams.get('search');
+  const search = linkedSearch ?? storedSearch;
+  const [appliedLinkSearch, setAppliedLinkSearch] = useState(null);
   const debouncedSearch = useDebounce(search);
   const [image, setImage] = useState(draft?.image || "");
   const [results, setResults] = useState(draft?.results || []);
@@ -115,7 +118,8 @@ export default function PengambilanBarang() {
     if (Number.isInteger(value) && value >= 1 && value <= steps.length) return value;
     return Number.isInteger(draft?.step) && draft.step >= 1 && draft.step <= steps.length ? draft.step : 1;
   });
-  const { page, limit, setPage, setLimit } = usePengambilanHistoryStore();
+  const { page: storedPage, limit, setPage, setLimit } = usePengambilanHistoryStore();
+  const page = linkedSearch !== null && appliedLinkSearch !== linkedSearch ? 1 : storedPage;
   const history = useListResourceData({
     queryKey: 'pengambilan-history',
     mobile,
@@ -129,11 +133,19 @@ export default function PengambilanBarang() {
   const historyPageLoadingDirection = history.pageLoadingDirection;
   const historyLimitLoading = history.limitLoading;
   const canCreate = canAccess(user, "pengambilan.create");
-  const [activeTab, setActiveTabState] = usePageState('PengambilanBarang.jsx:activeTab', () => {
+  const [storedActiveTab, setActiveTabState] = usePageState('PengambilanBarang.jsx:activeTab', () => {
     const value = searchParams.get("tab");
     if (!canCreate) return "riwayat";
     return value === "riwayat" ? "riwayat" : "transaksi";
   });
+  const activeTab = linkedSearch !== null || searchParams.get('tab') === 'riwayat' ? 'riwayat' : storedActiveTab;
+  useEffect(() => {
+    if (linkedSearch === null) { setAppliedLinkSearch(null); return; }
+    setAppliedLinkSearch(linkedSearch);
+    setSearch(linkedSearch);
+    setActiveTabState('riwayat');
+    setPage(1);
+  }, [linkedSearch, setSearch, setActiveTabState, setPage]);
   const setStep = (nextStep) => {
     const value = Number(nextStep);
     if (!Number.isInteger(value) || value < 1 || value > steps.length) return;
@@ -151,6 +163,7 @@ export default function PengambilanBarang() {
     setSearchParams((current) => {
       const next = new URLSearchParams(current);
       next.set("tab", value);
+      if (value === "transaksi") next.delete("search");
       return next;
     }, { replace: true });
   };
@@ -181,6 +194,13 @@ export default function PengambilanBarang() {
   const handleHistorySearchChange = (value) => {
     setHistoryLoadingSource({ type: "search" });
     setSearch(value);
+    if (linkedSearch !== null) {
+      setSearchParams(current => {
+        const next = new URLSearchParams(current);
+        next.set('search', value);
+        return next;
+      }, { replace: true });
+    }
     setPage(1);
   };
   const handleHistoryPageChange = (nextPage) => {
