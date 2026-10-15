@@ -5,7 +5,7 @@ import PageHeader from '@/components/PageHeader';
 import usePageState from '@/hooks/usePageState';
 import { useTranslation } from '@/lib/i18n';
 import { useSettingsStore } from '@/stores/settingsStore';
-import { useLayoutEffect, useRef, useState } from 'react';
+import { useState } from 'react';
 import { Printer, QrCode, LoaderCircle } from 'lucide-react';
 import { useQrRackData } from '@/hooks/useQrRackData';
 import { useAuth } from '@/context/AuthContext';
@@ -22,18 +22,6 @@ function rackLocation(rack) {
 
 export default function CetakBarcode() {
   const { t } = useTranslation();
-  const pageRef = useRef(null);
-  useLayoutEffect(() => {
-    const page = pageRef.current;
-    const toolbar = page?.querySelector('.mobile-sticky-toolbar');
-    if (!toolbar) return;
-    const measure = () => page.style.setProperty('--qr-toolbar-height', `${toolbar.getBoundingClientRect().height}px`);
-    measure();
-    const observer = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(measure) : null;
-    observer?.observe(toolbar);
-    window.addEventListener('resize', measure);
-    return () => { observer?.disconnect(); window.removeEventListener('resize', measure); };
-  }, []);
   const company = useSettingsStore(state => state.settings);
   const { user } = useAuth();
   const { query, racks, loading } = useQrRackData(user?.id);
@@ -47,7 +35,7 @@ export default function CetakBarcode() {
   const printReady = selected.length > 0 && selected.every(rack => loadedCodes.has(rack.qr_code));
 
   return (
-    <div ref={pageRef} className="qr-print-view">
+    <div className="qr-print-view">
       <PageHeader
         title={t('Cetak QR Rak')}
         subtitle={t('Satu QR per halaman, diletakkan di tengah kertas A4.')}
