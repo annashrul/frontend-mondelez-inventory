@@ -1,3 +1,4 @@
+import { Skeleton } from '@/components/ui/skeleton';
 import { translate as translateUi } from '@/lib/i18n';
 import { useTranslation } from '@/lib/i18n';
 import { useEffect, useRef, useState } from 'react';
@@ -114,7 +115,19 @@ export default function Header() {
                 ))
               )}
               {(loading || loadingMore) && (
-                <div role="status" className="px-4 py-3 text-center text-xs text-muted-foreground">{t("Memuat notifikasi...")}</div>
+                <div role="status" aria-label={t('Memuat notifikasi...')}>
+                  {Array.from({ length: loading ? 3 : 2 }, (_, index) => (
+                    <div key={index} aria-hidden="true" className="flex gap-3 border-b px-4 py-3 last:border-b-0">
+                      <Skeleton className="mt-1 size-2 shrink-0 rounded-full" />
+                      <div className="min-w-0 flex-1 space-y-2">
+                        <Skeleton className="h-4 w-2/3" />
+                        <Skeleton className="h-3 w-full" />
+                        <Skeleton className="h-3 w-4/5" />
+                        <Skeleton className="h-3 w-12" />
+                      </div>
+                    </div>
+                  ))}
+                </div>
               )}
               {error && (
                 <div role="alert" className="px-4 py-3 text-center text-xs">
@@ -123,7 +136,7 @@ export default function Header() {
                 </div>
               )}
               {hasMore && !error && <div ref={sentinelRef} className="h-1" aria-hidden="true" />}
-              {!hasMore && items.length > 0 && !loading && (
+              {!hasMore && items.length > 0 && !loading && !loadingMore && (
                 <div className="px-4 py-3 text-center text-xs text-muted-foreground">{t("Semua notifikasi sudah ditampilkan")}</div>
               )}
             </div>

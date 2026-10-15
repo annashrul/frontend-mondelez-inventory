@@ -211,6 +211,8 @@ test('infinite lists keep cumulative numbering and replace page controls with lo
   const pending = render(DataTable, { ...props, infiniteScroll: { query, loadingMore: true } });
   assert.match(pending, /role="status"/);
   assert.match(pending, /Memuat data berikutnya/);
+  assert.match(pending, /shimmer_1.5s_infinite/);
+  assert.doesNotMatch(pending, /animate-spin/);
   const failed = render(DataTable, { ...props, infiniteScroll: { query: { ...query, isError: true } } });
   assert.match(failed, /Cadbury/);
   assert.match(failed, /Coba lagi/);
