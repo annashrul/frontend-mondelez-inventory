@@ -231,6 +231,15 @@
     z-index: 30;
     background: var(--background);
     padding-block: 0.75rem;
+  }
+
+  .mobile-sticky-toolbar::before {
+    content: '';
+    position: absolute;
+    inset-block: 0;
+    inset-inline: calc(50% - 50vw);
+    z-index: -1;
+    background: var(--background);
     box-shadow: 0 8px 12px -12px rgb(0 0 0 / 0.3);
   }
 
