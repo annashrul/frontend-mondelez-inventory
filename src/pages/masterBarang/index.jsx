@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import PageHeader from '@/components/PageHeader';
 import { toast } from '@/lib/toast';
+import useIsMobile from '@/hooks/useIsMobile';
 import useDebounce from '@/hooks/useDebounce';
 import { useMasterBarangData } from '@/hooks/useMasterBarangData';
 import { useMasterBarangStore } from '@/stores/masterBarangStore';
@@ -31,6 +32,7 @@ export default function MasterBarang() {
     openEdit: openEditStore,
     closeModal: closeModalStore,
   } = useMasterBarangStore();
+  const mobile = useIsMobile();
   const debouncedSearch = useDebounce(search);
   const [imageFile, setImageFile] = useState(null);
   const [preview, setPreview] = useState('');
@@ -67,6 +69,9 @@ export default function MasterBarang() {
 
   const {
     query: barangQuery,
+    hasNext,
+    loadingMore,
+    loadMore,
     data,
     pagination,
     loading,
@@ -77,6 +82,7 @@ export default function MasterBarang() {
     deleteMutation,
     setSuccessResponse,
   } = useMasterBarangData({
+    mobile,
     search: debouncedSearch,
     searchDebouncing: search !== debouncedSearch,
     page,
@@ -141,6 +147,12 @@ export default function MasterBarang() {
         onSearchChange={setSearch}
       />
       <MasterBarangList
+        mobile={mobile}
+        query={barangQuery}
+        hasNext={hasNext}
+        loadingMore={loadingMore}
+        loadMore={loadMore}
+        searchDebouncing={search !== debouncedSearch}
         data={data}
         loading={loading}
         onEdit={openEdit}

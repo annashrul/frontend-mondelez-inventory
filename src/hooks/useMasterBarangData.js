@@ -1,5 +1,5 @@
 import { useCallback } from 'react';
-import { useMutation, useQuery, useQueryClient, keepPreviousData } from '@tanstack/react-query';
+import { useInfiniteQuery, useMutation, useQuery, useQueryClient, keepPreviousData } from '@tanstack/react-query';
 import { emptyPagination, getList, getPagination } from '@/services/api';
 import { createBarang, deleteBarang, getBarangList, updateBarang } from '@/services/barangService';
 
@@ -21,6 +21,7 @@ function buildBarangPayload(form, imageFile) {
 export function useMasterBarangData({
   search,
   searchDebouncing = false,
+  mobile = false,
   page,
   limit,
   form,
@@ -34,15 +35,34 @@ export function useMasterBarangData({
   onDeleteSuccess,
 }) {
   const queryClient = useQueryClient();
-  const query = useQuery({
+  const pagedQuery = useQuery({
+    enabled: !mobile,
     queryKey: [...barangQueryKey, { search, page, limit }],
-    queryFn: () => getBarangList({ search, page, limit }),
+    queryFn: ({ signal }) => getBarangList({ search, page, limit }, { signal }),
     placeholderData: keepPreviousData,
   });
-  const displayResponse = query.data || lastResponse;
-  const data = getList(displayResponse);
+  const infiniteQuery = useInfiniteQuery({
+    queryKey: [...barangQueryKey, 'infinite', { search, limit }],
+    enabled: mobile,
+    initialPageParam: 1,
+    queryFn: ({ pageParam, signal }) => getBarangList({ search, page: pageParam, limit }, { signal }),
+    getNextPageParam: (lastPage) => {
+      const pagination = getPagination(lastPage);
+      return pagination.has_next ? pagination.page + 1 : undefined;
+    },
+  });
+  const query = mobile ? infiniteQuery : pagedQuery;
+  const displayResponse = mobile ? infiniteQuery.data?.pages?.[0] : pagedQuery.data || lastResponse;
+  const seen = new Set();
+  const data = mobile
+    ? (infiniteQuery.data?.pages || []).flatMap(getList).filter((row) => {
+      if (seen.has(row.id)) return false;
+      seen.add(row.id);
+      return true;
+    })
+    : getList(displayResponse);
   const pagination = getPagination(displayResponse) || emptyPagination;
-  const loading = query.isPending && !hasLoadedOnce;
+  const loading = mobile ? infiniteQuery.isPending : query.isPending && !hasLoadedOnce;
   const backgroundFetching = hasLoadedOnce && query.isFetching;
 
   const saveMutation = useMutation({
@@ -65,15 +85,18 @@ export function useMasterBarangData({
   });
 
   const setSuccessResponse = useCallback(() => {
-    if (query.data && !query.isPlaceholderData) onSuccessResponse?.(query.data);
-  }, [onSuccessResponse, query.data, query.isPlaceholderData]);
+    if (!mobile && query.data && !query.isPlaceholderData) onSuccessResponse?.(query.data);
+  }, [mobile, onSuccessResponse, query.data, query.isPlaceholderData]);
 
   return {
     query,
     data,
     pagination,
     loading,
-    searchLoading: hasLoadedOnce && (searchDebouncing || (backgroundFetching && loadingSource?.type === 'search')),
+    hasNext: Boolean(infiniteQuery.hasNextPage),
+    loadingMore: infiniteQuery.isFetchingNextPage,
+    loadMore: () => infiniteQuery.fetchNextPage({ cancelRefetch: false }),
+    searchLoading: mobile ? searchDebouncing || (query.isFetching && !query.isFetchingNextPage) : hasLoadedOnce && (searchDebouncing || (backgroundFetching && loadingSource?.type === 'search')),
     pageLoadingDirection: backgroundFetching && loadingSource?.type === 'page' ? loadingSource.direction : null,
     limitLoading: backgroundFetching && loadingSource?.type === 'limit',
     saveMutation,

@@ -1,6 +1,10 @@
 import { useSettingsStore } from '@/stores/settingsStore';
 
 export const english = {
+  "Gagal memuat data barang": "Failed to load items",
+  "Memuat barang berikutnya...": "Loading more items...",
+  "Muat lebih banyak": "Load more",
+  "Semua barang sudah ditampilkan": "All items have been displayed",
   "Perubahan diterapkan setelah klik Simpan dan berlaku untuk seluruh pengguna.": "Changes apply after saving and affect all users.",
   "Masukkan 5–100 item per halaman.": "Enter 5–100 items per page.",
   "Item per halaman harus bilangan bulat antara 5 dan 100": "Items per page must be an integer between 5 and 100",

@@ -6,8 +6,8 @@ function uploadConfig(payload) {
   return payload instanceof FormData ? { timeout: uploadTimeout } : undefined;
 }
 
-export function getBarangList(params) {
-  return api.get('/barang', { params });
+export function getBarangList(params, { signal } = {}) {
+  return api.get('/barang', { params, signal });
 }
 
 export function createBarang(payload) {
