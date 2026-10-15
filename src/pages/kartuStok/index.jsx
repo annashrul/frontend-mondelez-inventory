@@ -4,6 +4,7 @@ import { Check, Filter } from 'lucide-react';
 import { toast } from '@/lib/toast';
 import PageHeader from '@/components/PageHeader';
 import { useListResourceData } from '@/hooks/useListResourceData';
+import useIsMobile from '@/hooks/useIsMobile';
 import useDebounce from '@/hooks/useDebounce';
 import { createCrudService } from '@/services/crudService';
 import { useKartuStokStore } from '@/stores/listPageStores';
@@ -17,8 +18,10 @@ const stockTypes = ['Semua', 'Masuk', 'Keluar'];
 export default function KartuStok() {
   useUiLanguage();
   const store = useKartuStokStore();
+  const mobile = useIsMobile();
   const debouncedSearch = useDebounce(store.search);
   const resource = useListResourceData({
+    mobile,
     queryKey: 'kartu-stok',
     params: {
       search: debouncedSearch,
@@ -72,6 +75,7 @@ export default function KartuStok() {
         )}
       />
       <KartuStokList
+        infiniteScroll={resource.infiniteScroll}
         data={resource.data}
         loading={resource.loading}
         pagination={resource.pagination}

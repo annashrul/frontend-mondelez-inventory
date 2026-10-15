@@ -30,6 +30,7 @@ export default function MasterLokasi() {
         onSearchChange={page.setSearch}
       />
       <MasterLokasiList
+        infiniteScroll={page.infiniteScroll}
         data={page.data}
         loading={page.loading}
         onEdit={page.openEdit}

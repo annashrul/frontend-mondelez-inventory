@@ -1,9 +1,9 @@
-import { useCallback } from 'react';
-import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { emptyPagination, getList, getPagination } from '@/services/api';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useListResourceData } from '@/hooks/useListResourceData';
 
 export function useCrudResourceData({
   queryKey,
+  mobile = false,
   params,
   form,
   editId,
@@ -20,16 +20,9 @@ export function useCrudResourceData({
   onDeleteSuccess,
 }) {
   const queryClient = useQueryClient();
-  const query = useQuery({
-    queryKey: [queryKey, params],
-    queryFn: () => listFn(params),
-    placeholderData: keepPreviousData,
+  const resource = useListResourceData({
+    queryKey, mobile, params, lastResponse, hasLoadedOnce, loadingSource, listFn, onSuccessResponse,
   });
-  const displayResponse = query.data || lastResponse;
-  const data = getList(displayResponse);
-  const pagination = getPagination(displayResponse) || emptyPagination;
-  const loading = query.isPending && !hasLoadedOnce;
-  const backgroundFetching = hasLoadedOnce && query.isFetching;
 
   const saveMutation = useMutation({
     mutationFn: () => {
@@ -50,20 +43,5 @@ export function useCrudResourceData({
     },
   });
 
-  const setSuccessResponse = useCallback(() => {
-    if (query.data && !query.isPlaceholderData) onSuccessResponse?.(query.data);
-  }, [onSuccessResponse, query.data, query.isPlaceholderData]);
-
-  return {
-    query,
-    data,
-    pagination,
-    loading,
-    searchLoading: hasLoadedOnce && (params?.searchDebouncing || (backgroundFetching && loadingSource?.type === 'search')),
-    pageLoadingDirection: backgroundFetching && loadingSource?.type === 'page' ? loadingSource.direction : null,
-    limitLoading: backgroundFetching && loadingSource?.type === 'limit',
-    saveMutation,
-    deleteMutation,
-    setSuccessResponse,
-  };
+  return { ...resource, saveMutation, deleteMutation };
 }

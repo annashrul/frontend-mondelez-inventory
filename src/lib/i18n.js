@@ -1,6 +1,9 @@
 import { useSettingsStore } from '@/stores/settingsStore';
 
 export const english = {
+  "Gagal memuat data": "Failed to load data",
+  "Memuat data berikutnya...": "Loading more data...",
+  "Semua data sudah ditampilkan": "All data has been displayed",
   "Gagal memuat data barang": "Failed to load items",
   "Memuat barang berikutnya...": "Loading more items...",
   "Muat lebih banyak": "Load more",

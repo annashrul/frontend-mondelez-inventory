@@ -71,7 +71,6 @@ export default function MasterBarang() {
     query: barangQuery,
     hasNext,
     loadingMore,
-    loadMore,
     data,
     pagination,
     loading,
@@ -151,7 +150,6 @@ export default function MasterBarang() {
         query={barangQuery}
         hasNext={hasNext}
         loadingMore={loadingMore}
-        loadMore={loadMore}
         searchDebouncing={search !== debouncedSearch}
         data={data}
         loading={loading}

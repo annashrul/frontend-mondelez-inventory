@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { toast } from '@/lib/toast';
 import { useMutation } from '@tanstack/react-query';
+import useIsMobile from '@/hooks/useIsMobile';
 import useDebounce from '@/hooks/useDebounce';
 import { useCrudResourceData } from '@/hooks/useCrudResourceData';
 
@@ -12,8 +13,10 @@ export function useCrudPageController({
   mapPayload,
 }) {
   const state = store();
+  const mobile = useIsMobile();
   const debouncedSearch = useDebounce(state.search);
   const resource = useCrudResourceData({
+    mobile,
     queryKey,
     params: {
       search: debouncedSearch,

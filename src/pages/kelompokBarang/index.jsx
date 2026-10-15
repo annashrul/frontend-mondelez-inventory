@@ -30,6 +30,7 @@ export default function KelompokBarang() {
         onSearchChange={page.setSearch}
       />
       <KelompokBarangList
+        infiniteScroll={page.infiniteScroll}
         data={page.data}
         loading={page.loading}
         onEdit={page.openEdit}

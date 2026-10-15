@@ -41,6 +41,7 @@ export default function MasterRak() {
         onSearchChange={page.setSearch}
       />
       <MasterRakList
+        infiniteScroll={page.infiniteScroll}
         data={page.data}
         loading={page.loading}
         onShowQr={setQrTarget}

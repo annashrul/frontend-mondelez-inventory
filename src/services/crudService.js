@@ -2,7 +2,7 @@ import api, { getList } from '@/services/api';
 
 export function createCrudService(endpoint) {
   return {
-    list: (params) => api.get(`/${endpoint}`, { params }),
+    list: (params, { signal } = {}) => api.get(`/${endpoint}`, { params, signal }),
     create: (payload) => api.post(`/${endpoint}`, payload),
     update: (id, payload) => api.put(`/${endpoint}/${id}`, payload),
     remove: (id) => api.delete(`/${endpoint}/${id}`),

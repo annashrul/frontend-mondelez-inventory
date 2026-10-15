@@ -28,9 +28,14 @@ import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/context/AuthContext";
 import { canAccess } from "@/lib/permissions";
+import useIsMobile from '@/hooks/useIsMobile';
+import { useListResourceData } from '@/hooks/useListResourceData';
+import { createCrudService } from '@/services/crudService';
 import useDebounce from "@/hooks/useDebounce";
 import { parseNumberInput } from "@/lib/utils";
-import api, { aiSearchTimeout, emptyPagination, getList, getPagination } from "@/services/api";
+import api, { aiSearchTimeout } from "@/services/api";
+
+const historyService = createCrudService('pengambilan');
 
 const columns = [
   {
@@ -84,7 +89,7 @@ export default function PengambilanBarang() {
   const [searchParams, setSearchParams] = useSearchParams();
   const inputRef = useRef(null);
   const draft = readTransactionDraft();
-  const [data, setData] = useState([]);
+  const mobile = useIsMobile();
   const [search, setSearch] = useState("");
   const debouncedSearch = useDebounce(search);
   const [image, setImage] = useState(draft?.image || "");
@@ -95,8 +100,6 @@ export default function PengambilanBarang() {
   const [verifiedRack, setVerifiedRack] = useState(draft?.verifiedRack || null);
   const [form, setForm] = useState({ ...emptyForm, ...(draft?.form || {}) });
   const [loading, setLoading] = useState(false);
-  const [historyLoading, setHistoryLoading] = useState(true);
-  const [historyHasLoadedOnce, setHistoryHasLoadedOnce] = useState(false);
   const [historyLoadingSource, setHistoryLoadingSource] = useState(null);
   const [scannerOpen, setScannerOpen] = useState(false);
   const [cameraOpen, setCameraOpen] = useState(false);
@@ -107,16 +110,18 @@ export default function PengambilanBarang() {
   });
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
-  const [pagination, setPagination] = useState(emptyPagination);
-  const historyTableLoading = historyLoading && !historyHasLoadedOnce;
-  const historySearchLoading = historyHasLoadedOnce && (
-    search !== debouncedSearch ||
-    (historyLoading && historyLoadingSource?.type === "search")
-  );
-  const historyPageLoadingDirection = historyHasLoadedOnce && historyLoading && historyLoadingSource?.type === "page"
-    ? historyLoadingSource.direction
-    : null;
-  const historyLimitLoading = historyHasLoadedOnce && historyLoading && historyLoadingSource?.type === "limit";
+  const history = useListResourceData({
+    queryKey: 'pengambilan-history',
+    mobile,
+    params: { search: debouncedSearch, searchDebouncing: search !== debouncedSearch, page, limit, userId: user?.id },
+    listFn: ({ userId: _userId, ...params }, options) => historyService.list(params, options),
+    hasLoadedOnce: true,
+    loadingSource: historyLoadingSource,
+  });
+  const historyTableLoading = history.loading || (!history.data.length && history.query.isPending);
+  const historySearchLoading = history.searchLoading;
+  const historyPageLoadingDirection = history.pageLoadingDirection;
+  const historyLimitLoading = history.limitLoading;
   const canCreate = canAccess(user, "pengambilan.create");
   const [activeTab, setActiveTabState] = useState(() => {
     const value = searchParams.get("tab");
@@ -164,51 +169,10 @@ export default function PengambilanBarang() {
     }));
   }, [flow, form, image, qrCode, results, selected, step, verifiedRack]);
 
-  const loadHistory = () => {
-    setHistoryLoading(true);
-    setHistoryLoadingSource(null);
-    return (
-    api
-      .get("/pengambilan", { params: { search: debouncedSearch, page, limit } })
-      .then((response) => {
-        setData(getList(response));
-        setPagination(getPagination(response));
-        setHistoryHasLoadedOnce(true);
-      })
-      .catch(() => toast.error("Gagal memuat riwayat"))
-      .finally(() => {
-        setHistoryLoading(false);
-        setHistoryLoadingSource(null);
-      })
-    );
-  };
+  const loadHistory = () => history.query.refetch();
   useEffect(() => {
-    let active = true;
-
-    async function fetchHistory() {
-      setHistoryLoading(true);
-      try {
-        const history = await api.get("/pengambilan", { params: { search: debouncedSearch, page, limit } });
-        if (active) {
-          setData(getList(history));
-          setPagination(getPagination(history));
-          setHistoryHasLoadedOnce(true);
-        }
-      } catch {
-        if (active) toast.error("Gagal memuat riwayat");
-      } finally {
-        if (active) {
-          setHistoryLoading(false);
-          setHistoryLoadingSource(null);
-        }
-      }
-    }
-
-    fetchHistory();
-    return () => {
-      active = false;
-    };
-  }, [debouncedSearch, page, limit]);
+    if (history.query.error) toast.error(history.query.error.message || 'Gagal memuat riwayat');
+  }, [history.query.error]);
   const handleHistorySearchChange = (value) => {
     setHistoryLoadingSource({ type: "search" });
     setSearch(value);
@@ -728,9 +692,10 @@ export default function PengambilanBarang() {
             <CardContent>
               <DataTable
                 columns={columns}
-                data={data}
+                data={history.data}
+                infiniteScroll={history.infiniteScroll}
                 loading={historyTableLoading}
-                pagination={pagination}
+                pagination={history.pagination}
                 onPageChange={handleHistoryPageChange}
                 onLimitChange={handleHistoryLimitChange}
                 pageLoadingDirection={historyPageLoadingDirection}

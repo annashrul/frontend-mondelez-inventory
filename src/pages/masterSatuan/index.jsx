@@ -30,6 +30,7 @@ export default function MasterSatuan() {
         onSearchChange={page.setSearch}
       />
       <MasterSatuanList
+        infiniteScroll={page.infiniteScroll}
         data={page.data}
         loading={page.loading}
         onEdit={page.openEdit}

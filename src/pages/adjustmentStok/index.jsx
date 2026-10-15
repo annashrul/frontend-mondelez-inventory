@@ -30,6 +30,7 @@ export default function AdjustmentStok() {
         onSearchChange={page.setSearch}
       />
       <AdjustmentStokList
+        infiniteScroll={page.infiniteScroll}
         data={page.data}
         loading={page.loading}
         pagination={page.pagination}

@@ -35,6 +35,7 @@ export default function MasterPengguna() {
         onSearchChange={page.setSearch}
       />
       <MasterPenggunaList
+        infiniteScroll={page.infiniteScroll}
         data={page.data}
         loading={page.loading}
         onEdit={page.openEdit}

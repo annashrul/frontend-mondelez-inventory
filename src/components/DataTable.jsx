@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import DeleteConfirmDialog from '@/components/DeleteConfirmDialog';
+import InfiniteScrollFooter from '@/components/InfiniteScrollFooter';
 import Pagination from '@/components/Pagination';
 import { cn } from '@/lib/utils';
 
@@ -19,10 +20,10 @@ function fixedColumnClass(fixed, header = false) {
   );
 }
 
-export default function DataTable({ columns, data, loading = false, onEdit, onDelete, actions, pagination, onPageChange, onLimitChange, pageLoadingDirection, limitLoading, deleteLabel, actionColumnFixed }) {
+export default function DataTable({ columns, data, loading = false, onEdit, onDelete, actions, pagination, onPageChange, onLimitChange, pageLoadingDirection, limitLoading, deleteLabel, actionColumnFixed, infiniteScroll }) {
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [deleting, setDeleting] = useState(false);
-  const rowOffset = pagination ? ((pagination.page || 1) - 1) * (pagination.limit || 10) : 0;
+  const rowOffset = pagination && !infiniteScroll ? ((pagination.page || 1) - 1) * (pagination.limit || 10) : 0;
   const targetName = deleteTarget ? deleteLabel?.(deleteTarget) || deleteTarget.nama || deleteTarget.kode || deleteTarget.username || deleteTarget.no_ref : '';
   const confirmDelete = async () => {
     if (!deleteTarget || !onDelete) return;
@@ -131,11 +132,12 @@ export default function DataTable({ columns, data, loading = false, onEdit, onDe
         </article>
       )) : data.length === 0 ? <div className="flex min-h-40 flex-col items-center justify-center gap-2 rounded-2xl border bg-card text-muted-foreground"><Inbox className="h-10 w-10" /><p className="text-sm">{t("Belum ada data")}</p></div> : data.map((row, index) => <article key={row.id || index} className="rounded-2xl border bg-card p-4 shadow-sm"><div className="mb-3 flex items-center justify-between"><span className="rounded-full bg-primary/10 px-2.5 py-1 text-xs font-semibold text-primary">#{rowOffset + index + 1}</span></div><dl className="space-y-2.5">{columns.map((col, colIndex) => <div key={col.key} className={colIndex === 0 ? 'pb-1' : 'grid grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)] gap-3'}>{colIndex !== 0 && <dt className="text-xs text-muted-foreground">{t(col.label)}</dt>}<dd className={colIndex === 0 ? 'text-base font-semibold' : 'min-w-0 text-right text-sm font-medium break-words'}>{col.render ? col.render(row[col.key], row) : row[col.key]}</dd></div>)}</dl>{renderActions(row, true)}</article>)}
     </div>
-    {pagination && (
+    {pagination && !infiniteScroll && (
       <div className="mt-4">
         <Pagination pagination={pagination} onPageChange={onPageChange} onLimitChange={onLimitChange} pageLoadingDirection={pageLoadingDirection} limitLoading={limitLoading} />
       </div>
     )}
+    {infiniteScroll && !loading && <InfiniteScrollFooter {...infiniteScroll} count={data.length} />}
     <DeleteConfirmDialog
       open={Boolean(deleteTarget)}
       onOpenChange={(open) => {

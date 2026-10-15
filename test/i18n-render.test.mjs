@@ -190,3 +190,28 @@ test('dashboard uses the period-specific cached API response and removes unsuppo
     assert.doesNotMatch(html, /\+12%|\+8%|\+3%|\+5%/);
   } finally { client.clear(); }
 });
+
+test('infinite lists keep cumulative numbering and replace page controls with loading, retry and end states', () => {
+  setLanguage('id');
+  const props = {
+    columns: [{ key: 'nama', label: 'Nama' }], data: [{ id: 1, nama: 'Oreo' }, { id: 2, nama: 'Cadbury' }],
+    pagination: { page: 3, limit: 10, total: 30, total_pages: 3 },
+  };
+  const query = { isFetching: false, isError: false };
+  const mobile = render(DataTable, { ...props, infiniteScroll: { query, hasNext: true } });
+  assert.match(mobile, /#1</);
+  assert.match(mobile, /#2</);
+  assert.match(mobile, /Muat lebih banyak/);
+  assert.doesNotMatch(mobile, /Halaman berikutnya/);
+  const desktop = render(DataTable, props);
+  assert.match(desktop, /#21</);
+  assert.match(desktop, /Halaman berikutnya/);
+  const pending = render(DataTable, { ...props, infiniteScroll: { query, loadingMore: true } });
+  assert.match(pending, /role="status"/);
+  assert.match(pending, /Memuat data berikutnya/);
+  const failed = render(DataTable, { ...props, infiniteScroll: { query: { ...query, isError: true } } });
+  assert.match(failed, /Cadbury/);
+  assert.match(failed, /Coba lagi/);
+  const complete = render(DataTable, { ...props, infiniteScroll: { query, hasNext: false } });
+  assert.match(complete, /Semua data sudah ditampilkan/);
+});

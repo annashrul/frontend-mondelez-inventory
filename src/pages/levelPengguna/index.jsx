@@ -43,6 +43,7 @@ export default function LevelPengguna() {
         onSearchChange={page.setSearch}
       />
       <LevelPenggunaList
+        infiniteScroll={page.infiniteScroll}
         data={page.data}
         loading={page.loading}
         onEdit={openEdit}
