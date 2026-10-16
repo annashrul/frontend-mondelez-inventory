@@ -99,7 +99,7 @@ export default function DataTable({ columns, data, loading = false, onEdit, onDe
           ) : (
             data.map((row, index) => (
               <TableRow key={row.id || index}>
-                <TableCell className={cn('text-muted-foreground', fixedColumnClass('left'))}>{formatNumber(rowOffset + index + 1)}</TableCell>
+                <TableCell className={cn('text-muted-foreground text-center', fixedColumnClass('left'))}>{formatNumber(rowOffset + index + 1)}</TableCell>
                 {columns.map((col) => (
                   <TableCell key={col.key} className={fixedColumnClass(col.fixed)}>
                     {col.render ? col.render(row[col.key], row) : formatTableValue(col.key, row[col.key])}
