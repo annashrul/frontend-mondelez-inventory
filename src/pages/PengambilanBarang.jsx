@@ -275,7 +275,7 @@ export default function PengambilanBarang() {
     setVerifiedRack(null);
     recordSearchActivity(query);
     try {
-      const response = await api.get('/barang', { params: { search: query, limit: 100 } });
+      const response = await api.get('/barang', { params: { search: query, fuzzy: true, limit: 100 } });
       const matches = response.data || [];
       setResults(matches);
       if (!matches.length) toast.warning('Barang tidak ditemukan. Coba sebutkan nama lain atau koreksi pencarian.');
