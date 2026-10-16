@@ -6,7 +6,7 @@ const source = readFileSync(new URL('../src/components/VoiceProductSearch.jsx', 
   .replace(/^import .*;\n/gm, '').replace('export default function', 'function');
 const logic = source.slice(0, source.indexOf('  return <div')) + 'return { start, cancel }; }\nreturn VoiceProductSearch;';
 function setup({ unsupported = false, startError = false } = {}) {
-  const calls = { queries: [], searches: [], messages: [], listening: [], aborts: 0 };
+  const calls = { queries: [], searches: [], messages: [], listening: [], aborts: 0, alternatives: [] };
   const cleanups = [];
   const timers = new Map();
   let recognition;
@@ -19,7 +19,7 @@ function setup({ unsupported = false, startError = false } = {}) {
   const component = new Function('useState', 'useRef', 'useEffect', 'window', 'document', 'getAppLocale', 'setTimeout', 'clearTimeout', logic)(
     initial => {
       const index = state++;
-      return [initial, value => { if (index === 1) calls.listening.push(value); if (index === 2) calls.messages.push(value); }];
+      return [typeof initial === 'function' ? initial() : initial, value => { if (index === 1) calls.listening.push(value); if (index === 2) calls.messages.push(value); if (index === 4) calls.alternatives.push(value); }];
     },
     current => ({ current }), effect => cleanups.push(effect()),
     unsupported ? {} : { webkitSpeechRecognition: Recognition },
@@ -31,7 +31,7 @@ function setup({ unsupported = false, startError = false } = {}) {
 }
 const result = (text, final) => ({ results: [Object.assign([{ transcript: text }], { isFinal: final })] });
 
-test('voice search previews interim text and searches the final transcript exactly once', () => {
+test('voice search previews text and waits for confirmation before searching', () => {
   const env = setup();
   env.controls.start();
   assert.equal(env.recognition.lang, 'id-ID');
@@ -39,7 +39,9 @@ test('voice search previews interim text and searches the final transcript exact
   assert.deepEqual(env.calls.searches, []);
   env.recognition.onresult(result(' modular chain ', true));
   env.recognition.onresult(result('modular chain', true));
-  assert.deepEqual(env.calls.searches, ['modular chain']);
+  assert.deepEqual(env.calls.searches, []);
+  assert.equal(env.calls.queries.at(-1), 'modular chain');
+  assert.equal(env.recognition.maxAlternatives, 5);
   assert.equal(env.calls.aborts, 1);
   assert.equal(env.timers.size, 0);
 });
@@ -67,4 +69,22 @@ test('cancel, timeout, and unmount release the microphone and ignore late result
     assert.equal(env.calls.aborts, 1);
     assert.equal(env.timers.size, 0);
   }
+});
+
+test('a final segment followed by interim speech does not end recognition early', () => {
+  const env = setup(); env.controls.start();
+  env.recognition.onresult({ results: [result('modular', true).results[0], result('chain', false).results[0]] });
+  assert.equal(env.calls.aborts, 0);
+  assert.equal(env.calls.queries.at(-1), 'modular chain');
+  env.recognition.onresult({ results: [result('modular', true).results[0], result('chain', true).results[0]] });
+  assert.equal(env.calls.aborts, 1);
+  assert.deepEqual(env.calls.searches, []);
+});
+
+test('alternative transcripts preserve the other segments and remove duplicates', () => {
+  const env = setup(); env.controls.start();
+  const segment = Object.assign([{ transcript: 'chain' }, { transcript: 'change' }, { transcript: 'chain' }], { isFinal: true });
+  env.recognition.onresult({ results: [result('modular', true).results[0], segment] });
+  assert.deepEqual(env.calls.alternatives.at(-1), ['modular chain', 'modular change']);
+  assert.deepEqual(env.calls.searches, []);
 });

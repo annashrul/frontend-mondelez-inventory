@@ -1,6 +1,9 @@
 import { useSettingsStore } from '@/stores/settingsStore';
 
 export const english = {
+  "Bahasa ucapan": "Speech language",
+  "Alternatif hasil ucapan": "Alternative transcripts",
+  "Periksa hasil ucapan, lalu tekan Cari Barang. Pilih bahasa sesuai nama barang yang diucapkan.": "Check the transcript, then press Find Items. Choose the language of the item name you are saying.",
   "Cari Barang": "Find Items",
   "Cari Barang by Suara": "Find Items by Voice",
   "Izin mikrofon ditolak. Izinkan mikrofon di pengaturan browser lalu coba lagi.": "Microphone permission denied. Allow the microphone in your browser settings and try again.",

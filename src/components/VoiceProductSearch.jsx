@@ -22,6 +22,8 @@ export default function VoiceProductSearch({ value, onChange, onSearch, disabled
     onListeningChange(listening);
     return () => onListeningChange(false);
   }, [listening, onListeningChange]);
+  const [language, setLanguage] = useState(() => getAppLocale());
+  const [alternatives, setAlternatives] = useState([]);
   const session = useRef(null);
   const callbacks = useRef({ onChange, onSearch });
   useEffect(() => { callbacks.current = { onChange, onSearch }; }, [onChange, onSearch]);
@@ -45,6 +47,7 @@ export default function VoiceProductSearch({ value, onChange, onSearch, disabled
   const start = () => {
     setOpen(true);
     setMessage('');
+    setAlternatives([]);
     if (disabled || session.current) return;
     const Recognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!Recognition) {
@@ -55,19 +58,30 @@ export default function VoiceProductSearch({ value, onChange, onSearch, disabled
       const recognition = new Recognition();
       const current = { recognition, timer: null, received: false, failed: false };
       session.current = current;
-      recognition.lang = getAppLocale();
+      recognition.lang = language;
       recognition.continuous = false;
       recognition.interimResults = true;
-      recognition.maxAlternatives = 1;
+      recognition.maxAlternatives = 5;
       recognition.onresult = event => {
         if (session.current !== current || current.received || current.failed) return;
-        const transcript = Array.from(event.results).map(result => result[0]?.transcript || '').join(' ').trim().slice(0, 200);
+        const results = Array.from(event.results);
+        const clean = text => text.replace(/\s+/g, ' ').trim().slice(0, 200);
+        const transcript = clean(results.map(result => result[0]?.transcript || '').join(' '));
         callbacks.current.onChange(transcript);
-        if (Array.from(event.results).some(result => result.isFinal) && transcript) {
+        // Never commit an interim suffix just because an earlier segment is final.
+        if (results.length && results.every(result => result.isFinal) && transcript) {
+          const candidates = [transcript];
+          for (let segment = 0; segment < results.length; segment++) {
+            for (const alternative of Array.from(results[segment]).slice(1)) {
+              candidates.push(clean(results.map((result, index) =>
+                index === segment ? alternative.transcript : result[0]?.transcript || ''
+              ).join(' ')));
+            }
+          }
+          setAlternatives([...new Set(candidates)].filter(Boolean).slice(0, 5));
           current.received = true;
           cancel();
           setListening(false);
-          void callbacks.current.onSearch(transcript);
         }
       };
       recognition.onerror = event => {
@@ -104,8 +118,19 @@ export default function VoiceProductSearch({ value, onChange, onSearch, disabled
       <Mic />{t('Cari Barang by Suara')}
     </Button>
     {open && <div className="space-y-3 rounded-xl border bg-muted/25 p-4 text-left">
-      <p role="status" aria-live="polite" className="text-xs leading-5 text-muted-foreground">{t(listening ? 'Mendengarkan... Sebutkan nama atau kode barang.' : 'Sebutkan nama barang. Hasil ucapan bisa dikoreksi sebelum mencari ulang.')}</p>
+      <p role="status" aria-live="polite" className="text-xs leading-5 text-muted-foreground">{t(listening ? 'Mendengarkan... Sebutkan nama atau kode barang.' : 'Periksa hasil ucapan, lalu tekan Cari Barang. Pilih bahasa sesuai nama barang yang diucapkan.')}</p>
       {message && <p role="alert" className="text-xs leading-5 text-destructive">{t(message)}</p>}
+      <div className="space-y-1.5">
+        <Label htmlFor="voice-product-language">{t('Bahasa ucapan')}</Label>
+        <select id="voice-product-language" value={language} onChange={event => setLanguage(event.target.value)} disabled={disabled || listening} className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm">
+          <option value="id-ID">Bahasa Indonesia</option>
+          <option value="en-US">English</option>
+        </select>
+      </div>
+      {alternatives.length > 1 && <div className="space-y-2">
+        <p className="text-xs text-muted-foreground">{t('Alternatif hasil ucapan')}</p>
+        <div className="flex flex-wrap gap-2">{alternatives.map(text => <Button key={text} type="button" variant={value === text ? 'default' : 'outline'} size="sm" className="h-auto whitespace-normal text-left" disabled={disabled || listening} onClick={() => onChange(text)}>{text}</Button>)}</div>
+      </div>}
       <Label htmlFor="voice-product-query">{t('Nama atau kode barang')}</Label>
       <Input id="voice-product-query" value={value} onChange={event => onChange(event.target.value)} disabled={disabled || listening} maxLength={200} placeholder={t('Contoh: modular chain')} />
       <div className="flex gap-2">
