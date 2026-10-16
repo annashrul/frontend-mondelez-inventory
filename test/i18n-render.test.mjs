@@ -27,6 +27,8 @@ let PermissionScope;
 let PermissionAction;
 let PermissionForm;
 let PageHeader;
+let SearchAuditPanel;
+let SearchRelevance;
 before(async () => {
   server = await createServer({
     configFile: false,
@@ -40,6 +42,8 @@ before(async () => {
   });
   ({ PermissionScope, PermissionAction, PermissionForm } = await server.ssrLoadModule('/src/components/PermissionAccess.jsx'));
   PageHeader = (await server.ssrLoadModule('/src/components/PageHeader.jsx')).default;
+  SearchAuditPanel = (await server.ssrLoadModule('/src/components/SearchAuditPanel.jsx')).default;
+  SearchRelevance = (await server.ssrLoadModule('/src/components/SearchRelevance.jsx')).default;
   settings = (await server.ssrLoadModule('/src/stores/settingsStore.js')).useSettingsStore;
   PwaControls = (await server.ssrLoadModule('/src/components/PwaControls.jsx')).default;
   pwaStore = (await server.ssrLoadModule('/src/stores/pwaStore.js')).usePwaStore;
@@ -365,4 +369,30 @@ test('initial and infinite-scroll skeleton counts follow configured and selected
     settings.getInitialState().settings.items_per_page = previous;
     settings.getState().apply({ items_per_page: previous });
   }
+});
+
+test('search audit shows reviewed accuracy separately from found results and preserves product names', () => {
+  setLanguage('en');
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false, staleTime: Infinity } } });
+  const date = offset => new Date(Date.now() + offset * 86400000).toISOString().slice(0,10);
+  client.setQueryData(['search-audit',date(-30),date(0),'','',1], {
+    summary: [{method:'voice',total:4,found:3,not_found:1,errors:0,reviewed:2,accuracy_reviewed:50,not_found_rate:25,avg_duration_ms:150}],
+    data: [{id:'audit-1',created_at:'2026-10-16T00:00:00Z',user_id:1,method:'voice',query_text:'blockchain',status:'found',returned_count:1,result_count:1,duration_ms:150,results:[{id:1,nama:'Modular Chain',kode:'BRG-1',rank:1,text_similarity:0.3}],selected_item_id:1,selected_rank:1,relevance:true}],
+    pagination:{page:1,limit:20,total:1,total_pages:1},
+  });
+  const html = renderToStaticMarkup(React.createElement(QueryClientProvider,{client},React.createElement(SearchAuditPanel)));
+  assert.match(html,/Search Audit/); assert.match(html,/Reviewed accuracy/);
+  assert.match(html,/50%/); assert.match(html,/25%/);
+  assert.match(html,/Modular Chain/); assert.match(html,/blockchain/);
+  assert.match(html,/Unreviewed searches are not counted as incorrect/);
+  client.clear();
+});
+
+test('search relevance requires an item before a positive review and allows negative feedback without a selection', () => {
+  setLanguage('en');
+  const empty = render(SearchRelevance,{auditId:'audit-1'});
+  assert.match(empty,/<button[^>]*disabled=""[^>]*>Relevant<\/button>/);
+  assert.match(empty,/<button(?![^>]*\sdisabled=)[^>]*>Not relevant<\/button>/);
+  const selected = render(SearchRelevance,{auditId:'audit-1',selected:{id:1}});
+  assert.match(selected,/<button(?![^>]*\sdisabled=)[^>]*>Relevant<\/button>/);
 });

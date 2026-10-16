@@ -1,3 +1,5 @@
+import SearchAuditPanel from '@/components/SearchAuditPanel';
+import SearchRelevance from '@/components/SearchRelevance';
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import VoiceProductSearch from '@/components/VoiceProductSearch';
 import { recordSearchActivity } from '@/services/activityEvents';
@@ -109,6 +111,7 @@ export default function PengambilanBarang() {
   const debouncedSearch = useDebounce(search);
   const [textSearchOpen, setTextSearchOpen] = useState(false);
   const [voiceListening, setVoiceListening] = useState(false);
+  const [searchAuditId, setSearchAuditId] = useState(draft?.searchAuditId || null);
   const [voiceQuery, setVoiceQuery] = useState(draft?.voiceQuery || "");
   const [image, setImage] = useState(draft?.image || "");
   const [results, setResults] = useState(draft?.results || []);
@@ -140,9 +143,11 @@ export default function PengambilanBarang() {
   const historySearchLoading = history.searchLoading;
   const historyPageLoadingDirection = history.pageLoadingDirection;
   const historyLimitLoading = history.limitLoading;
+  const canAudit = canAccess(user, "log.read");
   const canCreate = canAccess(user, "pengambilan.create");
   const [storedActiveTab, setActiveTabState] = usePageState('PengambilanBarang.jsx:activeTab', () => {
     const value = searchParams.get("tab");
+    if (value === "audit" && canAudit) return "audit";
     if (!canCreate) return "riwayat";
     return value === "riwayat" ? "riwayat" : "transaksi";
   });
@@ -166,12 +171,13 @@ export default function PengambilanBarang() {
   };
   const setActiveTab = (nextTab) => {
     if (!canCreate && nextTab === "transaksi") return;
-    const value = nextTab === "transaksi" ? "transaksi" : "riwayat";
+    if (!canAudit && nextTab === "audit") return;
+    const value = ["transaksi", "riwayat", "audit"].includes(nextTab) ? nextTab : "riwayat";
     setActiveTabState(value);
     setSearchParams((current) => {
       const next = new URLSearchParams(current);
       next.set("tab", value);
-      if (value === "transaksi") next.delete("search");
+      if (value !== "riwayat") next.delete("search");
       return next;
     }, { replace: true });
   };
@@ -186,6 +192,7 @@ export default function PengambilanBarang() {
 
     sessionStorage.setItem(transactionDraftKey, JSON.stringify({
       image,
+      searchAuditId,
       voiceQuery,
       results,
       flow,
@@ -195,7 +202,7 @@ export default function PengambilanBarang() {
       form,
       step,
     }));
-  }, [flow, form, image, qrCode, results, selected, step, verifiedRack, voiceQuery]);
+  }, [flow, form, image, qrCode, results, selected, step, verifiedRack, voiceQuery, searchAuditId]);
 
   useEffect(() => {
     if (history.query.error) toast.error(history.query.error.message || 'Gagal memuat riwayat');
@@ -224,6 +231,7 @@ export default function PengambilanBarang() {
   };
   const reset = () => {
     sessionStorage.removeItem(transactionDraftKey);
+    setSearchAuditId(null);
     setVoiceQuery("");
     setImage("");
     setResults([]);
@@ -236,9 +244,10 @@ export default function PengambilanBarang() {
     setCameraOpen(false);
     if (inputRef.current) inputRef.current.value = "";
   };
-  const searchImage = async (photo) => {
+  const searchImage = async (photo, method) => {
     setLoading(true);
     setFlow("image");
+    setSearchAuditId(null);
     setResults([]);
     setSelected(null);
     setVerifiedRack(null);
@@ -247,10 +256,12 @@ export default function PengambilanBarang() {
         "/ai/search-image",
         {
           image: photo,
+          search_method: method,
           limit: 5,
         },
         { timeout: aiSearchTimeout }
       );
+      setSearchAuditId(response.search_audit_id || null);
       const matches = response.results || [];
       setResults(matches);
       setSelected(matches[0] || null);
@@ -272,12 +283,14 @@ export default function PengambilanBarang() {
     setVoiceQuery(query);
     setFlow(method);
     setLoading(true);
+    setSearchAuditId(null);
     setResults([]);
     setSelected(null);
     setVerifiedRack(null);
     recordSearchActivity(query);
     try {
-      const response = await api.get('/barang', { params: { search: query, fuzzy: true, limit: 100 } });
+      const response = await api.get('/barang', { params: { search: query, fuzzy: true, search_method: method, limit: 100 } });
+      setSearchAuditId(response.search_audit_id || null);
       const matches = response.data || [];
       setResults(matches);
       if (!matches.length) toast.warning('Barang tidak ditemukan. Coba sebutkan nama lain atau koreksi pencarian.');
@@ -288,13 +301,13 @@ export default function PengambilanBarang() {
       setLoading(false);
     }
   };
-  const processPhoto = async (source) => {
+  const processPhoto = async (source, method = "camera") => {
     setCameraOpen(false);
     setLoading(true);
     try {
       const photo = await prepareProductImage(source);
       setImage(photo);
-      await searchImage(photo);
+      await searchImage(photo, method);
     } catch (error) {
       toast.error(error.message || 'Gagal memproses gambar');
     } finally {
@@ -309,17 +322,19 @@ export default function PengambilanBarang() {
       return toast.error("File harus berupa gambar");
     if (file.size > 5 * 1024 * 1024)
       return toast.error("Ukuran foto maksimal 5 MB");
-    void processPhoto(file);
+    void processPhoto(file, "gallery");
   };
   const scanRackItems = async (value = qrCode) => {
     const code = value.trim();
     if (!code) return toast.error("QR rak belum terbaca");
     setLoading(true);
     setFlow("rack");
+    setSearchAuditId(null);
     try {
       const response = await api.post("/rak/items", {
         qr_code: code,
       });
+      setSearchAuditId(response.search_audit_id || null);
       setQrCode(code);
       setVerifiedRack(response.rak);
       setResults(response.barang || []);
@@ -372,9 +387,10 @@ export default function PengambilanBarang() {
         subtitle={translateUi("Scan barang dan rak untuk mencatat stok keluar")}
       />
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid h-11 w-full max-w-md grid-cols-2 rounded-xl bg-muted/70 p-1">
+        <TabsList className={`grid h-11 w-full max-w-md ${canAudit ? "grid-cols-3" : "grid-cols-2"} rounded-xl bg-muted/70 p-1`}>
           <PermissionAction permission="pengambilan.create" className="w-full"><TabsTrigger value="transaksi" className="w-full rounded-lg">{translateUi("Transaksi")}</TabsTrigger></PermissionAction>
           <TabsTrigger value="riwayat" className="rounded-lg">{translateUi("Riwayat")}</TabsTrigger>
+          {canAudit && <TabsTrigger value="audit" className="rounded-lg">{translateUi("Audit Pencarian")}</TabsTrigger>}
         </TabsList>
         <TabsContent value="transaksi">
           {canCreate && (
@@ -478,6 +494,7 @@ export default function PengambilanBarang() {
                   >
                     <Upload />{translateUi("Pilih dari Galeri")}</Button>
                 </div>
+                {searchAuditId && !results.length && <div className="mx-auto mt-4 max-w-sm"><SearchRelevance key={searchAuditId} auditId={searchAuditId} /></div>}
               </section>
             )}
 
@@ -556,6 +573,7 @@ export default function PengambilanBarang() {
                     );
                   })}
                 </div>
+                <div className="px-4 pb-4 sm:px-6"><SearchRelevance key={`${searchAuditId}:${selected?.id || "none"}`} auditId={searchAuditId} selected={selected} /></div>
                 <div className="sticky bottom-0 flex gap-2 border-t bg-background/95 p-4 backdrop-blur sm:static sm:justify-between sm:px-6">
                   <Button
                     type="button"
@@ -568,6 +586,7 @@ export default function PengambilanBarang() {
                     type="button"
                     className="h-12 flex-[2] rounded-xl sm:flex-none"
                     onClick={() => {
+                      if (searchAuditId) void api.patch(`/search-audit/${searchAuditId}/feedback`, { verdict: 'selected', item_id: selected.id }).catch(() => toast.error(translateUi('Gagal menyimpan pilihan untuk audit pencarian')));
                       if (flow === "image" || flow === "voice" || flow === "text") setVerifiedRack(selected?.rak_detail || null);
                       setStep(4);
                     }}
@@ -793,6 +812,7 @@ export default function PengambilanBarang() {
             </CardContent>
           </Card>
         </TabsContent>
+        {canAudit && <TabsContent value="audit"><SearchAuditPanel /></TabsContent>}
       </Tabs>
       {cameraOpen && canCreate && activeTab === "transaksi" && (
         <ProductCamera
