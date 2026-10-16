@@ -4,7 +4,7 @@ import { Mic, Search, Square } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { getAppLocale, translate as t } from '@/lib/i18n';
+import { translate as t } from '@/lib/i18n';
 
 const errors = {
   'not-allowed': 'Izin mikrofon ditolak. Izinkan mikrofon di pengaturan browser lalu coba lagi.',
@@ -23,7 +23,6 @@ export default function VoiceProductSearch({ value, onChange, onSearch, disabled
     onListeningChange(listening);
     return () => onListeningChange(false);
   }, [listening, onListeningChange]);
-  const [language, setLanguage] = useState(() => getAppLocale());
   const [alternatives, setAlternatives] = useState([]);
   const session = useRef(null);
   const callbacks = useRef({ onChange, onSearch });
@@ -65,7 +64,11 @@ export default function VoiceProductSearch({ value, onChange, onSearch, disabled
       const recognition = new Recognition();
       const current = { recognition, timer: null, received: false, failed: false };
       session.current = current;
-      recognition.lang = language;
+      // Recognition needs one locale. Prefer a supported device language,
+      // independently of the app display language; catalog fuzzy search handles spelling errors.
+      const languages = window.navigator?.languages || [window.navigator?.language];
+      const preferred = languages.find(locale => /^(id|en)(-|$)/i.test(locale || ''));
+      recognition.lang = /^en(-|$)/i.test(preferred || '') ? 'en-US' : 'id-ID';
       recognition.continuous = false;
       recognition.interimResults = true;
       recognition.maxAlternatives = 5;
@@ -138,15 +141,8 @@ export default function VoiceProductSearch({ value, onChange, onSearch, disabled
         </div>
         <p className="min-h-7 text-center text-lg font-medium break-words" aria-live="polite">{value || t('Ucapkan nama barang')}</p>
       </div>
-      <p role="status" aria-live="polite" className="text-xs leading-5 text-muted-foreground">{t(listening ? 'Mendengarkan... Sebutkan nama atau kode barang.' : 'Periksa hasil ucapan, lalu tekan Cari Barang. Pilih bahasa sesuai nama barang yang diucapkan.')}</p>
+      <p role="status" aria-live="polite" className="text-xs leading-5 text-muted-foreground">{t(listening ? 'Mendengarkan... Sebutkan nama atau kode barang.' : 'Periksa hasil ucapan, lalu tekan Cari Barang. Nama barang yang mirip juga akan dicari.')}</p>
       {message && <p role="alert" className="text-xs leading-5 text-destructive">{t(message)}</p>}
-      <div className="space-y-1.5">
-        <Label htmlFor="voice-product-language">{t('Bahasa ucapan')}</Label>
-        <select id="voice-product-language" value={language} onChange={event => setLanguage(event.target.value)} disabled={disabled || listening} className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm">
-          <option value="id-ID">Bahasa Indonesia</option>
-          <option value="en-US">English</option>
-        </select>
-      </div>
       {alternatives.length > 1 && <div className="space-y-2">
         <p className="text-xs text-muted-foreground">{t('Alternatif hasil ucapan')}</p>
         <div className="flex flex-wrap gap-2">{alternatives.map(text => <Button key={text} type="button" variant={value === text ? 'default' : 'outline'} size="sm" className="h-auto whitespace-normal text-left" disabled={disabled || listening} onClick={() => onChange(text)}>{text}</Button>)}</div>

@@ -5,7 +5,7 @@ import { readFileSync } from 'node:fs';
 const source = readFileSync(new URL('../src/components/VoiceProductSearch.jsx', import.meta.url), 'utf8')
   .replace(/^import .*;\n/gm, '').replace('export default function', 'function');
 const logic = source.slice(0, source.indexOf('  return <div')) + 'return { start, cancel, close }; }\nreturn VoiceProductSearch;';
-function setup({ unsupported = false, startError = false } = {}) {
+function setup({ unsupported = false, startError = false, languages = ['id-ID'] } = {}) {
   const calls = { queries: [], searches: [], messages: [], listening: [], aborts: 0, alternatives: [] };
   const cleanups = [];
   const timers = new Map();
@@ -16,14 +16,14 @@ function setup({ unsupported = false, startError = false } = {}) {
     abort() { calls.aborts++; this.onend?.(); }
   }
   let state = 0;
-  const component = new Function('useState', 'useRef', 'useEffect', 'window', 'document', 'getAppLocale', 'setTimeout', 'clearTimeout', logic)(
+  const component = new Function('useState', 'useRef', 'useEffect', 'window', 'document', 'setTimeout', 'clearTimeout', logic)(
     initial => {
       const index = state++;
-      return [typeof initial === 'function' ? initial() : initial, value => { if (index === 1) calls.listening.push(value); if (index === 2) calls.messages.push(value); if (index === 4) calls.alternatives.push(value); }];
+      return [typeof initial === 'function' ? initial() : initial, value => { if (index === 1) calls.listening.push(value); if (index === 2) calls.messages.push(value); if (index === 3) calls.alternatives.push(value); }];
     },
     current => ({ current }), effect => cleanups.push(effect()),
-    unsupported ? {} : { webkitSpeechRecognition: Recognition },
-    { addEventListener() {}, removeEventListener() {} }, () => 'id-ID',
+    unsupported ? {} : { webkitSpeechRecognition: Recognition, navigator: { languages } },
+    { addEventListener() {}, removeEventListener() {} },
     callback => { const id = timers.size + 1; timers.set(id, callback); return id; }, id => timers.delete(id),
   );
   const controls = component({ value: '', onChange: value => calls.queries.push(value), onSearch: value => calls.searches.push(value), disabled: false, onListeningChange() {} });
@@ -98,4 +98,18 @@ test('closing the voice modal releases the microphone and ignores subsequent res
   env.recognition.onresult(result('late speech', true));
   assert.deepEqual(env.calls.searches, []);
   assert.deepEqual(env.calls.queries, []);
+});
+
+test('selects a supported device language automatically with Indonesian fallback', () => {
+  for (const [languages, expected] of [
+    [['en-GB', 'id-ID'], 'en-US'],
+    [['id-ID', 'en-US'], 'id-ID'],
+    [['fr-FR', 'en-AU'], 'en-US'],
+    [['ja-JP'], 'id-ID'],
+    [[], 'id-ID'],
+  ]) {
+    const env = setup({ languages }); env.controls.start();
+    assert.equal(env.recognition.lang, expected);
+    env.controls.close();
+  }
 });

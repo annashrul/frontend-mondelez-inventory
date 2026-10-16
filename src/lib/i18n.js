@@ -1,6 +1,7 @@
 import { useSettingsStore } from '@/stores/settingsStore';
 
 export const english = {
+  "Periksa hasil ucapan, lalu tekan Cari Barang. Nama barang yang mirip juga akan dicari.": "Check the transcript, then press Find Items. Similar item names will also be searched.",
   "Cari Barang by Teks": "Find Items by Text",
   "Ketik nama atau kode barang. Nama yang mirip juga akan ditampilkan.": "Type an item name or code. Similar names will also be shown.",
   "Pilih salah satu cara: scan rak, kamera, suara, teks, atau galeri.": "Choose a method: scan a rack, camera, voice, text, or gallery.",
