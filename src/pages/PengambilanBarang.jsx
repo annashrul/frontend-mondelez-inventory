@@ -1,3 +1,4 @@
+import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import VoiceProductSearch from '@/components/VoiceProductSearch';
 import { recordSearchActivity } from '@/services/activityEvents';
 import { PermissionAction } from '@/components/PermissionAccess';
@@ -106,6 +107,7 @@ export default function PengambilanBarang() {
   const search = linkedSearch ?? storedSearch;
   const [appliedLinkSearch, setAppliedLinkSearch] = useState(null);
   const debouncedSearch = useDebounce(search);
+  const [textSearchOpen, setTextSearchOpen] = useState(false);
   const [voiceListening, setVoiceListening] = useState(false);
   const [voiceQuery, setVoiceQuery] = useState(draft?.voiceQuery || "");
   const [image, setImage] = useState(draft?.image || "");
@@ -264,11 +266,11 @@ export default function PengambilanBarang() {
       setLoading(false);
     }
   };
-  const searchVoice = async (value) => {
+  const searchVoice = async (value, method = "voice") => {
     const query = value.trim().slice(0, 200);
     if (!query || loading) return;
     setVoiceQuery(query);
-    setFlow("voice");
+    setFlow(method);
     setLoading(true);
     setResults([]);
     setSelected(null);
@@ -279,7 +281,7 @@ export default function PengambilanBarang() {
       const matches = response.data || [];
       setResults(matches);
       if (!matches.length) toast.warning('Barang tidak ditemukan. Coba sebutkan nama lain atau koreksi pencarian.');
-      else setStep(2);
+      else { setTextSearchOpen(false); setStep(2); }
     } catch (error) {
       toast.error(error.message || 'Gagal memuat data barang');
     } finally {
@@ -414,7 +416,7 @@ export default function PengambilanBarang() {
                 <p className="mx-auto mt-2 max-w-sm text-[13px] leading-5 text-muted-foreground">
                   {loading && flow === "image"
                     ? translateUi("Sedang menganalisis gambar, proses ini bisa memakan waktu sampai 1 menit. Mohon tunggu.")
-                    : translateUi("Pilih salah satu alur. Scan rak, cari barang menggunakan gambar, atau sebutkan nama barang.")}
+                    : translateUi("Pilih salah satu cara: scan rak, kamera, suara, teks, atau galeri.")}
                 </p>
                 <input
                   ref={inputRef}
@@ -446,6 +448,24 @@ export default function PengambilanBarang() {
                   >
                     <Camera />{translateUi("Cari Barang by Gambar")}</Button>
                   <VoiceProductSearch value={voiceQuery} onChange={setVoiceQuery} onSearch={searchVoice} onListeningChange={setVoiceListening} disabled={loading} />
+                  <Button type="button" variant="outline" className="h-12 rounded-xl text-sm" onClick={() => setTextSearchOpen(true)} disabled={loading || voiceListening}>
+                    <Search />{translateUi("Cari Barang by Teks")}
+                  </Button>
+                  <Dialog open={textSearchOpen} onOpenChange={setTextSearchOpen}>
+                    <DialogContent className="sm:rounded-2xl">
+                      <DialogTitle>{translateUi("Cari Barang by Teks")}</DialogTitle>
+                      <DialogDescription>{translateUi("Ketik nama atau kode barang. Nama yang mirip juga akan ditampilkan.")}</DialogDescription>
+                      <form className="space-y-4" onSubmit={event => { event.preventDefault(); void searchVoice(voiceQuery, "text"); }}>
+                        <div className="space-y-2">
+                          <Label htmlFor="text-product-query">{translateUi("Nama atau kode barang")}</Label>
+                          <Input id="text-product-query" value={voiceQuery} onChange={event => setVoiceQuery(event.target.value)} maxLength={200} placeholder={translateUi("Contoh: modular chain")} disabled={loading} />
+                        </div>
+                        <Button type="submit" className="w-full" disabled={loading || !voiceQuery.trim()}>
+                          {loading ? <LoaderCircle className="animate-spin" /> : <Search />}{translateUi(loading ? "Mencari..." : "Cari Barang")}
+                        </Button>
+                      </form>
+                    </DialogContent>
+                  </Dialog>
                   <Button
                     type="button"
                     className="h-12 rounded-xl text-sm"
@@ -472,13 +492,13 @@ export default function PengambilanBarang() {
                     />
                   ) : (
                     <span className="grid size-16 shrink-0 place-items-center rounded-2xl border bg-primary/10 text-primary">
-                      {flow === "voice" ? <Mic size={28} /> : <QrCode size={28} />}
+                      {flow === "voice" ? <Mic size={28} /> : flow === "text" ? <Search size={28} /> : <QrCode size={28} />}
                     </span>
                   )}
                   <div className="min-w-0">
                     <h3 className="text-sm font-semibold">{flow === "rack" ? translateUi("Pilih barang di rak ini") : translateUi("Pilih barang yang sesuai")}</h3>
                     <p className="mt-1 text-xs leading-5 text-muted-foreground">
-                      {flow === "rack" ? translateUi("{value0} berisi {value1} barang.", { value0: verifiedRack?.nama || translateUi("Rak"), value1: formatNumber(results.length) }) : flow === "voice" ? translateUi("Hasil pencarian: {value0}", { value0: voiceQuery }) : translateUi("Ketuk salah satu hasil identifikasi.")}
+                      {flow === "rack" ? translateUi("{value0} berisi {value1} barang.", { value0: verifiedRack?.nama || translateUi("Rak"), value1: formatNumber(results.length) }) : (flow === "voice" || flow === "text") ? translateUi("Hasil pencarian: {value0}", { value0: voiceQuery }) : translateUi("Ketuk salah satu hasil identifikasi.")}
                     </p>
                   </div>
                 </div>
@@ -548,7 +568,7 @@ export default function PengambilanBarang() {
                     type="button"
                     className="h-12 flex-[2] rounded-xl sm:flex-none"
                     onClick={() => {
-                      if (flow === "image" || flow === "voice") setVerifiedRack(selected?.rak_detail || null);
+                      if (flow === "image" || flow === "voice" || flow === "text") setVerifiedRack(selected?.rak_detail || null);
                       setStep(4);
                     }}
                     disabled={!selected}

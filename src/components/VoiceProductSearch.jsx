@@ -1,3 +1,4 @@
+import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { useEffect, useRef, useState } from 'react';
 import { Mic, Search, Square } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -43,6 +44,12 @@ export default function VoiceProductSearch({ value, onChange, onSearch, disabled
     document.addEventListener('visibilitychange', hide);
     return () => { document.removeEventListener('visibilitychange', hide); cancel(); };
   }, []);
+
+  const close = () => {
+    cancel();
+    setListening(false);
+    setOpen(false);
+  };
 
   const start = () => {
     setOpen(true);
@@ -117,7 +124,20 @@ export default function VoiceProductSearch({ value, onChange, onSearch, disabled
     <Button type="button" variant="outline" className="h-12 w-full rounded-xl text-sm" onClick={start} disabled={disabled || listening}>
       <Mic />{t('Cari Barang by Suara')}
     </Button>
-    {open && <div className="space-y-3 rounded-xl border bg-muted/25 p-4 text-left">
+    <Dialog open={open} onOpenChange={next => { if (!next) close(); }}>
+      <DialogContent className="gap-5 sm:max-w-lg sm:rounded-3xl" onOpenAutoFocus={event => event.preventDefault()}>
+      <DialogTitle className="pr-8 text-xl">{t('Cari Barang by Suara')}</DialogTitle>
+      <DialogDescription>{t('Sebutkan nama atau kode barang, lalu periksa hasil ucapan Anda.')}</DialogDescription>
+      <div className="flex flex-col items-center gap-5 py-5">
+        <button type="button" aria-label={t(listening ? 'Berhenti' : 'Ulangi')} onClick={listening ? () => { cancel(); setListening(false); } : start} disabled={disabled} className={`relative grid size-24 place-items-center rounded-full transition-colors focus-visible:outline-2 focus-visible:outline-offset-8 focus-visible:outline-primary disabled:opacity-50 ${listening ? 'bg-red-600 text-white shadow-lg shadow-red-600/20' : 'bg-muted text-foreground'}`}>
+          {listening && <><span aria-hidden="true" className="absolute inset-0 rounded-full bg-red-500/20 motion-safe:animate-ping" /><span aria-hidden="true" className="absolute -inset-3 rounded-full border border-red-500/25 motion-safe:animate-pulse" /></>}
+          <Mic aria-hidden="true" className={`relative size-10 ${listening ? 'motion-safe:animate-pulse' : ''}`} />
+        </button>
+        <div aria-hidden="true" className="flex h-7 items-center gap-1.5">
+          {[14, 24, 18, 28, 18, 24, 14].map((height, index) => <span key={index} className={`w-1 rounded-full ${listening ? 'bg-red-500 voice-search-wave' : 'bg-muted-foreground/25'}`} style={{ height: listening ? height : 4, animationDelay: `${index * 90}ms` }} />)}
+        </div>
+        <p className="min-h-7 text-center text-lg font-medium break-words" aria-live="polite">{value || t('Ucapkan nama barang')}</p>
+      </div>
       <p role="status" aria-live="polite" className="text-xs leading-5 text-muted-foreground">{t(listening ? 'Mendengarkan... Sebutkan nama atau kode barang.' : 'Periksa hasil ucapan, lalu tekan Cari Barang. Pilih bahasa sesuai nama barang yang diucapkan.')}</p>
       {message && <p role="alert" className="text-xs leading-5 text-destructive">{t(message)}</p>}
       <div className="space-y-1.5">
@@ -136,8 +156,9 @@ export default function VoiceProductSearch({ value, onChange, onSearch, disabled
       <div className="flex gap-2">
         {listening ? <Button type="button" variant="outline" onClick={() => { cancel(); setListening(false); }}><Square />{t('Berhenti')}</Button>
           : <Button type="button" variant="outline" onClick={start} disabled={disabled}><Mic />{t('Ulangi')}</Button>}
-        <Button type="button" className="flex-1" disabled={disabled || listening || !value.trim()} onClick={() => onSearch(value)}><Search />{t('Cari Barang')}</Button>
+        <Button type="button" className="flex-1" disabled={disabled || listening || !value.trim()} onClick={() => { close(); void onSearch(value); }}><Search />{t('Cari Barang')}</Button>
       </div>
-    </div>}
+      </DialogContent>
+    </Dialog>
   </div>;
 }

@@ -4,7 +4,7 @@ import { readFileSync } from 'node:fs';
 
 const source = readFileSync(new URL('../src/components/VoiceProductSearch.jsx', import.meta.url), 'utf8')
   .replace(/^import .*;\n/gm, '').replace('export default function', 'function');
-const logic = source.slice(0, source.indexOf('  return <div')) + 'return { start, cancel }; }\nreturn VoiceProductSearch;';
+const logic = source.slice(0, source.indexOf('  return <div')) + 'return { start, cancel, close }; }\nreturn VoiceProductSearch;';
 function setup({ unsupported = false, startError = false } = {}) {
   const calls = { queries: [], searches: [], messages: [], listening: [], aborts: 0, alternatives: [] };
   const cleanups = [];
@@ -87,4 +87,15 @@ test('alternative transcripts preserve the other segments and remove duplicates'
   env.recognition.onresult({ results: [result('modular', true).results[0], segment] });
   assert.deepEqual(env.calls.alternatives.at(-1), ['modular chain', 'modular change']);
   assert.deepEqual(env.calls.searches, []);
+});
+
+test('closing the voice modal releases the microphone and ignores subsequent results', () => {
+  const env = setup(); env.controls.start();
+  env.controls.close();
+  assert.equal(env.calls.aborts, 1);
+  assert.equal(env.calls.listening.at(-1), false);
+  assert.equal(env.timers.size, 0);
+  env.recognition.onresult(result('late speech', true));
+  assert.deepEqual(env.calls.searches, []);
+  assert.deepEqual(env.calls.queries, []);
 });

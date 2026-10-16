@@ -301,3 +301,11 @@
     top: 5rem;
   }
 }
+
+@keyframes voice-search-wave {
+  0%, 100% { transform: scaleY(.35); }
+  50% { transform: scaleY(1); }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .voice-search-wave { animation: voice-search-wave 800ms ease-in-out infinite; }
+}
