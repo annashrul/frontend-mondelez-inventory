@@ -435,6 +435,10 @@ test('demo transport uses the English item/group wire contract while forms keep 
       if(form.alamat){assert.equal(payload.address,form.alamat);assert.equal(created.alamat,form.alamat);}
       else assert.deepEqual(created.action_ids,[1]);
     }
+    const rack=await api.post('/rak',{kode:'RAK-DEMO-EN',nama:'Demo Rack',lokasi_id:1,kapasitas:100,terisi:0,qr_code:'QR-DEMO-EN'});
+    assert.equal(rack.nama,'Demo Rack');assert.equal(rack.lokasi_id,1);assert.equal(rack.kapasitas,100);assert.equal(rack.terisi,0);
+    const rackPayload=JSON.parse(mock.history.post.at(-1).data);
+    assert.equal(rackPayload.code,'RAK-DEMO-EN');assert.equal(rackPayload.location_id,1);assert.equal(rackPayload.capacity,100);assert.equal(rackPayload.occupied,0);assert.ok(!Object.hasOwn(rackPayload,'kode'));
     const menus=await api.get('/menus');
     assert.ok(menus.length);assert.equal(typeof menus[0].nama,'string');assert.equal(typeof menus[0].grup,'string');
     assert.equal(typeof menus[0].actions[0].nama,'string');assert.equal(typeof menus[0].actions[0].urutan,'number');

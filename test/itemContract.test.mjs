@@ -48,3 +48,14 @@ test('menu transport maps nested action labels while preserving IDs, order and p
  assert.deepEqual(encodeItemRequest('/menus',ui[0]),wire[0]);
  assert.equal(itemResource('/api/v1/menus'),'menus');
 });
+
+test('rack transport uses English columns and preserves QR, zero occupancy and location form values',()=>{
+ const form={id:1,kode:'RAK-1',nama:'Rack One',lokasi_id:2,kapasitas:100,terisi:0,qr_code:'RAK:RAK-1',lokasi_detail:{id:2,nama:'Warehouse'},jumlah_barang:3};
+ const wire=encodeItemRequest('/rak',form);
+ assert.deepEqual(wire,{id:1,code:'RAK-1',name:'Rack One',location_id:2,capacity:100,occupied:0,qr_code:'RAK:RAK-1',lokasi_detail:{id:2,nama:'Warehouse'},jumlah_barang:3});
+ assert.deepEqual(decodeItemResponse('/rak/1',wire),form);
+ assert.deepEqual(decodeItemResponse('/rak',{data:[wire],pagination:{total:1}}),{data:[form],pagination:{total:1}});
+ assert.deepEqual(decodeItemResponse('/rak/kode-otomatis',{code:'RAK-2'}),{kode:'RAK-2'});
+ assert.equal(itemResource('/api/v1/rak?search=Rack'),'racks');
+ assert.equal(itemResource('/pengambilan/rak'),null);
+});

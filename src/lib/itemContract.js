@@ -77,7 +77,16 @@ export const menuColumnRenames = {
     "aktif": "is_active"
   }
 };
-const apiColumnRenames = {...itemColumnRenames,...masterColumnRenames,...menuColumnRenames};
+export const rackColumnRenames = {
+  "racks": {
+    "kode": "code",
+    "nama": "name",
+    "lokasi_id": "location_id",
+    "kapasitas": "capacity",
+    "terisi": "occupied"
+  }
+};
+const apiColumnRenames = {...itemColumnRenames,...masterColumnRenames,...menuColumnRenames,...rackColumnRenames};
 function mapMenu(row,reverse=false) {
  const output=renameFields(row,menuColumnRenames.menus,reverse);
  if(Array.isArray(output?.actions))output.actions=output.actions.map(action=>renameFields(action,menuColumnRenames.menu_actions,reverse));
@@ -94,6 +103,7 @@ export function fromPublicResource(resource,row) {
 
 export function itemResource(url = '') {
   const path = url.split('?')[0].replace(/^https?:\/\/[^/]+(?:\/api\/v1)?/, '').replace(/^\/api\/v1/, '');
+  if (/^\/rak(?:\/|$)/.test(path)) return 'racks';
   if (/^\/menus(?:\/|$)/.test(path)) return 'menus';
   if (/^\/barang(?:\/|$)/.test(path)) return 'items';
   if (/^\/kelompok-barang(?:\/|$)/.test(path)) return 'item_groups';
