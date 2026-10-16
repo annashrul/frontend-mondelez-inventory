@@ -23,7 +23,7 @@ function fixedColumnClass(fixed, header = false) {
   );
 }
 
-export default function DataTable({ columns, data, loading = false, onEdit, onDelete, actions, pagination, onPageChange, onLimitChange, pageLoadingDirection, limitLoading, deleteLabel, actionColumnFixed, infiniteScroll }) {
+export default function DataTable({ columns, data, loading = false, onEdit, onDelete, actions, pagination, onPageChange, onLimitChange, pageLoadingDirection, limitLoading, deleteLabel, actionColumnFixed, infiniteScroll, renderMobileCard, renderMobileSkeleton }) {
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [deleting, setDeleting] = useState(false);
   const rowOffset = pagination && !infiniteScroll ? ((pagination.page || 1) - 1) * (pagination.limit || 10) : 0;
@@ -117,7 +117,7 @@ export default function DataTable({ columns, data, loading = false, onEdit, onDe
       </Table>
     </div>
     <div className="space-y-3 md:hidden">
-      {loading ? Array.from({ length: skeletonRows }).map((_, index) => (
+      {loading ? renderMobileSkeleton ? renderMobileSkeleton(skeletonRows) : Array.from({ length: skeletonRows }).map((_, index) => (
         <article key={`mobile-skeleton-${index}`} className="rounded-2xl border bg-card p-4 shadow-sm">
           <div className="mb-4 flex items-center justify-between">
             <Skeleton className="h-6 w-12 rounded-full" />
@@ -133,14 +133,14 @@ export default function DataTable({ columns, data, loading = false, onEdit, onDe
             ))}
           </div>
         </article>
-      )) : data.length === 0 ? <div className="flex min-h-40 flex-col items-center justify-center gap-2 rounded-2xl border bg-card text-muted-foreground"><Inbox className="h-10 w-10" /><p className="text-sm">{t("Belum ada data")}</p></div> : data.map((row, index) => <article key={row.id || index} className="rounded-2xl border bg-card p-4 shadow-sm"><div className="mb-3 flex items-center justify-between"><span className="rounded-full bg-primary/10 px-2.5 py-1 text-xs font-semibold text-primary">#{formatNumber(rowOffset + index + 1)}</span></div><dl className="space-y-2.5">{columns.map((col, colIndex) => <div key={col.key} className={colIndex === 0 ? 'pb-1' : 'grid grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)] gap-3'}>{colIndex !== 0 && <dt className="text-xs text-muted-foreground">{t(col.label)}</dt>}<dd className={colIndex === 0 ? 'text-base font-semibold' : 'min-w-0 text-right text-sm font-medium break-words'}>{col.render ? col.render(row[col.key], row) : formatTableValue(col.key, row[col.key])}</dd></div>)}</dl>{renderActions(row, true)}</article>)}
+      )) : data.length === 0 ? <div className="flex min-h-40 flex-col items-center justify-center gap-2 rounded-2xl border bg-card text-muted-foreground"><Inbox className="h-10 w-10" /><p className="text-sm">{t("Belum ada data")}</p></div> : data.map((row, index) => renderMobileCard ? renderMobileCard(row, rowOffset + index, renderActions(row, true)) : <article key={row.id || index} className="rounded-2xl border bg-card p-4 shadow-sm"><div className="mb-3 flex items-center justify-between"><span className="rounded-full bg-primary/10 px-2.5 py-1 text-xs font-semibold text-primary">#{formatNumber(rowOffset + index + 1)}</span></div><dl className="space-y-2.5">{columns.map((col, colIndex) => <div key={col.key} className={colIndex === 0 ? 'pb-1' : 'grid grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)] gap-3'}>{colIndex !== 0 && <dt className="text-xs text-muted-foreground">{t(col.label)}</dt>}<dd className={colIndex === 0 ? 'text-base font-semibold' : 'min-w-0 text-right text-sm font-medium break-words'}>{col.render ? col.render(row[col.key], row) : formatTableValue(col.key, row[col.key])}</dd></div>)}</dl>{renderActions(row, true)}</article>)}
     </div>
     {pagination && !infiniteScroll && (
       <div className="mt-4">
         <Pagination pagination={pagination} onPageChange={onPageChange} onLimitChange={onLimitChange} pageLoadingDirection={pageLoadingDirection} limitLoading={limitLoading} />
       </div>
     )}
-    {infiniteScroll && !loading && <InfiniteScrollFooter {...infiniteScroll} limit={pagination?.limit} count={data.length} />}
+    {infiniteScroll && !loading && <InfiniteScrollFooter {...infiniteScroll} renderSkeleton={renderMobileSkeleton} limit={pagination?.limit} count={data.length} />}
     <DeleteConfirmDialog
       open={Boolean(deleteTarget)}
       onOpenChange={(open) => {
