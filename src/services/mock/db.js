@@ -66,13 +66,13 @@ export const db = {
     { id: 3, tanggal: '2026-09-09', no_ref: 'AMB-003', pemohon: 'Dept. GA', barang_id: 4, rak_id: 4, operator_id: 2, qty: 10, status: 'Disetujui' },
     { id: 4, tanggal: '2026-09-09', no_ref: 'AMB-004', pemohon: 'Dept. IT', barang_id: 3, rak_id: 3, operator_id: 1, qty: 2, status: 'Ditolak' },
   ],
-  log_activity: [
-    { id: 1, waktu: '2026-09-10T14:30:22Z', user_id: 1, aksi: 'Login', modul: 'Auth', detail: 'Login berhasil', ip: '192.168.1.100' },
-    { id: 2, waktu: '2026-09-10T14:25:10Z', user_id: 1, aksi: 'Tambah', modul: 'Master Barang', detail: 'Tambah barang: Kertas A4 70gsm', ip: '192.168.1.100' },
-    { id: 3, waktu: '2026-09-10T13:15:45Z', user_id: 2, aksi: 'Edit', modul: 'Master Barang', detail: 'Update stok: Pulpen Pilot G-2', ip: '192.168.1.102' },
-    { id: 4, waktu: '2026-09-10T12:00:00Z', user_id: 3, aksi: 'Hapus', modul: 'Kelompok Barang', detail: 'Hapus kelompok: Lain-lain', ip: '192.168.1.103' },
-    { id: 5, waktu: '2026-09-10T11:30:00Z', user_id: 2, aksi: 'Tambah', modul: 'Pengambilan', detail: 'Pengambilan AMB-001', ip: '192.168.1.102' },
-    { id: 6, waktu: '2026-09-10T10:00:00Z', user_id: 1, aksi: 'Closing', modul: 'Closing', detail: 'Closing shift pagi', ip: '192.168.1.100' },
+  activity_logs: [
+    { id: 1, occurred_at: '2026-09-10T14:30:22Z', user_id: 1, action: 'Login', module: 'Auth', detail: 'Login berhasil', ip: '192.168.1.100' },
+    { id: 2, occurred_at: '2026-09-10T14:25:10Z', user_id: 1, action: 'Tambah', module: 'Master Barang', detail: 'Tambah barang: Kertas A4 70gsm', ip: '192.168.1.100' },
+    { id: 3, occurred_at: '2026-09-10T13:15:45Z', user_id: 2, action: 'Edit', module: 'Master Barang', detail: 'Update stok: Pulpen Pilot G-2', ip: '192.168.1.102' },
+    { id: 4, occurred_at: '2026-09-10T12:00:00Z', user_id: 3, action: 'Hapus', module: 'Kelompok Barang', detail: 'Hapus kelompok: Lain-lain', ip: '192.168.1.103' },
+    { id: 5, occurred_at: '2026-09-10T11:30:00Z', user_id: 2, action: 'Tambah', module: 'Pengambilan', detail: 'Pengambilan AMB-001', ip: '192.168.1.102' },
+    { id: 6, occurred_at: '2026-09-10T10:00:00Z', user_id: 1, action: 'Closing', module: 'Closing', detail: 'Closing shift pagi', ip: '192.168.1.100' },
   ],
   notification_settings: {
     pengambilan_barang: { level_ids: [1], user_ids: [] },

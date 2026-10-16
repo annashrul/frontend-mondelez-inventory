@@ -396,3 +396,54 @@ test('search relevance requires an item before a positive review and allows nega
   const selected = render(SearchRelevance,{auditId:'audit-1',selected:{id:1}});
   assert.match(selected,/<button(?![^>]*\sdisabled=)[^>]*>Relevant<\/button>/);
 });
+
+test('activity page renders English API field names for timestamp, action and module', () => {
+  setLanguage('id');
+  const limit=settings.getInitialState().settings.items_per_page;
+  const client=new QueryClient({defaultOptions:{queries:{retry:false,staleTime:Infinity,gcTime:Infinity}}});
+  client.setQueryData(['log-activity',{search:'',limit,userId:undefined}],{
+    pages:[{data:[{id:901,occurred_at:'2026-10-16T09:41:32',action:'Gagal Hapus',module:'Master Barang',detail:'English-column audit entry',ip:'::ffff:127.0.0.1',user_detail:{nama:'Operator Audit'}}],pagination:{page:1,limit,total:1,has_next:false,total_pages:1}}],pageParams:[1],
+  });
+  try {
+    const html=renderPage(LogActivity,client,'/log-activity');
+    assert.match(html,/Gagal Hapus/);assert.match(html,/Master Barang/);
+    assert.match(html,/09:41:32/);assert.match(html,/English-column audit entry/);
+    assert.match(html,/Operator Audit/);assert.match(html,/127\.0\.0\.1/);
+    assert.doesNotMatch(html,/Tanggal tidak diketahui|Tidak ada log aktivitas/);
+  } finally {client.clear();}
+});
+
+test('demo transport uses the English item/group wire contract while forms keep their presentation state', async () => {
+  const api=(await server.ssrLoadModule('/src/services/api.js')).default;
+  const mock=(await server.ssrLoadModule('/src/services/mock/mockAdapter.js')).default;
+  const previousStorage=globalThis.localStorage, previousWindow=globalThis.window;
+  globalThis.localStorage={getItem(){return null;},removeItem(){}};
+  globalThis.window={dispatchEvent(){}};
+  try {
+    const group=await api.post('/kelompok-barang',{kode:'MOCK-COLUMN',nama:'Column Demo Group',deskripsi:'Demo description'});
+    assert.equal(group.nama,'Column Demo Group');
+    const sent=JSON.parse(mock.history.post.at(-1).data);
+    assert.equal(sent.name,'Column Demo Group');assert.equal(sent.code,'MOCK-COLUMN');assert.equal(sent.description,'Demo description');assert.ok(!Object.hasOwn(sent,'nama'));
+    for(const [endpoint,form] of [
+      ['/lokasi',{kode:'LOC-DEMO',nama:'Demo Location',alamat:'Demo address',deskripsi:'Detail'}],
+      ['/level-pengguna',{kode:'LVL-DEMO',nama:'Demo Level',deskripsi:'Detail',action_ids:[1]}]
+    ]) {
+      const created=await api.post(endpoint,form);
+      assert.equal(created.nama,form.nama);
+      const payload=JSON.parse(mock.history.post.at(-1).data);
+      assert.equal(payload.code,form.kode);assert.equal(payload.name,form.nama);assert.ok(!Object.hasOwn(payload,'nama'));
+      if(form.alamat){assert.equal(payload.address,form.alamat);assert.equal(created.alamat,form.alamat);}
+      else assert.deepEqual(created.action_ids,[1]);
+    }
+    const menus=await api.get('/menus');
+    assert.ok(menus.length);assert.equal(typeof menus[0].nama,'string');assert.equal(typeof menus[0].grup,'string');
+    assert.equal(typeof menus[0].actions[0].nama,'string');assert.equal(typeof menus[0].actions[0].urutan,'number');
+    assert.equal(menus[0].actions[0].permission,`${menus[0].key}.${menus[0].actions[0].key}`);
+    const list=await api.get('/barang',{params:{search:'Kertas'}});
+    assert.ok(list.data.length);assert.equal(typeof list.data[0].nama,'string');assert.equal(typeof list.data[0].stok,'number');
+  } finally {
+    mock.restore();
+    if(previousStorage===undefined)delete globalThis.localStorage;else globalThis.localStorage=previousStorage;
+    if(previousWindow===undefined)delete globalThis.window;else globalThis.window=previousWindow;
+  }
+});

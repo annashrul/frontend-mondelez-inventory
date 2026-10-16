@@ -77,16 +77,16 @@ export default function LogActivity() {
   }, [fetchNextPage, isFetching, isError, isPlaceholderData, hasNext, logs.length]);
 
   const summary = useMemo(() => {
-    const failed = logs.filter((log) => log.aksi?.toLowerCase().includes('gagal')).length;
-    const destructive = logs.filter((log) => log.aksi?.toLowerCase().includes('hapus')).length;
-    const modules = new Set(logs.map((log) => log.modul).filter(Boolean)).size;
+    const failed = logs.filter((log) => log.action?.toLowerCase().includes('gagal')).length;
+    const destructive = logs.filter((log) => log.action?.toLowerCase().includes('hapus')).length;
+    const modules = new Set(logs.map((log) => log.module).filter(Boolean)).size;
     return { failed, destructive, modules };
   }, [logs]);
 
   const groupedLogs = useMemo(() => {
     const groups = [];
     logs.forEach((log) => {
-      const key = formatDateKey(log.waktu);
+      const key = formatDateKey(log.occurred_at);
       let group = groups.find((item) => item.key === key);
       if (!group) {
         group = { key, label: formatDayDivider(key, locale), items: [] };
@@ -180,7 +180,7 @@ export default function LogActivity() {
                 </div>
                 <div className="space-y-2 sm:space-y-3">
                     {group.items.map((log) => {
-                      const meta = actionMeta(log.aksi);
+                      const meta = actionMeta(log.action);
                       const Icon = meta.icon;
                       return (
                         <article key={log.id} className="overflow-hidden rounded-2xl border bg-background shadow-sm transition-colors hover:bg-muted/20">
@@ -191,12 +191,12 @@ export default function LogActivity() {
                             <div className="min-w-0 space-y-2 sm:space-y-2.5">
                               <div className="flex items-start justify-between gap-2">
                                 <div className="flex min-w-0 flex-wrap items-center gap-1.5">
-                                  <Badge variant={meta.variant} className="text-[11px]">{log.aksi || '-'}</Badge>
-                                  <Badge variant="outline" className="max-w-[46vw] truncate text-[11px]">{log.modul || '-'}</Badge>
+                                  <Badge variant={meta.variant} className="text-[11px]">{log.action || '-'}</Badge>
+                                  <Badge variant="outline" className="max-w-[46vw] truncate text-[11px]">{log.module || '-'}</Badge>
                                 </div>
                                 <div className="inline-flex shrink-0 items-center gap-1 rounded-full bg-muted px-2 py-1 text-[11px] font-medium text-muted-foreground sm:gap-1.5 sm:px-2.5 sm:text-xs">
                                   <Clock3 className="size-3 sm:size-3.5" />
-                                  {formatTime(log.waktu)}
+                                  {formatTime(log.occurred_at)}
                                 </div>
                               </div>
 

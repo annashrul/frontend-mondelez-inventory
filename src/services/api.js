@@ -1,3 +1,4 @@
+import { encodeItemRequest, decodeItemResponse } from '@/lib/itemContract';
 import { queryClient } from '@/lib/queryClient';
 import { invalidateActivityCache, invalidateListCache } from '@/lib/listCache';
 import axios from 'axios';
@@ -35,6 +36,7 @@ const api = axios.create({
 
 api.interceptors.request.use(
   (config) => {
+    config.data = encodeItemRequest(config.url, config.data);
     if (config.data instanceof FormData) delete config.headers['Content-Type'];
     // Inject token if needed
     const token = localStorage.getItem('token');
@@ -62,7 +64,7 @@ api.interceptors.response.use(
     if (isDashboardMutation(response.config?.url, response.config?.method)) {
       window.dispatchEvent(new Event('inventory-dashboard-updated'));
     }
-    return response.data;
+    return decodeItemResponse(response.config?.url, response.data);
   },
   (error) => {
     if (error.response) invalidateActivityCache(queryClient, error.config?.url);

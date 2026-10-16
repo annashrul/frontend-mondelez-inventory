@@ -1,3 +1,4 @@
+import { itemResource, mapContractResponse, fromPublicResource, toPublicResource } from '@/lib/itemContract';
 import { buildDashboardAnalytics, wibDate } from './dashboardAnalytics';
 import { generateInternalBarcode } from '@/lib/barcode';
 import { catalogWithIds } from './menuCatalog';
@@ -8,6 +9,24 @@ import api from '../api';
 import { db } from './db';
 
 const mock = new MockAdapter(api, { delayResponse: 500 });
+for (const verb of ['onGet','onPost','onPut','onDelete']) {
+  const register=mock[verb].bind(mock);
+  mock[verb]=(...args) => {
+    const handler=register(...args), reply=handler.reply.bind(handler);
+    handler.reply=(callback,...rest) => typeof callback !== 'function' ? reply(callback,...rest) : reply(async config => {
+      const resource=itemResource(config.url);
+      let request=config;
+      if (resource && typeof config.data === 'string') {
+        const body=JSON.parse(config.data);
+        request={...config,data:JSON.stringify(fromPublicResource(resource,body))};
+      }
+      const result=await callback(request);
+      if (resource && result[0]<400) result[1]=mapContractResponse(result[1],row => toPublicResource(resource,row));
+      return result;
+    });
+    return handler;
+  };
+}
 
 mock.onGet('/barang/barcode-otomatis').reply(() => {
   for (let attempt = 0; attempt < 20; attempt++) {
@@ -34,14 +53,14 @@ const moduleName = (endpoint) => ({
   shift: 'Closing',
 }[endpoint] || endpoint);
 
-const pushLog = ({ aksi, modul, detail }) => {
+const pushLog = ({ action, module, detail }) => {
   const user = currentUser();
-  db.log_activity.unshift({
+  db.activity_logs.unshift({
     id: Date.now() + Math.floor(Math.random() * 1000),
-    waktu: new Date().toISOString(),
+    occurred_at: new Date().toISOString(),
     user_id: user?.id || null,
-    aksi,
-    modul,
+    action,
+    module,
     detail,
     ip: 'demo-local',
   });
@@ -144,7 +163,7 @@ const hydrateTransaction = (item, operatorField = 'user_detail') => ({
   ...(item.rak_id ? { rak_detail: hydrateRak(db.rak.find((row) => row.id === Number(item.rak_id)) || {}) } : {}),
   [operatorField]: db.pengguna.find((row) => row.id === Number(item[operatorField === 'operator_detail' ? 'operator_id' : 'user_id'])) || null,
 });
-const viewItem = (table, item) => table === 'barang' ? hydrateBarang(item) : table === 'rak' ? hydrateRak(item) : table === 'pengguna' ? hydrateUser(item) : ['adjustment', 'kartu_stok', 'log_activity', 'shift'].includes(table) ? hydrateTransaction(item) : item;
+const viewItem = (table, item) => table === 'barang' ? hydrateBarang(item) : table === 'rak' ? hydrateRak(item) : table === 'pengguna' ? hydrateUser(item) : ['adjustment', 'kartu_stok', 'activity_logs', 'shift'].includes(table) ? hydrateTransaction(item) : item;
 
 const setupCrud = (endpoint, table) => {
   const path = new RegExp(`^/${endpoint}(?:/([0-9]+))?$`);
@@ -186,9 +205,9 @@ const setupCrud = (endpoint, table) => {
         .filter((item) => !search || `${item.no_ref || ''} ${item.keterangan || ''} ${item.barang_detail?.nama || ''} ${item.barang_detail?.kode || ''}`.toLowerCase().includes(search));
       return [200, paginate(results, config.params)];
     }
-    if (search && table === 'log_activity') {
+    if (search && table === 'activity_logs') {
       const results = rows.filter((item) =>
-        `${item.aksi || ''} ${item.modul || ''} ${item.detail || ''}`.toLowerCase().includes(search)
+        `${item.action || ''} ${item.module || ''} ${item.detail || ''}`.toLowerCase().includes(search)
       );
       return [200, paginate(results.map((item) => viewItem(table, item)), config.params)];
     }
@@ -236,7 +255,7 @@ const setupCrud = (endpoint, table) => {
         saldo: barang.stok,
         keterangan: data.alasan.trim(),
       });
-      pushLog({ aksi: 'Adjustment', modul: 'Adjustment Stok', detail: `${no_ref}: ${barang.nama} ${data.tipe.toLowerCase()} ${qty}. Saldo akhir ${barang.stok}` });
+      pushLog({ action: 'Adjustment', module: 'Adjustment Stok', detail: `${no_ref}: ${barang.nama} ${data.tipe.toLowerCase()} ${qty}. Saldo akhir ${barang.stok}` });
       return [201, viewItem(table, newItem)];
     }
     if (table === 'barang' && db.barang.some((item) => item.barcode === data.barcode)) {
@@ -249,7 +268,7 @@ const setupCrud = (endpoint, table) => {
     if (table === 'pengguna' && !db.level_pengguna.some((row) => row.id === Number(data.level_id))) return [422, { message: 'Level pengguna tidak ditemukan' }];
     const newItem = { id: Date.now(), ...data };
     db[table].push(newItem);
-    if (table !== 'log_activity') pushLog({ aksi: 'Tambah', modul: moduleName(endpoint), detail: `Tambah ${moduleName(endpoint).toLowerCase()}: ${newItem.nama || newItem.kode || newItem.no_ref || newItem.shift || newItem.id}` });
+    if (table !== 'activity_logs') pushLog({ action: 'Tambah', module: moduleName(endpoint), detail: `Tambah ${moduleName(endpoint).toLowerCase()}: ${newItem.nama || newItem.kode || newItem.no_ref || newItem.shift || newItem.id}` });
     return [201, viewItem(table, newItem)];
   });
 
@@ -264,7 +283,7 @@ const setupCrud = (endpoint, table) => {
           return [409, { message: 'Barcode sudah digunakan' }];
         }
         db[table][index] = { ...db[table][index], ...data };
-        if (table !== 'log_activity') pushLog({ aksi: 'Edit', modul: moduleName(endpoint), detail: `Edit ${moduleName(endpoint).toLowerCase()}: ${db[table][index].nama || db[table][index].kode || db[table][index].no_ref || db[table][index].shift || id}` });
+        if (table !== 'activity_logs') pushLog({ action: 'Edit', module: moduleName(endpoint), detail: `Edit ${moduleName(endpoint).toLowerCase()}: ${db[table][index].nama || db[table][index].kode || db[table][index].no_ref || db[table][index].shift || id}` });
         return [200, viewItem(table, db[table][index])];
       }
     }
@@ -283,7 +302,7 @@ const setupCrud = (endpoint, table) => {
       } else {
         db[table] = db[table].filter(i => i.id !== id);
       }
-      if (table !== 'log_activity') pushLog({ aksi: 'Hapus', modul: moduleName(endpoint), detail: `Hapus ${moduleName(endpoint).toLowerCase()}: ${item?.nama || item?.kode || item?.no_ref || item?.shift || id}` });
+      if (table !== 'activity_logs') pushLog({ action: 'Hapus', module: moduleName(endpoint), detail: `Hapus ${moduleName(endpoint).toLowerCase()}: ${item?.nama || item?.kode || item?.no_ref || item?.shift || id}` });
       return [200, { message: 'Berhasil dihapus' }];
     }
     return [400, { message: 'Permintaan tidak valid' }];
@@ -299,7 +318,7 @@ setupCrud('pengguna', 'pengguna');
 setupCrud('level-pengguna', 'level_pengguna');
 setupCrud('adjustment', 'adjustment');
 setupCrud('kartu-stok', 'kartu_stok');
-setupCrud('log-activity', 'log_activity');
+setupCrud('log-activity', 'activity_logs');
 setupCrud('shift', 'shift');
 
 mock.onGet('/dashboard/stats').reply(config => {
@@ -335,7 +354,7 @@ mock.onGet('/pengambilan').reply((config) => {
 mock.onPost('/ai/search-image').reply((config) => {
   const { image } = JSON.parse(config.data);
   if (!image?.startsWith('data:image/')) return [400, { message: 'Foto barang wajib dikirim' }];
-  pushLog({ aksi: 'Cari', modul: 'AI Search Barang', detail: 'Pencarian barang menggunakan gambar' });
+  pushLog({ action: 'Cari', module: 'AI Search Barang', detail: 'Pencarian barang menggunakan gambar' });
   return [200, {
     model: 'demo-catalog-fallback',
     results: db.barang.filter((item) => !item.is_deleted).slice(0, 5).map((item, index) => ({
@@ -351,7 +370,7 @@ mock.onPost('/rak/scan').reply((config) => {
   const barang = db.barang.find((item) => item.id === Number(barang_id) && !item.is_deleted);
   if (!barang) return [404, { message: 'Barang tidak ditemukan' }];
   if (barang.rak_id !== rak.id) return [409, { message: `Rak tidak sesuai. Barang berada di ${hydrateBarang(barang).rak_detail?.nama}` }];
-  pushLog({ aksi: 'Scan', modul: 'Scan QR Rak', detail: `Scan QR valid: ${rak.nama} untuk ${barang.nama}` });
+  pushLog({ action: 'Scan', module: 'Scan QR Rak', detail: `Scan QR valid: ${rak.nama} untuk ${barang.nama}` });
   return [200, { valid: true, rak: hydrateRak(rak), barang: hydrateBarang(barang) }];
 });
 
@@ -362,7 +381,7 @@ mock.onPost('/rak/items').reply((config) => {
   const barang = db.barang
     .filter((item) => Number(item.rak_id) === Number(rak.id) && !item.is_deleted)
     .map(hydrateBarang);
-  pushLog({ aksi: 'Scan', modul: 'Scan QR Rak', detail: `Scan QR rak: ${rak.nama}` });
+  pushLog({ action: 'Scan', module: 'Scan QR Rak', detail: `Scan QR rak: ${rak.nama}` });
   return [200, { valid: true, rak: hydrateRak(rak), barang }];
 });
 
@@ -382,7 +401,7 @@ mock.onPost('/pengambilan/execute').reply((config) => {
   const transaction = { id: Date.now(), tanggal: new Date().toISOString(), no_ref, pemohon: payload.pemohon.trim(), barang_id: barang.id, rak_id: rak.id, operator_id: operator.id, qr_code: rak.qr_code, qty, keterangan: payload.keterangan?.trim() || '', status: 'Disetujui' };
   db.pengambilan.push(transaction);
   db.kartu_stok.unshift({ id: Date.now() + 1, tanggal: new Date().toISOString(), tipe: 'Keluar', no_ref, barang_id: barang.id, user_id: operator.id, qty, saldo: barang.stok, keterangan: `Diambil oleh ${transaction.pemohon} dari ${rak.nama}` });
-  db.log_activity.unshift({ id: Date.now() + 2, waktu: new Date().toISOString(), user_id: operator.id, aksi: 'Pengambilan', modul: 'Pengambilan Barang', detail: `${no_ref}: ${barang.nama} ${qty} ${hydrateBarang(barang).satuan_detail?.nama}; pengambil ${transaction.pemohon}; QR ${rak.qr_code}`, ip: 'demo-local' });
+  db.activity_logs.unshift({ id: Date.now() + 2, occurred_at: new Date().toISOString(), user_id: operator.id, action: 'Pengambilan', module: 'Pengambilan Barang', detail: `${no_ref}: ${barang.nama} ${qty} ${hydrateBarang(barang).satuan_detail?.nama}; pengambil ${transaction.pemohon}; QR ${rak.qr_code}`, ip: 'demo-local' });
   pushPengambilanNotification({ transaction, barang: hydrateBarang(barang), operator, stokAkhir: barang.stok });
   return [201, { transaction: hydrateTransaction(transaction, 'operator_detail'), stok_akhir: barang.stok }];
 });
@@ -415,7 +434,7 @@ mock.onPut('/notifications/settings').reply((config) => {
     level_ids: Array.isArray(data.level_ids) ? data.level_ids.map(Number).filter(Boolean) : [],
     user_ids: Array.isArray(data.user_ids) ? data.user_ids.map(Number).filter(Boolean) : [],
   };
-  pushLog({ aksi: 'Edit', modul: 'Pengaturan Notifikasi', detail: 'Edit penerima notifikasi pengambilan barang' });
+  pushLog({ action: 'Edit', module: 'Pengaturan Notifikasi', detail: 'Edit penerima notifikasi pengambilan barang' });
   return [200, db.notification_settings.pengambilan_barang];
 });
 
@@ -461,7 +480,7 @@ mock.onPost('/auth/login').reply((config) => {
   const { username, password } = JSON.parse(config.data);
   const demoUser = db.pengguna.find((item) => item.username === username && item.status === 'Aktif');
   if (demoUser && password === username) {
-    db.log_activity.unshift({ id: Date.now(), waktu: new Date().toISOString(), user_id: demoUser.id, aksi: 'Login', modul: 'Auth', detail: 'Login berhasil', ip: 'demo-local' });
+    db.activity_logs.unshift({ id: Date.now(), occurred_at: new Date().toISOString(), user_id: demoUser.id, action: 'Login', module: 'Auth', detail: 'Login berhasil', ip: 'demo-local' });
     return [200, {
       user: hydrateUser(demoUser),
       token: `mock-jwt-${demoUser.username}`
