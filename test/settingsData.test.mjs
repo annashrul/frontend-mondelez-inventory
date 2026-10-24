@@ -2,11 +2,18 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { QueryClient, QueryObserver, MutationObserver } from '@tanstack/react-query';
+import { create } from 'zustand';
 
 function setup(overrides = {}) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: Infinity }, mutations: { retry: false, gcTime: Infinity } } });
   const requests = [];
   const applied = [];
+  let savedPreferences = JSON.stringify({ bahasa: 'id', tema: 'light' });
+  const storeSource = readFileSync(new URL('../src/stores/settingsStore.js', import.meta.url), 'utf8').replace(/^import .*;\n/gm, '').replaceAll('export ', '');
+  const settingsStore = new Function('create', 'api', 'document', 'localStorage', storeSource + '\nreturn useSettingsStore;')(
+    create, {}, undefined,
+    { getItem: () => savedPreferences, setItem: (_, value) => { savedPreferences = value; } },
+  );
   const settings = { nama_perusahaan: 'Company', tema: 'light', bahasa: 'id' };
   const services = {
     settingsService: {
@@ -37,13 +44,40 @@ function setup(overrides = {}) {
     { get: async path => { requests.push(path); return { data: [{ id: path === '/pengguna' ? 2 : 1 }] }; } },
     response => response.data,
     services.settingsService, services.notificationService,
-    { getState: () => ({ apply: value => applied.push(value) }) },
+    { getState: () => ({
+      ...settingsStore.getState(),
+      apply: value => { applied.push(value); settingsStore.getState().apply(value); },
+    }) },
   );
   const render = tab => { queryOptions.length = 0; return hook(tab, 1); };
   const fetchEnabled = () => Promise.all(queryOptions.filter(option => option.enabled !== false).map(option => client.fetchQuery(option)));
   const cleanup = () => { observers.forEach(observer => observer.destroy()); client.clear(); };
-  return { client, requests, applied, render, fetchEnabled, queryOptions, cleanup };
+  return { client, requests, applied, render, fetchEnabled, queryOptions, cleanup, settingsStore, savedPreferences: () => JSON.parse(savedPreferences) };
 }
+
+test('appearance save overrides old profile preferences only after success and survives runtime refresh', async () => {
+  const env = setup();
+  try {
+    const page = env.render('tampilan');
+    await page.saveMutation.mutateAsync({ section: 'tampilan', payload: { bahasa: 'en', tema: 'dark' } });
+    assert.equal(env.settingsStore.getState().settings.bahasa, 'en');
+    assert.deepEqual(env.savedPreferences(), { bahasa: 'en', tema: 'dark' });
+    env.settingsStore.getState().apply({ bahasa: 'id', tema: 'light' });
+    assert.equal(env.settingsStore.getState().settings.bahasa, 'en');
+    await page.saveMutation.mutateAsync({ section: 'umum', payload: { nama_perusahaan: 'Updated' } });
+    assert.equal(env.settingsStore.getState().settings.bahasa, 'en');
+    await page.saveMutation.mutateAsync({ section: 'tampilan', payload: { bahasa: 'id', tema: 'light' } });
+    assert.equal(env.settingsStore.getState().settings.bahasa, 'id');
+    assert.deepEqual(env.savedPreferences(), { bahasa: 'id', tema: 'light' });
+  } finally { env.cleanup(); }
+
+  const failed = setup({ save: async () => { throw new Error('save failed'); } });
+  try {
+    await assert.rejects(failed.render('tampilan').saveMutation.mutateAsync({ section: 'tampilan', payload: { bahasa: 'en', tema: 'dark' } }), /save failed/);
+    assert.equal(failed.settingsStore.getState().settings.bahasa, 'id');
+    assert.deepEqual(failed.savedPreferences(), { bahasa: 'id', tema: 'light' });
+  } finally { failed.cleanup(); }
+});
 
 test('settings requests are deduplicated and notification/database data load only on their tabs', async () => {
   const env = setup();

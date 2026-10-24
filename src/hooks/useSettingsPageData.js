@@ -52,7 +52,13 @@ export function useSettingsPageData(activeTab, userId) {
     onSuccess: async (value, { section }) => {
       const key = section === 'notifikasi' ? notificationKey : settingsKey;
       queryClient.setQueryData(key, section === 'notifikasi' ? normalizeNotifications(value) : value);
-      if (section !== 'notifikasi') useSettingsStore.getState().apply(value);
+      if (section !== 'notifikasi') {
+        const settingsStore = useSettingsStore.getState();
+        // An explicit appearance save also becomes this browser's preference.
+        // Otherwise an older profile choice would override the saved values.
+        if (section === 'tampilan') settingsStore.setAppearancePreferences(value);
+        settingsStore.apply(value);
+      }
       await queryClient.invalidateQueries({ queryKey: key });
       if (section === 'database') await queryClient.invalidateQueries({ queryKey: databaseKey });
     },
