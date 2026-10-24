@@ -4,7 +4,8 @@ import api from '@/services/api';
 import { translate as t, useTranslation } from '@/lib/i18n';
 import { formatNumber } from '@/lib/numberFormat';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import { DatePicker } from '@/components/ui/date-picker';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
@@ -28,16 +29,34 @@ export default function SearchAuditPanel() {
       to: new Date(new Date(`${to}T00:00:00`).setDate(new Date(`${to}T00:00:00`).getDate()+1)).toISOString(), method,status,page,limit:20,
     } }),
   });
-  const update = setter => event => { setter(event.target.value); setPage(1); };
+  const update = setter => value => { setter(value); setPage(1); };
   const percent = value => value == null ? '—' : `${formatNumber(value)}%`;
   return <section className="space-y-4 rounded-2xl border bg-card p-4 sm:p-6">
     <div className="flex flex-wrap items-center justify-between gap-3"><h2 className="font-semibold">{t('Audit Pencarian')}</h2><Button variant="outline" size="sm" disabled={!valid || query.isFetching} onClick={() => query.refetch()}>{t('Muat ulang')}</Button></div>
     <p className="text-xs leading-5 text-muted-foreground">{t('Akurasi dihitung hanya dari penilaian Sesuai/Tidak sesuai. Hasil ditemukan dan skor kemiripan bukan bukti akurasi. Pencarian tanpa penilaian tidak dihitung sebagai salah.')}</p>
     <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-      <div className="space-y-1"><Label htmlFor="audit-from">{t('Dari tanggal')}</Label><Input id="audit-from" type="date" value={from} onChange={update(setFrom)} /></div>
-      <div className="space-y-1"><Label htmlFor="audit-to">{t('Sampai tanggal')}</Label><Input id="audit-to" type="date" value={to} onChange={update(setTo)} /></div>
-      <div className="space-y-1"><Label htmlFor="audit-method">{t('Metode')}</Label><select id="audit-method" className="h-10 w-full rounded-md border bg-background px-2 text-sm" value={method} onChange={update(setMethod)}><option value="">{t('Semua')}</option>{Object.entries(methods).map(([value,label]) => <option key={value} value={value}>{t(label)}</option>)}</select></div>
-      <div className="space-y-1"><Label htmlFor="audit-status">{t('Status')}</Label><select id="audit-status" className="h-10 w-full rounded-md border bg-background px-2 text-sm" value={status} onChange={update(setStatus)}><option value="">{t('Semua')}</option>{Object.entries(statuses).map(([value,label]) => <option key={value} value={value}>{t(label)}</option>)}</select></div>
+      <div className="space-y-1"><Label htmlFor="audit-from">{t('Dari tanggal')}</Label><DatePicker id="audit-from" value={from} onChange={update(setFrom)} className="h-9" /></div>
+      <div className="space-y-1"><Label htmlFor="audit-to">{t('Sampai tanggal')}</Label><DatePicker id="audit-to" value={to} onChange={update(setTo)} className="h-9" /></div>
+      <div className="space-y-1">
+        <Label htmlFor="audit-method">{t('Metode')}</Label>
+        <Select value={method || 'all'} onValueChange={value => update(setMethod)(value === 'all' ? '' : value)}>
+          <SelectTrigger id="audit-method"><SelectValue>{t(methods[method] || 'Semua')}</SelectValue></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">{t('Semua')}</SelectItem>
+            {Object.entries(methods).map(([value,label]) => <SelectItem key={value} value={value}>{t(label)}</SelectItem>)}
+          </SelectContent>
+        </Select>
+      </div>
+      <div className="space-y-1">
+        <Label htmlFor="audit-status">{t('Status')}</Label>
+        <Select value={status || 'all'} onValueChange={value => update(setStatus)(value === 'all' ? '' : value)}>
+          <SelectTrigger id="audit-status"><SelectValue>{t(statuses[status] || 'Semua')}</SelectValue></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">{t('Semua')}</SelectItem>
+            {Object.entries(statuses).map(([value,label]) => <SelectItem key={value} value={value}>{t(label)}</SelectItem>)}
+          </SelectContent>
+        </Select>
+      </div>
     </div>
     {!valid ? <p role="alert" className="text-sm text-destructive">{t('Rentang audit tidak valid')}</p>
       : query.isPending ? <div role="status" aria-label={t('Memuat audit pencarian')} className="space-y-3"><Skeleton className="h-32 w-full" /><Skeleton className="h-64 w-full" /></div>
