@@ -1,6 +1,8 @@
 import { useSettingsStore } from '@/stores/settingsStore';
 
 export const english = {
+  "Hasil pencarian": "Search results",
+  "Tidak ada hasil pencarian": "No search results",
   "Audit Pencarian": "Search Audit",
   "Kamera": "Camera",
   "Galeri": "Gallery",

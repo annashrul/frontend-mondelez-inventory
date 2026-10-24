@@ -4,11 +4,11 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { translate as translateUi } from '@/lib/i18n';
 import { useTranslation } from '@/lib/i18n';
 import { useEffect, useRef, useState } from 'react';
-import { Bell, CheckCheck, Search } from 'lucide-react';
+import { Bell, CheckCheck } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import dayjs from 'dayjs';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import HeaderSearch from '@/components/HeaderSearch';
 import ProfilePreferences from '@/components/ProfilePreferences';
 import { Separator } from '@/components/ui/separator';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
@@ -60,14 +60,7 @@ export default function Header() {
             <img src={logoUrl} alt={translateUi("Inventaris")} className="h-10 max-w-36 object-contain" />
           </span>
         </div>
-        <div className="relative hidden sm:block">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={16} />
-          <Input
-            type="text"
-            placeholder={translateUi("Cari menu, barang...")}
-            className="pl-9 w-56 h-8 text-sm bg-muted border-0 focus-visible:ring-1"
-          />
-        </div>
+        <HeaderSearch />
       </div>
 
       <div className="flex items-center gap-2">

@@ -29,6 +29,7 @@ let PermissionForm;
 let PageHeader;
 let SearchAuditPanel;
 let SearchRelevance;
+let HeaderSearch;
 before(async () => {
   server = await createServer({
     configFile: false,
@@ -42,6 +43,7 @@ before(async () => {
   });
   ({ PermissionScope, PermissionAction, PermissionForm } = await server.ssrLoadModule('/src/components/PermissionAccess.jsx'));
   PageHeader = (await server.ssrLoadModule('/src/components/PageHeader.jsx')).default;
+  HeaderSearch = (await server.ssrLoadModule('/src/components/HeaderSearch.jsx')).default;
   SearchAuditPanel = (await server.ssrLoadModule('/src/components/SearchAuditPanel.jsx')).default;
   SearchRelevance = (await server.ssrLoadModule('/src/components/SearchRelevance.jsx')).default;
   settings = (await server.ssrLoadModule('/src/stores/settingsStore.js')).useSettingsStore;
@@ -131,6 +133,21 @@ function renderPage(Component, client, url) {
     React.createElement(AuthProvider, null,
       React.createElement(MemoryRouter, { initialEntries: [url] }, React.createElement(Component)))));
 }
+
+test('header search exposes a localized autocomplete input and does not fetch before typing', () => {
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: Infinity } } });
+  try {
+    setLanguage('en');
+    const html = renderPage(HeaderSearch, client, '/');
+    assert.match(html, /role="combobox"/);
+    assert.match(html, /aria-autocomplete="list"/);
+    assert.match(html, /aria-expanded="false"/);
+    assert.match(html, /Search menus, items/);
+    assert.equal(client.isFetching(), 0);
+    setLanguage('id');
+    assert.match(renderPage(HeaderSearch, client, '/'), /Cari menu, barang/);
+  } finally { client.clear(); }
+});
 
 test('test email form is visible only when email notifications are enabled', () => {
   setLanguage('id');
