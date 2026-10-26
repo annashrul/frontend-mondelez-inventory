@@ -104,7 +104,8 @@ export const useNotificationStore = create((set, get) => {
       }
       socket = io(notificationSocketUrl(), {
         auth: { token: localStorage.getItem('token') },
-        transports: ['websocket', 'polling'],
+        // Polling connects through the hosting proxy; upgrade when WebSocket is available.
+        transports: ['polling', 'websocket'],
       });
       let hasConnected = false;
       socket.on('connect', () => {

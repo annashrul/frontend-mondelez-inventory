@@ -47,3 +47,17 @@ dan arahkan rute halaman aplikasi ke `index.html`. Hindari fallback SPA untuk
 ## Aktivitas aplikasi
 
 Aksi di server dicatat oleh audit backend. Untuk aksi yang terjadi di browser atau memakai cache, gunakan `recordUiActivity` dari `src/services/activityEvents.js`: navigasi/tab, preferensi pribadi, cetak QR, pencarian/pagination/filter, percobaan aksi tanpa hak akses, dan permintaan instalasi/pembaruan PWA. Catat hanya metadata yang diperlukan, jangan kirim password, OTP, token, gambar, atau seluruh state form. Perubahan data baru harus menandai cache `log-activity` untuk diperbarui agar hasilnya terlihat saat pengguna membuka riwayat.
+
+
+## Backend VPS melalui IP
+
+Backend publik: `http://45.66.153.148:30024` (NAT ke Nginx port 80).
+Gunakan `VITE_API_URL=/api/v1` dan kosongkan `VITE_SOCKET_URL`.
+Vite development dan rewrite Vercel meneruskan `/api` serta `/socket.io`
+ke VPS. Browser tetap memakai origin frontend, termasuk HTTPS di Vercel.
+Koneksi dari proxy hosting ke VPS saat ini menggunakan HTTP.
+
+Saat deploy di Vercel, ubah environment variable `VITE_API_URL` menjadi
+`/api/v1`, hapus nilai `VITE_SOCKET_URL` jika pernah diisi, lalu redeploy.
+Jangan gunakan URL tunnel lama atau URL HTTP VPS langsung dalam browser HTTPS.
+Socket.IO memulai dengan polling agar dapat melewati proxy hosting.

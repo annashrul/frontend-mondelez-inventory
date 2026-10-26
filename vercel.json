@@ -3,11 +3,11 @@
   "rewrites": [
     {
       "source": "/api/:path*",
-      "destination": "https://backend-mondelez-inventory.onrender.com/api/:path*"
+      "destination": "http://45.66.153.148:30024/api/:path*"
     },
     {
       "source": "/socket.io/:path*",
-      "destination": "https://backend-mondelez-inventory.onrender.com/socket.io/:path*"
+      "destination": "http://45.66.153.148:30024/socket.io/:path*"
     },
     {
       "source": "/(.*)",

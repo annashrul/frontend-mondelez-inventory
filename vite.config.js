@@ -17,5 +17,9 @@ export default defineConfig({
     host: true,
     port: 5173,
     allowedHosts: true,
+    proxy: {
+      '/api': { target: 'http://45.66.153.148:30024', changeOrigin: true },
+      '/socket.io': { target: 'http://45.66.153.148:30024', changeOrigin: true, ws: true },
+    },
   },
 })
